@@ -1,0 +1,101 @@
+{
+  "matchScore": 35,
+  "technicalQuestion": [
+    {
+      "question": "Explain the core differences between Redux and React Context API, and when would you choose one over the other for a large-scale application?",
+      "intention": "The candidate mentioned lacking experience in complex state management. This question tests their theoretical understanding of state tools required by the job description.",
+      "answer": "The candidate should explain that Redux is better for high-frequency updates and provides centralized debugging (Redux DevTools) and middleware support (Sagas/Thunk). Context is better for low-frequency updates like themes or auth. For a large-scale app, Redux is often preferred for predictability and performance optimization through selective re-rendering."
+    },
+    {
+      "question": "How would you implement Server-Side Rendering (SSR) in a Next.js application, and what are the performance benefits?",
+      "intention": "Next.js is a mandatory skill in the JD that is missing from the candidate's resume. This assesses their ability to learn and articulate framework-specific concepts.",
+      "answer": "The candidate should mention 'getServerSideProps' or the App Router's 'Server Components'. Points to cover include improved SEO, faster First Contentful Paint (FCP), and reducing the JavaScript bundle size on the client side."
+    },
+    {
+      "question": "Describe the strategies you would use to optimize the performance of a React application that displays a massive list of data.",
+      "intention": "Performance optimization is a mandatory requirement in the JD.",
+      "answer": "The candidate should discuss 'windowing' or 'virtualization' (using libraries like react-window), 'React.memo' to prevent unnecessary re-renders, 'useCallback' for function stability, and 'lazy loading' for components."
+    }
+  ],
+  "behavioralQuestion": [
+    {
+      "question": "Since this is a Senior role requiring 5 years of experience and you have 2, how do you plan to bridge the gap in architectural decision-making?",
+      "intention": "To see if the candidate is aware of their experience gap and has a growth mindset or a plan for rapid upskilling.",
+      "answer": "The candidate should emphasize their fast learning curve, mention specific projects where they took initiative beyond their level, and express a commitment to deep-diving into system design patterns."
+    },
+    {
+      "question": "Tell me about a time you had to refactor a codebase to improve its maintainability. What was your approach?",
+      "intention": "Tests the candidate's understanding of long-term code quality, which is critical for senior roles.",
+      "answer": "Focus on the STAR method. Mention identifying technical debt, proposing a solution (like modularization or TypeScript integration), and the measurable outcome (e.g., reduced bug reports or faster feature delivery)."
+    }
+  ],
+  "skillGap": [
+    {
+      "skill": "Redux / Complex State Management",
+      "severity": "high"
+    },
+    {
+      "skill": "Next.js Framework",
+      "severity": "high"
+    },
+    {
+      "skill": "TypeScript",
+      "severity": "high"
+    },
+    {
+      "skill": "Frontend System Design",
+      "severity": "high"
+    },
+    {
+      "skill": "Years of Professional Experience",
+      "severity": "medium"
+    }
+  ],
+  "preparationPlan": [
+    {
+      "day": 1,
+      "focus": "Deep Dive into State Management",
+      "tasks": [
+        "Learn Redux Toolkit fundamentals",
+        "Build a small counter app using Redux vs Context API",
+        "Study Redux middleware basics"
+      ]
+    },
+    {
+      "day": 2,
+      "focus": "TypeScript Mastery",
+      "tasks": [
+        "Convert an existing JS project to TypeScript",
+        "Learn Interfaces, Types, Generics, and Union types",
+        "Practice typing React props and hooks"
+      ]
+    },
+    {
+      "day": 3,
+      "focus": "Next.js & Rendering Patterns",
+      "tasks": [
+        "Set up a Next.js App Router project",
+        "Implement SSR and SSG in a demo application",
+        "Understand the difference between Server and Client components"
+      ]
+    },
+    {
+      "day": 4,
+      "focus": "Performance & System Design",
+      "tasks": [
+        "Research React.memo, useMemo, and useCallback",
+        "Study common frontend architectural patterns (Atomic Design, Layered Architecture)",
+        "Practice identifying performance bottlenecks using Chrome DevTools"
+      ]
+    },
+    {
+      "day": 5,
+      "focus": "Mock Interviews & Seniority Mindset",
+      "tasks": [
+        "Review STAR method for behavioral questions",
+        "Practice explaining architectural trade-offs out loud",
+        "Simulate a system design interview for a social media dashboard"
+      ]
+    }
+  ]
+}
