@@ -3,9 +3,11 @@ import {
   generateInterviewReport,
   getInterviewReportById,
   getAllInterviewReports,
+  getResumePdf,
 } from "../services/interview.api.js";
 import { InterviewContext } from "../interview.context";
 import { useParams } from "react-router";
+import { useCallback } from "react";
 
 export const useInterview = () => {
   const { loading, setLoading, report, setReport, reports, setReports } =
@@ -34,41 +36,65 @@ export const useInterview = () => {
     return response;
   };
 
-  const getReportById = async (id) => {
-    setLoading(true);
-    let response = null;
-    try {
-      response = await getInterviewReportById(id);
-      setReport(response);
-    } catch (error) {
-      console.error("Error fetching report by ID:", error);
-    } finally {
-      setLoading(false);
-    }
-    return response;
-  };
+  const getReportById = useCallback(
+    async (id) => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const response = await getInterviewReportById(id);
+        setReport(response.interviewReport);
+      } catch (error) {
+        console.error("Error fetching report:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setReport, setLoading],
+  );
 
-  const getReports = async () => {
+  const getReports = useCallback(async () => {
     setLoading(true);
-    let response = null;
     try {
-      response = await getAllInterviewReports();
-      setReports(response);
+      const response = await getAllInterviewReports();
+      setReports(response.interviewReports);
     } catch (error) {
       console.error("Error fetching all reports:", error);
     } finally {
       setLoading(false);
     }
-    return response;
+  }, [setReports, setLoading]);
+
+  const downloadResumePdf = async (interviewReportId) => {
+    if (!interviewReportId) return;
+    setLoading(true);
+    try {
+      const pdfBlob = await getResumePdf(interviewReportId);
+      const pdfUrl = window.URL.createObjectURL(
+        new Blob([pdfBlob], { type: "application/pdf" }),
+      );
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = `resume-${interviewReportId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(pdfUrl);
+    } catch (error) {
+      console.error("Error downloading resume PDF:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (interviewId) {
+    // 2. Kill the "Ghost": Clear the old report state as soon as the ID changes
+    if (interviewId && report?._id !== interviewId) {
+      setReport(null);
       getReportById(interviewId);
-    } else {
+    } else if (!interviewId) {
       getReports();
     }
-  }, [interviewId]);
+  }, [interviewId, getReportById, getReports, report?._id, setReport]); // Added proper dependencies
 
   return {
     loading,
@@ -77,5 +103,6 @@ export const useInterview = () => {
     generateReport,
     getReportById,
     getReports,
+    getResumePdf: downloadResumePdf,
   };
 };

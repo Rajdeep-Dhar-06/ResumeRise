@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import "../style/home.scss";
+import LoadingScreen from "../../../components/LoadingScreen.jsx";
 import { useInterview } from "../hooks/useInterview.jsx";
 import { useNavigate } from "react-router";
 
@@ -7,26 +8,92 @@ const Home = () => {
   const { loading, generateReport, reports } = useInterview();
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
+  const [toast, setToast] = useState(null);
+  const [fileName, setFileName] = useState("");
   const resumeInputRef = useRef();
 
   const navigate = useNavigate();
 
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setFileName(file.name);
+    setToast({
+      type: "success",
+      message: `Resume selected: ${file.name}`,
+    });
+
+    window.setTimeout(() => {
+      setToast(null);
+    }, 2800);
+  };
+
   const handleGenerateReport = async () => {
     const resumeFile = resumeInputRef.current.files[0];
-    const data = await generateReport({
-      jobDescription,
-      selfDescription,
-      resumeFile,
-    });
-    navigate(`/interview/${data._id}`);
+
+    if (!resumeFile) {
+      setToast({
+        type: "error",
+        message:
+          "Please upload a resume file before generating your interview plan.",
+      });
+      window.setTimeout(() => {
+        setToast(null);
+      }, 2800);
+      return;
+    }
+
+    if (!jobDescription.trim()) {
+      setToast({
+        type: "error",
+        message: "Please paste the target job description before generating.",
+      });
+      window.setTimeout(() => {
+        setToast(null);
+      }, 2800);
+      return;
+    }
+
+    try {
+      const data = await generateReport({
+        jobDescription,
+        selfDescription,
+        resumeFile,
+      });
+
+      if (!data || !data.interviewReport?._id) {
+        throw new Error("Unable to upload resume and generate report.");
+      }
+
+      setToast({
+        type: "success",
+        message: "Resume uploaded successfully.",
+      });
+
+      window.setTimeout(() => {
+        setToast(null);
+        navigate(`/interview/${data.interviewReport._id}`);
+      }, 700);
+    } catch (error) {
+      setToast({
+        type: "error",
+        message:
+          error?.response?.data?.error ||
+          error.message ||
+          "Resume upload failed. Please try again.",
+      });
+      window.setTimeout(() => {
+        setToast(null);
+      }, 4200);
+    }
   };
 
   if (loading) {
-    return (
-      <main className="loading-screen">
-        <h1>Loading your interview plan...</h1>
-      </main>
-    );
+    return <LoadingScreen message="Loading your interview plan…" />;
   }
 
   return (
@@ -41,6 +108,12 @@ const Home = () => {
           build a winning strategy.
         </p>
       </header>
+
+      {toast && (
+        <div className={`toast toast--${toast.type}`}>
+          <p>{toast.message}</p>
+        </div>
+      )}
 
       {/* Main Card */}
       <div className="interview-card">
@@ -138,7 +211,13 @@ const Home = () => {
                   id="resume"
                   name="resume"
                   accept=".pdf,.docx"
+                  onChange={handleFileChange}
                 />
+                {fileName && (
+                  <p className="dropzone__filename">
+                    Uploaded file: {fileName}
+                  </p>
+                )}
               </label>
             </div>
 
@@ -206,7 +285,11 @@ const Home = () => {
           <span className="footer-info">
             AI-Powered Strategy Generation &bull; Approx 30s
           </span>
-          <button onClick={handleGenerateReport} className="generate-btn">
+          <button
+            onClick={handleGenerateReport}
+            className="generate-btn"
+            disabled={loading}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: "http://localhost:5000",
   withCredentials: true,
 });
 
@@ -13,11 +13,15 @@ export const generateInterviewReport = async ({
   selfDescription,
   resumeFile,
 }) => {
+  if (!resumeFile) {
+    throw new Error("Resume file is required.");
+  }
+
   try {
     const formData = new FormData(); // FormData to handle file upload
     formData.append("jobDescription", jobDescription);
     formData.append("selfDescription", selfDescription);
-    formData.append("resumeFile", resumeFile);
+    formData.append("resume", resumeFile);
 
     const response = await api.post("/api/interview", formData, {
       headers: {
@@ -27,6 +31,7 @@ export const generateInterviewReport = async ({
     return response.data;
   } catch (error) {
     console.error("Error generating interview report:", error);
+    throw error;
   }
 };
 
@@ -51,5 +56,24 @@ export const getAllInterviewReports = async () => {
     return response.data;
   } catch (error) {
     console.error("Error fetching all interview reports:", error);
+  }
+};
+
+/**
+ * @description Download the resume PDF for a saved interview report.
+ */
+export const getResumePdf = async (interviewId) => {
+  try {
+    const response = await api.post(
+      `/api/interview/resume/pdf/${interviewId}`,
+      {},
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error downloading resume PDF:", error);
+    throw error;
   }
 };

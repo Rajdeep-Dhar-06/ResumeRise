@@ -1,5 +1,7 @@
 import { useNavigate, Link } from "react-router";
-import { useAuth } from "../hooks/useAuth.jsx";import { useState } from "react";
+import { useAuth } from "../hooks/useAuth.jsx";
+import { useState } from "react";
+import LoadingScreen from "../../../components/LoadingScreen.jsx";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ const Register = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingScreen message="Creating your account…" />;
   }
 
   return (

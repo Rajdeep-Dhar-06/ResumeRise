@@ -1,52 +1,67 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
-import { generateInterviewReport, generateResumePdf } from '../services/ai.service.js';
+import {
+  generateInterviewReport,
+  generateResumePdf,
+} from '../services/ai.service.js';
 import InterviewReportModel from '../models/interviewReport.model.js';
 
 /**
  * @description Controller to generate an interview report
  */
 async function generateInterviewReportController(req, res) {
+  console.log('=========================================');
+  console.log('🚀 ENDPOINT HIT! WE ARE INSIDE THE CONTROLLER!');
+  console.log('=========================================');
   const resumeFile = req.file;
   if (!resumeFile) {
     return res.status(400).json({ error: 'Resume PDF file is required.' });
   }
+
   const { selfDescription, jobDescription } = req.body;
   if (!jobDescription) {
     return res.status(400).json({ error: 'Job description is required.' });
   }
 
-  const resumeContent = await new pdfParse.PDFParse(
-    Uint8Array.from(resumeFile.buffer)
-  ).getText();
-
   try {
+    // 1. Parse the PDF
+    const resumeContent = await new pdfParse.PDFParse(
+      Uint8Array.from(resumeFile.buffer)
+    ).getText();
+
+    const resumeText = resumeContent.text || ''; // ✅ Extracts just the string
+
+    // 2. Generate the AI Report (Pass resumeContent directly)
     const report = await generateInterviewReport({
-      resume: resumeContent.text,
+      resume: resumeText, // ✅ FIXED
       selfDescription,
       jobDescription,
     });
-    // console.log('RAW AI OUTPUT:', report);
+
+    // 3. Save to Database (Pass resumeContent directly)
     const interviewReport = await InterviewReportModel.create({
       user: req.user.id,
       jobDescription,
-      resume: resumeContent.text,
+      title: 'My Interview Plan',
+      resume: resumeText, // ✅ FIXED
       selfDescription,
-
       matchScore: report.matchScore,
-      technicalQuestions: report.technicalQuestion,
-      behavioralQuestions: report.behavioralQuestion,
-      skillGaps: report.skillGap,
+      technicalQuestions: report.technicalQuestions,
+      behavioralQuestions: report.behavioralQuestions,
+      skillGaps: report.skillGaps,
       preparationPlan: report.preparationPlan,
     });
+
     res.status(201).json({
       message: 'Interview Report Generated Successfully!',
       interviewReport,
     });
   } catch (error) {
     console.error('Error generating interview report:', error);
-    res.status(500).json({ error: 'Failed to generate interview report' });
+    res.status(500).json({
+      error: error?.message || 'Failed to generate interview report',
+    });
   }
 }
 

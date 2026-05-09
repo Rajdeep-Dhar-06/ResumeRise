@@ -13,7 +13,7 @@ const interviewReportSchema = z.object({
     .describe(
       "A score between 0 and 100 indicating how well the candidate's resume and self-description match the job description, with 100 being a perfect match."
     ),
-  technicalQuestion: z
+  technicalQuestions: z
     .array(
       z.object({
         question: z
@@ -36,7 +36,7 @@ const interviewReportSchema = z.object({
     .describe(
       'A list of technical questions that can be asked during the interview, along with the intention behind asking each question and the ideal answer that the candidate should provide.'
     ),
-  behavioralQuestion: z
+  behavioralQuestions: z
     .array(
       z.object({
         question: z
@@ -59,7 +59,7 @@ const interviewReportSchema = z.object({
     .describe(
       'A list of behavioral questions that can be asked during the interview, along with the intention behind asking each question and the ideal answer that the candidate should provide.'
     ),
-  skillGap: z
+  skillGaps: z
     .array(
       z.object({
         skill: z

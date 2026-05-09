@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../style/interview.scss";
 import { useInterview } from "../hooks/useInterview.jsx";
 import { useParams } from "react-router";
+import LoadingScreen from "../../../components/LoadingScreen.jsx";
 
 const NAV_ITEMS = [
   {
@@ -140,12 +141,10 @@ const Interview = () => {
   }, [getReportById, interviewId]);
 
   if (loading || !report) {
-    return (
-      <main className="loading-screen">
-        <h1>Loading your interview plan...</h1>
-      </main>
-    );
+    return <LoadingScreen message="Loading your interview plan…" />;
   }
+
+  // console.log(report);
 
   const scoreColor =
     report.matchScore >= 80

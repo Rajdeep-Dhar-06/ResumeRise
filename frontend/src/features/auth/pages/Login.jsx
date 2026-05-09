@@ -1,4 +1,5 @@
 import "../auth.form.scss";
+import LoadingScreen from "../../../components/LoadingScreen.jsx";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useState } from "react";
@@ -16,7 +17,7 @@ const Login = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingScreen message="Logging in…" />;
   }
 
   return (
