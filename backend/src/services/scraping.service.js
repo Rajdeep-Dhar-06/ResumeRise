@@ -41,8 +41,11 @@ export async function scrapeJobDescription(url) {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
 
-    // Navigate to page, wait until network is mostly idle
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    // Navigate to page, wait for HTML to load with a higher timeout
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    
+    // Wait an additional 4 seconds to allow client-side React/Angular apps to render their text
+    await new Promise(resolve => setTimeout(resolve, 4000));
 
     // Extract raw text, discarding layout noise
     const rawText = await page.evaluate(() => {
