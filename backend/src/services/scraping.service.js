@@ -36,6 +36,17 @@ export async function scrapeJobDescription(url) {
 
     const page = await browser.newPage();
 
+    // OPTIMIZATION: Block unnecessary resources to massively speed up scraping
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
     // Set a realistic User-Agent to avoid simple bot blocks
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
