@@ -4,10 +4,13 @@ import {
   getInterviewReportById,
   getAllInterviewReports,
   getResumePdf,
+  scrapeJobDescriptionUrl,
 } from "../services/interview.api.js";
 import { InterviewContext } from "../interview.context";
 import { useParams } from "react-router";
 import { useCallback } from "react";
+
+import toast from "react-hot-toast";
 
 export const useInterview = () => {
   const { loading, setLoading, report, setReport, reports, setReports } =
@@ -18,6 +21,9 @@ export const useInterview = () => {
     jobDescription,
     selfDescription,
     resumeFile,
+    jobDescriptionUrl,
+    scrapedSkills,
+    scrapedRequirements,
   }) => {
     setLoading(true);
     let response = null;
@@ -26,6 +32,9 @@ export const useInterview = () => {
         jobDescription,
         selfDescription,
         resumeFile,
+        jobDescriptionUrl,
+        scrapedSkills,
+        scrapedRequirements,
       });
       setReport(response.interviewReport);
     } catch (error) {
@@ -67,6 +76,7 @@ export const useInterview = () => {
   const downloadResumePdf = async (interviewReportId) => {
     if (!interviewReportId) return;
     setLoading(true);
+    const toastId = toast.loading("Generating and downloading PDF resume...");
     try {
       const pdfBlob = await getResumePdf(interviewReportId);
       const pdfUrl = window.URL.createObjectURL(
@@ -79,8 +89,10 @@ export const useInterview = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(pdfUrl);
+      toast.success("Resume PDF downloaded!", { id: toastId });
     } catch (error) {
       console.error("Error downloading resume PDF:", error);
+      toast.error("Failed to generate resume PDF. Please try again.", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -104,5 +116,6 @@ export const useInterview = () => {
     getReportById,
     getReports,
     getResumePdf: downloadResumePdf,
+    scrapeJobDescriptionUrl,
   };
 };
