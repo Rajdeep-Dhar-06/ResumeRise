@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ── Roadmap timeline (pseudo-elements can't be done with utilities) ──────── */
+.roadmap-timeline::before {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, rgb(99 102 241), rgb(99 102 241 / 0.1));
+  border-radius: 1px;
+}
+
+.roadmap-dot::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 1.05rem;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: rgb(15 23 42);
+  border: 2px solid rgb(99 102 241);
+}
+
+/* ── OR divider pseudo-elements ───────────────────────────────────────────── */
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: rgb(51 65 85);
+}
