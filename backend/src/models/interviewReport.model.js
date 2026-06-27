@@ -79,15 +79,41 @@ const preparationPlanSchema = new mongoose.Schema(
   }
 );
 
+const scrapedTermSchema = new mongoose.Schema(
+  {
+    term: {
+      type: String,
+      required: true,
+    },
+    matched: {
+      type: Boolean,
+      required: true,
+    },
+    reason: {
+      type: String,
+      default: '',
+    },
+    matchStrength: {
+      type: Number,
+      min: 0,
+      max: 1,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
 const interviewReportSchema = new mongoose.Schema(
   {
     jobDescription: {
-      type: String,
-      required: [true, 'Job description is required'],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'JobDescription',
+      required: [true, 'Job description reference is required'],
     },
-    resume: {
-      type: String,
-    },
+    scrapedSkills: [scrapedTermSchema],
+    scrapedRequirements: [scrapedTermSchema],
+    resume: { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' },
     selfDescription: {
       type: String,
     },
@@ -113,9 +139,6 @@ const interviewReportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const InterviewReportModel = mongoose.model(
-  'InterviewReport',
-  interviewReportSchema
-);
+const InterviewReportModel = mongoose.model('InterviewReport', interviewReportSchema);
 
 export default InterviewReportModel;
