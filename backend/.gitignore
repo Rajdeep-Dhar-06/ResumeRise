@@ -2,3 +2,7 @@ node_modules
 .env
 .DS_Store
 dist
+cookies.txt
+login.json
+test_resume.pdf
+*.local
