@@ -1,9 +1,9 @@
-import axios from "axios";
+import api from "../../../lib/api.js";
 
-const api = axios.create({
-  baseURL: "http://localhost:5000",
-  withCredentials: true,
-});
+/**
+ * Auth API Services
+ * Handles communication with the backend authentication endpoints.
+ */
 
 export async function register({ username, email, password }) {
   try {
@@ -14,7 +14,8 @@ export async function register({ username, email, password }) {
     });
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.error("Register API error:", error);
+    throw error; // Rethrow to let the UI hook display toast
   }
 }
 
@@ -26,7 +27,8 @@ export async function login({ email, password }) {
     });
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.error("Login API error:", error);
+    throw error; // Rethrow to let the UI hook display toast
   }
 }
 
@@ -35,7 +37,8 @@ export async function logout() {
     const response = await api.get("/api/auth/logout");
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.error("Logout API error:", error);
+    throw error; // Rethrow to let the UI hook display toast
   }
 }
 
@@ -44,6 +47,7 @@ export async function getMe() {
     const response = await api.get("/api/auth/get-me");
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.error("GetMe API error:", error);
+    throw error; // Rethrow
   }
 }

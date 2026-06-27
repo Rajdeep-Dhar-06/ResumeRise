@@ -1,109 +1,66 @@
 import React, { useState, useEffect } from "react";
-import "../style/interview.scss";
 import { useInterview } from "../hooks/useInterview.jsx";
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import LoadingScreen from "../../../components/LoadingScreen.jsx";
+import { Code, MessageSquare, Compass, ChevronDown, Download, ArrowLeft } from "lucide-react";
 
+// Navigation items definition
 const NAV_ITEMS = [
   {
     id: "technical",
     label: "Technical Questions",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="16 18 22 12 16 6" />
-        <polyline points="8 6 2 12 8 18" />
-      </svg>
-    ),
+    icon: <Code size={16} />,
   },
   {
     id: "behavioral",
     label: "Behavioral Questions",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
+    icon: <MessageSquare size={16} />,
   },
   {
     id: "roadmap",
     label: "Road Map",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polygon points="3 11 22 2 13 21 11 13 3 11" />
-      </svg>
-    ),
+    icon: <Compass size={16} />,
   },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// Question Card Component
 const QuestionCard = ({ item, index }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="q-card">
-      <div className="q-card__header" onClick={() => setOpen((o) => !o)}>
-        <span className="q-card__index">Q{index + 1}</span>
-        <p className="q-card__question">{item.question}</p>
+    <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-slate-600 transition-colors">
+      <div
+        className="flex items-start gap-4 px-6 py-4 cursor-pointer select-none"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="flex-shrink-0 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-1 mt-0.5">
+          Q{index + 1}
+        </span>
+        <p className="flex-1 text-base font-medium text-slate-200 leading-relaxed">
+          {item.question}
+        </p>
         <span
-          className={`q-card__chevron ${open ? "q-card__chevron--open" : ""}`}
+          className={`flex-shrink-0 text-slate-500 mt-1 transition-transform ${open ? "rotate-180 text-indigo-400" : ""}`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <ChevronDown size={20} />
         </span>
       </div>
       {open && (
-        <div className="q-card__body">
-          <div className="q-card__section">
-            <span className="q-card__tag q-card__tag--intention">
+        <div className="px-6 pb-6 flex flex-col gap-5 border-t border-slate-700 pt-5 bg-slate-800/50">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2.5 py-1 w-fit">
               Intention
             </span>
-            <p>{item.intention}</p>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              {item.intention}
+            </p>
           </div>
-          <div className="q-card__section">
-            <span className="q-card__tag q-card__tag--answer">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2.5 py-1 w-fit">
               Model Answer
             </span>
-            <p>{item.answer}</p>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {item.answer}
+            </p>
           </div>
         </div>
       )}
@@ -111,16 +68,19 @@ const QuestionCard = ({ item, index }) => {
   );
 };
 
+// Roadmap Day Component
 const RoadMapDay = ({ day }) => (
-  <div className="roadmap-day">
-    <div className="roadmap-day__header">
-      <span className="roadmap-day__badge">Day {day.day}</span>
-      <h3 className="roadmap-day__focus">{day.focus}</h3>
+  <div className="roadmap-dot flex flex-col gap-2 py-3 pl-14 relative">
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+        Day {day.day}
+      </span>
+      <h3 className="text-base font-semibold text-slate-200">{day.focus}</h3>
     </div>
-    <ul className="roadmap-day__tasks">
+    <ul className="flex flex-col gap-1 list-none p-0 m-0">
       {day.tasks.map((task, i) => (
-        <li key={i}>
-          <span className="roadmap-day__bullet" />
+        <li key={i} className="flex items-start gap-2 text-sm text-slate-400 leading-relaxed">
+          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-slate-500 mt-2" />
           {task}
         </li>
       ))}
@@ -128,11 +88,12 @@ const RoadMapDay = ({ day }) => (
   </div>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// Main Interview Component
 const Interview = () => {
   const [activeNav, setActiveNav] = useState("technical");
   const { report, getReportById, loading, getResumePdf } = useInterview();
   const { interviewId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (interviewId) {
@@ -144,65 +105,81 @@ const Interview = () => {
     return <LoadingScreen message="Loading your interview plan…" />;
   }
 
-  // console.log(report);
-
+  // Border score styling
   const scoreColor =
     report.matchScore >= 80
-      ? "score--high"
+      ? "border-emerald-400"
       : report.matchScore >= 60
-        ? "score--mid"
-        : "score--low";
+        ? "border-amber-400"
+        : "border-red-400";
+
+  // Text score styling
+  const scoreTextColor =
+    report.matchScore >= 80
+      ? "text-emerald-400"
+      : report.matchScore >= 60
+        ? "text-amber-400"
+        : "text-red-400";
 
   return (
-    <div className="interview-page">
-      <div className="interview-layout">
-        {/* ── Left Nav ── */}
-        <nav className="interview-nav">
-          <div className="nav-content">
-            <p className="interview-nav__label">Sections</p>
+    <div className="w-full min-h-screen bg-slate-950 text-slate-200 flex items-stretch ">
+      <div className="flex w-full mx-auto bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+
+        {/* Left Navigation Panel */}
+        <nav className="w-64 flex-shrink-0 p-8 flex flex-col justify-between border-r border-slate-800">
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 mb-6 text-sm font-semibold text-slate-400 hover:text-slate-100 bg-slate-800/40 hover:bg-slate-800 border border-slate-850 hover:border-slate-700 rounded-lg transition-all"
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Generator</span>
+            </button>
+
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">
+              Sections
+            </p>
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                className={`interview-nav__item ${activeNav === item.id ? "interview-nav__item--active" : ""}`}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-left transition-colors ${activeNav === item.id
+                    ? "bg-indigo-500/10 text-indigo-400"
+                    : "text-slate-500 hover:bg-slate-800 hover:text-slate-200"
+                  }`}
                 onClick={() => setActiveNav(item.id)}
               >
-                <span className="interview-nav__icon">{item.icon}</span>
+                <span className="flex items-center flex-shrink-0">
+                  {item.icon}
+                </span>
                 {item.label}
               </button>
             ))}
           </div>
-          <button
+          {/* <button
             onClick={() => {
               getResumePdf(interviewId);
             }}
-            className="button primary-button"
+            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-lg transition-colors"
           >
-            <svg
-              height={"0.8rem"}
-              style={{ marginRight: "0.8rem" }}
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M10.6144 17.7956 11.492 15.7854C12.2731 13.9966 13.6789 12.5726 15.4325 11.7942L17.8482 10.7219C18.6162 10.381 18.6162 9.26368 17.8482 8.92277L15.5079 7.88394C13.7092 7.08552 12.2782 5.60881 11.5105 3.75894L10.6215 1.61673C10.2916.821765 9.19319.821767 8.8633 1.61673L7.97427 3.75892C7.20657 5.60881 5.77553 7.08552 3.97685 7.88394L1.63658 8.92277C.868537 9.26368.868536 10.381 1.63658 10.7219L4.0523 11.7942C5.80589 12.5726 7.21171 13.9966 7.99275 15.7854L8.8704 17.7956C9.20776 18.5682 10.277 18.5682 10.6144 17.7956ZM19.4014 22.6899 19.6482 22.1242C20.0882 21.1156 20.8807 20.3125 21.8695 19.8732L22.6299 19.5353C23.0412 19.3526 23.0412 18.7549 22.6299 18.5722L21.9121 18.2532C20.8978 17.8026 20.0911 16.9698 19.6586 15.9269L19.4052 15.3156C19.2285 14.8896 18.6395 14.8896 18.4628 15.3156L18.2094 15.9269C17.777 16.9698 16.9703 17.8026 15.956 18.2532L15.2381 18.5722C14.8269 18.7549 14.8269 19.3526 15.2381 19.5353L15.9985 19.8732C16.9874 20.3125 17.7798 21.1156 18.2198 22.1242L18.4667 22.6899C18.6473 23.104 19.2207 23.104 19.4014 22.6899Z"></path>
-            </svg>
+            <Download size={14} />
             Download Resume
-          </button>
+          </button> */}
         </nav>
 
-        <div className="interview-divider" />
+        {/* Center Main Report Content */}
+        <main className="flex-1 p-8 lg:p-10 overflow-y-auto max-h-screen pb-20">
 
-        {/* ── Center Content ── */}
-        <main className="interview-content">
           {activeNav === "technical" && (
-            <section>
-              <div className="content-header">
-                <h2>Technical Questions</h2>
-                <span className="content-header__count">
+            <section className="min-h-full">
+              <div className="flex items-baseline gap-3 mb-6 pb-4 border-b border-slate-800">
+                <h2 className="text-lg font-bold text-slate-200">
+                  Technical Questions
+                </h2>
+                <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
                   {report.technicalQuestions.length} questions
                 </span>
               </div>
-              <div className="q-list">
+              <div className="flex flex-col gap-3">
                 {report.technicalQuestions.map((q, i) => (
                   <QuestionCard key={i} item={q} index={i} />
                 ))}
@@ -211,14 +188,16 @@ const Interview = () => {
           )}
 
           {activeNav === "behavioral" && (
-            <section>
-              <div className="content-header">
-                <h2>Behavioral Questions</h2>
-                <span className="content-header__count">
+            <section className="min-h-full">
+              <div className="flex items-baseline gap-3 mb-6 pb-4 border-b border-slate-800">
+                <h2 className="text-lg font-bold text-slate-200">
+                  Behavioral Questions
+                </h2>
+                <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
                   {report.behavioralQuestions.length} questions
                 </span>
               </div>
-              <div className="q-list">
+              <div className="flex flex-col gap-3">
                 {report.behavioralQuestions.map((q, i) => (
                   <QuestionCard key={i} item={q} index={i} />
                 ))}
@@ -227,14 +206,16 @@ const Interview = () => {
           )}
 
           {activeNav === "roadmap" && (
-            <section>
-              <div className="content-header">
-                <h2>Preparation Road Map</h2>
-                <span className="content-header__count">
+            <section className="min-h-full">
+              <div className="flex items-baseline gap-3 mb-6 pb-4 border-b border-slate-800">
+                <h2 className="text-lg font-bold text-slate-200">
+                  Preparation Road Map
+                </h2>
+                <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
                   {report.preparationPlan.length}-day plan
                 </span>
               </div>
-              <div className="roadmap-list">
+              <div className="roadmap-timeline flex flex-col relative">
                 {report.preparationPlan.map((day) => (
                   <RoadMapDay key={day.day} day={day} />
                 ))}
@@ -243,30 +224,47 @@ const Interview = () => {
           )}
         </main>
 
-        <div className="interview-divider" />
-
-        {/* ── Right Sidebar ── */}
-        <aside className="interview-sidebar">
-          {/* Match Score */}
-          <div className="match-score">
-            <p className="match-score__label">Match Score</p>
-            <div className={`match-score__ring ${scoreColor}`}>
-              <span className="match-score__value">{report.matchScore}</span>
-              <span className="match-score__pct">%</span>
+        {/* Right Sidebar Details */}
+        <aside className="w-72 flex-shrink-0 p-8 flex flex-col gap-6 border-l border-slate-800">
+          {/* Match Score Gauge */}
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 self-start">
+              Match Score
+            </p>
+            <div
+              className={`w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 ${scoreColor}`}
+            >
+              <span className="text-2xl font-extrabold text-slate-200 leading-none">
+                {report.matchScore}
+              </span>
+              <span className="text-xs text-slate-500">%</span>
             </div>
-            <p className="match-score__sub">Strong match for this role</p>
+            <p className={`text-xs text-center ${scoreTextColor}`}>
+              {report.matchScore >= 80
+                ? "Strong match for this role"
+                : report.matchScore >= 60
+                  ? "Moderate match"
+                  : "Needs improvement"}
+            </p>
           </div>
 
-          <div className="sidebar-divider" />
+          <div className="h-px bg-slate-800" />
 
           {/* Skill Gaps */}
-          <div className="skill-gaps">
-            <p className="skill-gaps__label">Skill Gaps</p>
-            <div className="skill-gaps__list">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Skill Gaps
+            </p>
+            <div className="flex flex-wrap gap-2">
               {report.skillGaps.map((gap, i) => (
                 <span
                   key={i}
-                  className={`skill-tag skill-tag--${gap.severity}`}
+                  className={`text-xs font-medium px-3 py-1 rounded-md border ${gap.severity === "high"
+                      ? "text-red-400 bg-red-500/10 border-red-500/20"
+                      : gap.severity === "medium"
+                        ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                        : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                    }`}
                 >
                   {gap.skill}
                 </span>

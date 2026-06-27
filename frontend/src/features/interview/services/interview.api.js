@@ -1,9 +1,4 @@
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:5000",
-  withCredentials: true,
-});
+import api from "../../../lib/api.js";
 
 /**
  * @description Generate an interview report.
@@ -12,6 +7,9 @@ export const generateInterviewReport = async ({
   jobDescription,
   selfDescription,
   resumeFile,
+  jobDescriptionUrl,
+  scrapedSkills,
+  scrapedRequirements,
 }) => {
   if (!resumeFile) {
     throw new Error("Resume file is required.");
@@ -20,8 +18,17 @@ export const generateInterviewReport = async ({
   try {
     const formData = new FormData(); // FormData to handle file upload
     formData.append("jobDescription", jobDescription);
-    formData.append("selfDescription", selfDescription);
+    formData.append("selfDescription", selfDescription || "");
     formData.append("resume", resumeFile);
+    if (jobDescriptionUrl) {
+      formData.append("jobDescriptionUrl", jobDescriptionUrl);
+    }
+    if (scrapedSkills) {
+      formData.append("scrapedSkills", JSON.stringify(scrapedSkills));
+    }
+    if (scrapedRequirements) {
+      formData.append("scrapedRequirements", JSON.stringify(scrapedRequirements));
+    }
 
     const response = await api.post("/api/interview", formData, {
       headers: {
@@ -34,6 +41,23 @@ export const generateInterviewReport = async ({
     throw error;
   }
 };
+
+/**
+ * @description Scrape a job description page from a URL.
+ */
+export const scrapeJobDescriptionUrl = async (url) => {
+  if (!url) {
+    throw new Error("URL is required.");
+  }
+  try {
+    const response = await api.post("/api/interview/scrape-jd", { url });
+    return response.data;
+  } catch (error) {
+    console.error("Error scraping job description URL:", error);
+    throw error;
+  }
+};
+
 
 /**
  * @description Get an interview report by ID.
