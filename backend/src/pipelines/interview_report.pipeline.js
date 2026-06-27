@@ -4,10 +4,10 @@ const pdfParse = require('pdf-parse');
 
 import { generateInterviewReport, matchTermsAgainstResume } from '../services/report.service.js';
 import { fetchOrCreateJobDescription } from '../services/scraping.service.js';
-import InterviewReportModel from '../models/interviewReport.model.js';
+import InterviewReportModel from '../models/interview_report.model.js';
 import resumeModel from '../models/resume.model.js';
-import { BadRequestError } from '../utils/errorHandler.js';
-import { compactText } from '../utils/textCompact.js';
+import { BadRequestError } from '../utils/error_handler.js';
+import { compactText } from '../utils/text_compact.js';
 
 // Parse and save resume to DB or reuse if existing.
 export async function parseAndSaveResumeStep(ctx) {

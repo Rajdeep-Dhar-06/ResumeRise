@@ -1,14 +1,14 @@
 import express from 'express';
-import authUser from '../middlewares/jwtAuth.middleware.js';
+import authUser from '../middlewares/jwt_auth.middleware.js';
 import {
   generateInterviewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
   generateResumePdfController,
   scrapeJobDescriptionController
-} from '../controllers/interviewReport.controller.js';
-import upload from '../middlewares/resumeUpload.middleware.js';
-import { validate } from '../middlewares/schemaValidation.middleware.js';
+} from '../controllers/interview_report.controller.js';
+import upload from '../middlewares/resume_upload.middleware.js';
+import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
 
 const interviewRouter = express.Router();

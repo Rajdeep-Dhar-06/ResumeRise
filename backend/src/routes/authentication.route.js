@@ -5,7 +5,7 @@ import {
   logoutUserController,
   getMeController,
 } from '../controllers/authentication.controller.js';
-import authUser from '../middlewares/jwtAuth.middleware.js';
+import authUser from '../middlewares/jwt_auth.middleware.js';
 
 const authRouter = express.Router();
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { errorMiddleware } from '../middlewares/error.middleware.js';
-import BaseError, { NotFoundError, BadRequestError } from '../utils/errorHandler.js';
+import BaseError, { NotFoundError, BadRequestError } from '../utils/error_handler.js';
 
 test('Error Middleware - handles standard Error by defaulting to 500 status code', () => {
   const err = new Error('Test standard error');

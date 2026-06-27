@@ -1,9 +1,9 @@
 import puppeteer from 'puppeteer';
 import ai from '../config/gemini.js';
 import { AI_MODEL, TEMPERATURE_MEDIUM } from '../config/constants.js';
-import { resumePdfSchema } from '../schemas/resumePdf.schema.js';
+import { resumePdfSchema } from '../schemas/resume_pdf.schema.js';
 import { timeAsyncCall } from '../utils/logger.js';
-import { generateResponse } from '../utils/modelFallback.js';
+import { generateResponse } from '../utils/model_fallback.js';
 
 
 

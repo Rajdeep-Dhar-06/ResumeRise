@@ -2,8 +2,8 @@ import userModel from '../models/user.model.js';
 import blackListTokenModel from '../models/blacklist.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import BaseError, { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errorHandler.js';
+import { asyncHandler } from '../utils/async_handler.js';
+import BaseError, { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/error_handler.js';
 
 /**
  * @route POST /api/auth/register

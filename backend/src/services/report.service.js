@@ -5,11 +5,11 @@ import {
   reportTechQuestionsSchema,
   reportBehavioralQuestionsSchema,
   reportGapsAndPlanSchema
-} from '../schemas/interviewReport.schema.js';
-import { skillsMatchSchema, requirementsMatchSchema } from '../schemas/matchedTerm.schema.js';
+} from '../schemas/interview_report.schema.js';
+import { skillsMatchSchema, requirementsMatchSchema } from '../schemas/matched_term.schema.js';
 import { timeAsyncCall } from '../utils/logger.js';
-import { generateResponse } from '../utils/modelFallback.js';
-import { computeMatchScore } from '../utils/scoreCalculator.js';
+import { generateResponse } from '../utils/model_fallback.js';
+import { computeMatchScore } from '../utils/score_calculator.js';
 
 /**
  * Generates a structured interview report comparing the candidate's details

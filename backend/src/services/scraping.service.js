@@ -1,11 +1,11 @@
 import puppeteer from 'puppeteer';
 import ai from '../config/gemini.js';
 import { AI_MODEL, TEMPERATURE_LOW } from '../config/constants.js';
-import { jobDetailsSchema } from '../schemas/jobDescription.schema.js';
-import JobDescriptionModel from '../models/jobDescription.model.js';
+import { jobDetailsSchema } from '../schemas/job_description.schema.js';
+import JobDescriptionModel from '../models/job_description.model.js';
 import { timeAsyncCall } from '../utils/logger.js';
-import { generateResponse } from '../utils/modelFallback.js';
-import { compactText } from '../utils/textCompact.js';
+import { generateResponse } from '../utils/model_fallback.js';
+import { compactText } from '../utils/text_compact.js';
 
 
 

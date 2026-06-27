@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import blackListTokenModel from '../models/blacklist.model.js';
 import userModel from '../models/user.model.js';
-import { UnauthorizedError } from '../utils/errorHandler.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { UnauthorizedError } from '../utils/error_handler.js';
+import { asyncHandler } from '../utils/async_handler.js';
 
 const authUser = asyncHandler(async (req, res, next) => {
   if (process.env.DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {

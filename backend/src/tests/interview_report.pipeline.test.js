@@ -8,11 +8,11 @@ import {
   fetchOrScrapeJobDescriptionStep,
   generateAiAnalysisStep,
   saveInterviewReportStep
-} from '../pipelines/interviewReport.pipeline.js';
+} from '../pipelines/interview_report.pipeline.js';
 
 // Import dependencies to mock
-import InterviewReportModel from '../models/interviewReport.model.js';
-import JobDescriptionModel from '../models/jobDescription.model.js';
+import InterviewReportModel from '../models/interview_report.model.js';
+import JobDescriptionModel from '../models/job_description.model.js';
 import resumeModel from '../models/resume.model.js';
 
 test('1. Pipeline Runner - Context Passing & Execution Order', async () => {

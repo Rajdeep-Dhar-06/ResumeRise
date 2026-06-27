@@ -1,4 +1,4 @@
-import BaseError from '../utils/errorHandler.js';
+import BaseError from '../utils/error_handler.js';
 
 /**
  * Centered error handling middleware for Express.

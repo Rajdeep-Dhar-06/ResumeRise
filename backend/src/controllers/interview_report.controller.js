@@ -1,9 +1,9 @@
 import { generateResumePdf } from '../services/resume.service.js';
 import { fetchOrCreateJobDescription } from '../services/scraping.service.js';
-import InterviewReportModel from '../models/interviewReport.model.js';
-import { runInterviewReportPipeline } from '../pipelines/interviewReport.pipeline.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { BadRequestError, NotFoundError } from '../utils/errorHandler.js';
+import InterviewReportModel from '../models/interview_report.model.js';
+import { runInterviewReportPipeline } from '../pipelines/interview_report.pipeline.js';
+import { asyncHandler } from '../utils/async_handler.js';
+import { BadRequestError, NotFoundError } from '../utils/error_handler.js';
 
 /**
  * @description Controller to generate an interview report

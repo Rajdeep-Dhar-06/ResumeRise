@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRouter from './routes/authentication.route.js';
-import interviewRouter from './routes/interviewReport.route.js';
+import interviewRouter from './routes/interview_report.route.js';
 import errorMiddleware from './middlewares/error.middleware.js';
 
 const app = express();
