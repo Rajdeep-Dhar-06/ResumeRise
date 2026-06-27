@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import ai from '../config/gemini.js';
 import { AI_MODEL, TEMPERATURE_LOW } from '../config/constants.js';
 import { jobDetailsSchema } from '../schemas/job_description.schema.js';
@@ -20,66 +21,44 @@ export async function scrapeJobDescription(url) {
     throw new Error('URL is required for scraping.');
   }
 
-  console.log(`[Scraping Service] Initiating scrape for URL: ${url}`);
-
-  let browser = null;
+  console.log(`[Scraping Service] Initiating lightweight scrape for URL: ${url}`);
 
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-      ],
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      timeout: 20000 // 20 seconds timeout
     });
 
-    const page = await browser.newPage();
+    const $ = cheerio.load(data);
 
-    // OPTIMIZATION: Block unnecessary resources to massively speed up scraping
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      const resourceType = request.resourceType();
-      if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
-        request.abort();
-      } else {
-        request.continue();
-      }
-    });
+    // Remove layout noise and unnecessary scripts
+    const selectorsToRemove = [
+      'script',
+      'style',
+      'nav',
+      'footer',
+      'header',
+      'iframe',
+      'noscript',
+      'svg',
+      'meta',
+      'link'
+    ];
+    selectorsToRemove.forEach((sel) => $(sel).remove());
 
-    // Set a realistic User-Agent to avoid simple bot blocks
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    // Navigate to page, wait for HTML to load with a higher timeout
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    
-    // Wait an additional 4 seconds to allow client-side React/Angular apps to render their text
-    await new Promise(resolve => setTimeout(resolve, 4000));
-
-    // Extract raw text, discarding layout noise
-    const rawText = await page.evaluate(() => {
-      const selectorsToRemove = [
-        'script',
-        'style',
-        'nav',
-        'footer',
-        'header',
-        'iframe',
-        'noscript',
-        'svg',
-      ];
-      selectorsToRemove.forEach((sel) => {
-        document.querySelectorAll(sel).forEach((el) => el.remove());
-      });
-      return document.body.innerText || '';
-    });
-
+    // Extract text from the body
+    const rawText = $('body').text() || '';
     const cleanedText = rawText.replace(/\s+/g, ' ').trim();
 
-    if (!cleanedText) {
-      throw new Error('No content could be extracted from this URL.');
+    if (!cleanedText || cleanedText.length < 50) {
+      console.warn(`[Scraping Service] Warning: Extracted text is extremely short (${cleanedText.length} chars). Site might be client-side rendered (SPA).`);
+      if (cleanedText.length === 0) {
+         throw new Error('No content could be extracted from this URL (site may require Javascript rendering).');
+      }
     }
 
     console.log(`[Scraping Service] Scraped ${cleanedText.length} characters successfully.`);
@@ -87,10 +66,6 @@ export async function scrapeJobDescription(url) {
   } catch (error) {
     console.error(`[Scraping Service] Error scraping URL: ${url}`, error);
     throw new Error(`Failed to retrieve job description from URL. details: ${error.message}`);
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 }
 

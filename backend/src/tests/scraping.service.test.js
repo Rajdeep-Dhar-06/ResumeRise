@@ -1,7 +1,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert';
 import { scrapeJobDescription } from '../services/scraping.service.js';
-import puppeteer from 'puppeteer';
+import axios from 'axios';
 
 test('Scraping Service - Throws error when URL is missing', async () => {
   await assert.rejects(
@@ -12,14 +12,14 @@ test('Scraping Service - Throws error when URL is missing', async () => {
   );
 });
 
-test('Scraping Service - Handles browser failure gracefully', async (t) => {
-  // Mock puppeteer launch to throw an error
-  const mockLaunch = mock.method(puppeteer, 'launch', async () => {
-    throw new Error('Chromium crash simulation');
+test('Scraping Service - Handles browser/network failure gracefully', async (t) => {
+  // Mock axios get to throw an error
+  const mockGet = mock.method(axios, 'get', async () => {
+    throw new Error('Network timeout simulation');
   });
 
   t.after(() => {
-    mockLaunch.mock.restore();
+    mockGet.mock.restore();
   });
 
   await assert.rejects(
