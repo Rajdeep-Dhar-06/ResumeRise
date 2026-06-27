@@ -4,8 +4,8 @@ import {
   loginUserController,
   logoutUserController,
   getMeController,
-} from '../controllers/auth.controller.js';
-import authUser from '../middlewares/auth.middleware.js';
+} from '../controllers/authentication.controller.js';
+import authUser from '../middlewares/jwtAuth.middleware.js';
 
 const authRouter = express.Router();
 
