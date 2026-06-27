@@ -6,3 +6,4 @@ cookies.txt
 login.json
 test_resume.pdf
 *.local
+.cache
