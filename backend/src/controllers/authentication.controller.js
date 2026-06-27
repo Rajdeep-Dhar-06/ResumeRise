@@ -34,7 +34,12 @@ const registerUserController = asyncHandler(async (req, res) => {
       expiresIn: '1d',
     }
   );
-  res.cookie('token', token, { httpOnly: true, secure: false }); // TODO: Change to true before deploying!
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('token', token, { 
+    httpOnly: true, 
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
   res.status(201).json({
     message: 'User registered successfully',
     user: {
@@ -74,7 +79,12 @@ const loginUserController = asyncHandler(async (req, res) => {
       expiresIn: '1d',
     }
   );
-  res.cookie('token', token, { httpOnly: true, secure: false }); // TODO: Change to true before deploying!
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('token', token, { 
+    httpOnly: true, 
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
   res.status(200).json({
     message: 'User logged in successfully',
     user: {
@@ -98,7 +108,12 @@ const logoutUserController = asyncHandler(async (req, res) => {
   }
 
   await blackListTokenModel.create({ token });
-  res.clearCookie('token');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
   res.status(200).json({ message: 'User logged out successfully' });
 });
 
