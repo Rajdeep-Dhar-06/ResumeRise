@@ -1,11 +1,11 @@
 import express from 'express';
 import authUser from '../middlewares/jwt_auth.middleware.js';
 import {
+  parseResumeController,
+  parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
-  getAllInterviewReportsController,
-  generateResumePdfController,
-  scrapeJobDescriptionController
+  getAllInterviewReportsController
 } from '../controllers/interview_report.controller.js';
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
@@ -14,25 +14,23 @@ import { z } from 'zod';
 const interviewRouter = express.Router();
 
 // Validation schemas
-const generateReportSchema = {
+const parseJobDescriptionSchema = {
   body: z.object({
     jobDescriptionUrl: z
       .string({ required_error: 'Job description URL is required.' })
       .trim()
       .url('Invalid URL format.'),
-    selfDescription: z.string().trim().default(''),
-    jobDescription: z.string().trim().optional(),
-    scrapedSkills: z.union([z.array(z.any()), z.string()]).optional(),
-    scrapedRequirements: z.union([z.array(z.any()), z.string()]).optional(),
   }),
 };
 
-const scrapeJdSchema = {
+const generateReportSchema = {
   body: z.object({
-    url: z
-      .string({ required_error: 'URL is required.' })
-      .trim()
-      .url('Invalid URL format.'),
+    resumeId: z
+      .string({ required_error: 'Resume ID is required.' })
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid resume ID format.'),
+    jobDescriptionId: z
+      .string({ required_error: 'Job description ID is required.' })
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid job description ID format.'),
   }),
 };
 
@@ -44,23 +42,38 @@ const interviewIdParamsSchema = {
   }),
 };
 
-const interviewReportIdParamsSchema = {
-  params: z.object({
-    interviewReportId: z
-      .string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid report ID format'),
-  }),
-};
-
 /**
- * @route POST /api/interview/
- * @description Generate an interview report for a candidate
+ * @route POST /api/interview/parseResume
+ * @description Upload and parse the candidate's resume
  * @access private
  */
 interviewRouter.post(
-  '/',
+  '/parseResume',
   authUser,
   upload.single('resume'),
+  parseResumeController
+);
+
+/**
+ * @route POST /api/interview/parseJobDescription
+ * @description Scrape and parse the job description from a URL using LangChain and LLM
+ * @access private
+ */
+interviewRouter.post(
+  '/parseJobDescription',
+  authUser,
+  validate(parseJobDescriptionSchema),
+  parseJobDescriptionController
+);
+
+/**
+ * @route POST /api/interview/generateReport
+ * @description Generate an interview report from pre-parsed resume and job description
+ * @access private
+ */
+interviewRouter.post(
+  '/generateReport',
+  authUser,
   validate(generateReportSchema),
   generateInterviewReportController
 );
@@ -84,30 +97,4 @@ interviewRouter.get(
  */
 interviewRouter.get('/', authUser, getAllInterviewReportsController);
 
-/**
- * @route POST /api/interview/resume/pdf/:interviewReportId
- * @description Generate resume pdf on the basis of user self description, resume content and job description.
- * @access private
- */
-interviewRouter.post(
-  '/resume/pdf/:interviewReportId',
-  authUser,
-  validate(interviewReportIdParamsSchema),
-  generateResumePdfController
-);
-
-/**
- * @route POST /api/interview/scrape-jd
- * @description Scrape and parse a job description webpage
- * @access private
- */
-interviewRouter.post(
-  '/scrape-jd',
-  authUser,
-  validate(scrapeJdSchema),
-  scrapeJobDescriptionController
-);
-
 export default interviewRouter;
-
-
