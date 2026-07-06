@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
-import { AuthContext } from "../auth.context.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
 import { login, logout, register, getMe } from "../services/auth.api.js";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -46,43 +46,15 @@ export const useAuth = () => {
     const toastId = toast.loading("Logging out...");
     try {
       await logout();
+    } catch (error) {
+      console.error("Logout failed on backend:", error);
+    } finally {
       setUser(null);
+      setLoading(false);
       toast.success("Logged out successfully.", { id: toastId });
-      return true;
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Logout failed. Please try again.", { id: toastId });
-      return false;
-    } finally {
-      setLoading(false);
     }
+    return true;
   };
-
-  const handleGetMe = async () => {
-    setLoading(true);
-    try {
-      const data = await getMe();
-      setUser(data.user);
-    } catch (error) {
-      console.error("GetMe failed:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const getAndSetUser = async () => {
-      try {
-        const userData = await getMe();
-        setUser(userData);
-      } catch (error) {
-        console.error("GetMe failed:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getAndSetUser();
-  }, [setLoading, setUser]);
 
   return {
     user,
@@ -90,6 +62,5 @@ export const useAuth = () => {
     handleLogin,
     handleRegister,
     handleLogout,
-    handleGetMe,
   };
 };

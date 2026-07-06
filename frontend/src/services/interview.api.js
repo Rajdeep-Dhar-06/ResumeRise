@@ -1,59 +1,67 @@
-import api from "../../../lib/api.js";
+import api from "../lib/api.js";
 
 /**
- * @description Generate an interview report.
+ * @description Upload and parse a candidate's resume PDF.
  */
-export const generateInterviewReport = async ({
-  jobDescription,
-  selfDescription,
-  resumeFile,
-  jobDescriptionUrl,
-  scrapedSkills,
-  scrapedRequirements,
-}) => {
+export const parseResume = async (resumeFile) => {
   if (!resumeFile) {
     throw new Error("Resume file is required.");
   }
 
   try {
-    const formData = new FormData(); // FormData to handle file upload
-    formData.append("jobDescription", jobDescription);
-    formData.append("selfDescription", selfDescription || "");
+    const formData = new FormData();
     formData.append("resume", resumeFile);
-    if (jobDescriptionUrl) {
-      formData.append("jobDescriptionUrl", jobDescriptionUrl);
-    }
-    if (scrapedSkills) {
-      formData.append("scrapedSkills", JSON.stringify(scrapedSkills));
-    }
-    if (scrapedRequirements) {
-      formData.append("scrapedRequirements", JSON.stringify(scrapedRequirements));
-    }
 
-    const response = await api.post("/api/interview", formData, {
+    const response = await api.post("/api/interview/parseResume", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
   } catch (error) {
-    console.error("Error generating interview report:", error);
+    console.error("Error parsing resume:", error);
     throw error;
   }
 };
 
 /**
- * @description Scrape a job description page from a URL.
+ * @description Scrape and extract skills/requirements from a job posting URL.
  */
-export const scrapeJobDescriptionUrl = async (url) => {
-  if (!url) {
-    throw new Error("URL is required.");
+export const parseJobDescription = async (jobDescriptionUrl) => {
+  if (!jobDescriptionUrl) {
+    throw new Error("Job description URL is required.");
   }
+
   try {
-    const response = await api.post("/api/interview/scrape-jd", { url });
+    const response = await api.post("/api/interview/parseJobDescription", {
+      jobDescriptionUrl,
+    });
     return response.data;
   } catch (error) {
-    console.error("Error scraping job description URL:", error);
+    console.error("Error parsing job description:", error);
+    throw error;
+  }
+};
+
+/**
+ * @description Generate an interview report from pre-parsed resume and job description.
+ */
+export const generateInterviewReport = async ({
+  resumeId,
+  jobDescriptionId,
+}) => {
+  if (!resumeId || !jobDescriptionId) {
+    throw new Error("Both resumeId and jobDescriptionId are required.");
+  }
+
+  try {
+    const response = await api.post("/api/interview/generateReport", {
+      resumeId,
+      jobDescriptionId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error generating interview report:", error);
     throw error;
   }
 };
@@ -80,24 +88,5 @@ export const getAllInterviewReports = async () => {
     return response.data;
   } catch (error) {
     console.error("Error fetching all interview reports:", error);
-  }
-};
-
-/**
- * @description Download the resume PDF for a saved interview report.
- */
-export const getResumePdf = async (interviewId) => {
-  try {
-    const response = await api.post(
-      `/api/interview/resume/pdf/${interviewId}`,
-      {},
-      {
-        responseType: "blob",
-      },
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error downloading resume PDF:", error);
-    throw error;
   }
 };
