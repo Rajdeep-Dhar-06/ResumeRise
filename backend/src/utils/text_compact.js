@@ -1,3 +1,5 @@
+import { convert } from 'html-to-text';
+
 const ZERO_WIDTH_AND_CONTROL = /[\u200B-\u200D\uFEFF\u0000-\u001F\u007F]/g;
 const DECORATIVE_DIVIDERS = /^[\s]*[─═━▬•·\-_=]{3,}[\s]*$/gm;
 const REPEATED_BLANK_LINES = /\n{3,}/g;
@@ -24,13 +26,37 @@ function removeDuplicateConsecutiveLines(text) {
 }
 
 export function compactText(text, { extraNoise = [], maxLines = null } = {}) {
-    let out = text
+    if (!text) return '';
+
+    // If the input is HTML, convert it to clean structured text first
+    let cleanText = text;
+    if (/<[a-z][\s\S]*>/i.test(text)) {
+        cleanText = convert(text, {
+            wordwrap: false,
+            selectors: [
+                { selector: 'nav', format: 'skip' },
+                { selector: 'footer', format: 'skip' },
+                { selector: 'header', format: 'skip' },
+                { selector: 'script', format: 'skip' },
+                { selector: 'style', format: 'skip' },
+                { selector: 'a', options: { ignoreHref: true } }
+            ]
+        });
+    }
+
+    let out = cleanText
         .replace(ZERO_WIDTH_AND_CONTROL, '')
         .replace(DECORATIVE_DIVIDERS, '');
 
-    for (const pattern of [...GENERIC_NOISE, ...extraNoise]) {
-        out = out.replace(new RegExp(pattern.source, 'gi'), '');
-    }
+    const allPatterns = [...GENERIC_NOISE, ...extraNoise];
+    out = out.split('\n')
+        .filter(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return true; // keep blank lines for spacing logic
+            const isNoise = allPatterns.some(pattern => pattern.test(trimmed));
+            return !isNoise;
+        })
+        .join('\n');
 
     out = removeDuplicateConsecutiveLines(out)
         .replace(REPEATED_BLANK_LINES, '\n\n')

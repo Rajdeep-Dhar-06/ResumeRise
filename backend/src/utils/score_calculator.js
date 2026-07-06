@@ -6,10 +6,11 @@ const PRIORITY_WEIGHT = {
 
 const COMPLEXITY_MULTIPLIER = {
     PRODUCTION: 1.0,
-    ADVANCED: 0.85,
-    INTERMEDIATE: 0.70,
-    BASIC: 0.50,
-    TRIVIAL: 0.25,
+    ADVANCED: 0.98,
+    INTERMEDIATE: 0.90,
+    BASIC: 0.80,
+    TRIVIAL: 0.65,
+    'N/A': 1.0,
 };
 
 export function computeMatchScore(matchedSkills, matchedRequirements) {
@@ -28,7 +29,7 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
             const complexityMult = COMPLEXITY_MULTIPLIER[term.complexity] ?? 1.0;
             termScore = 1.0 * complexityMult;
         } else if (term.status === 'WEAK_MATCH') {
-            termScore = term.matchStrength ?? 0.25;
+            termScore = term.matchStrength ?? 0.50;
         } else {
             termScore = 0.0;
         }
@@ -39,16 +40,12 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
 
     let score = Math.round((weightedScore / totalWeight) * 100);
 
-    const hasCriticalGap = allTerms.some(
-        t => t.status === 'MISSING' && t.complexity === 'CRITICAL'
-    );
     const missingRequiredCount = allTerms.filter(
         t => t.status === 'MISSING' && t.priority === 'REQUIRED'
     ).length;
 
-    if (hasCriticalGap) score = Math.min(score, 85);
     if (missingRequiredCount >= 3) score = Math.min(score, 70);
-    if (missingRequiredCount >= 1) score = Math.min(score, 80);
+    else if (missingRequiredCount >= 1) score = Math.min(score, 80);
 
     return Math.max(0, Math.min(100, score));
 }
