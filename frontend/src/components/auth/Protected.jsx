@@ -1,4 +1,4 @@
-import { useAuth } from "../hooks/useAuth.jsx";
+import { useAuth } from "../../hooks/useAuth.js";
 import { Navigate } from "react-router";
 
 const Protected = ({ children }) => {
@@ -6,9 +6,11 @@ const Protected = ({ children }) => {
 
   if (loading) {
     return (
-      <main className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-200">
-        <p className="text-lg text-slate-400">Loading...</p>
-      </main>
+      // <main className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-200">
+      // </main>
+      <>
+      
+      </>
     );
   }
 
