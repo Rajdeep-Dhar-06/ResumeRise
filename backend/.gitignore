@@ -7,3 +7,7 @@ login.json
 test_resume.pdf
 *.local
 .cache
+
+# Internal — not for public repo
+src/tests/
+src/old_code/
