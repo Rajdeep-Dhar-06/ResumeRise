@@ -3,42 +3,33 @@ import {
   generateInterviewReport,
   getInterviewReportById,
   getAllInterviewReports,
-  getResumePdf,
-  scrapeJobDescriptionUrl,
 } from "../services/interview.api.js";
-import { InterviewContext } from "../interview.context";
+import { InterviewContext } from "../context/InterviewContext.jsx";
+import { useAuth } from "./useAuth.js";
 import { useParams } from "react-router";
 import { useCallback } from "react";
-
-import toast from "react-hot-toast";
 
 export const useInterview = () => {
   const { loading, setLoading, report, setReport, reports, setReports } =
     useContext(InterviewContext);
+  const { user } = useAuth();
   const { interviewId } = useParams();
 
   const generateReport = async ({
-    jobDescription,
-    selfDescription,
-    resumeFile,
-    jobDescriptionUrl,
-    scrapedSkills,
-    scrapedRequirements,
+    resumeId,
+    jobDescriptionId,
   }) => {
     setLoading(true);
     let response = null;
     try {
       response = await generateInterviewReport({
-        jobDescription,
-        selfDescription,
-        resumeFile,
-        jobDescriptionUrl,
-        scrapedSkills,
-        scrapedRequirements,
+        resumeId,
+        jobDescriptionId,
       });
       setReport(response.interviewReport);
     } catch (error) {
       console.error("Error generating report:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -55,7 +46,7 @@ export const useInterview = () => {
       } catch (error) {
         console.error("Error fetching report:", error);
       } finally {
-        setLoading(false);
+         setLoading(false);
       }
     },
     [setReport, setLoading],
@@ -73,32 +64,8 @@ export const useInterview = () => {
     }
   }, [setReports, setLoading]);
 
-  const downloadResumePdf = async (interviewReportId) => {
-    if (!interviewReportId) return;
-    setLoading(true);
-    const toastId = toast.loading("Generating and downloading PDF resume...");
-    try {
-      const pdfBlob = await getResumePdf(interviewReportId);
-      const pdfUrl = window.URL.createObjectURL(
-        new Blob([pdfBlob], { type: "application/pdf" }),
-      );
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = `resume-${interviewReportId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(pdfUrl);
-      toast.success("Resume PDF downloaded!", { id: toastId });
-    } catch (error) {
-      console.error("Error downloading resume PDF:", error);
-      toast.error("Failed to generate resume PDF. Please try again.", { id: toastId });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    if (!user) return;
     // 2. Kill the "Ghost": Clear the old report state as soon as the ID changes
     if (interviewId && report?._id !== interviewId) {
       setReport(null);
@@ -106,7 +73,7 @@ export const useInterview = () => {
     } else if (!interviewId) {
       getReports();
     }
-  }, [interviewId, getReportById, getReports, report?._id, setReport]); // Added proper dependencies
+  }, [interviewId, getReportById, getReports, report?._id, setReport, user]); // Added proper dependencies
 
   return {
     loading,
@@ -115,7 +82,5 @@ export const useInterview = () => {
     generateReport,
     getReportById,
     getReports,
-    getResumePdf: downloadResumePdf,
-    scrapeJobDescriptionUrl,
   };
 };
