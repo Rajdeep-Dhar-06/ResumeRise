@@ -3,7 +3,7 @@ import blackListTokenModel from '../models/blacklist.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/async_handler.js';
-import BaseError, { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/error_handler.js';
+import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError } from '../utils/error_handler.js';
 
 /**
  * @route POST /api/auth/register
@@ -22,7 +22,7 @@ const registerUserController = asyncHandler(async (req, res) => {
   });
 
   if (doesUserExist) {
-    throw new BaseError('ConflictError', 409, true, 'User already exists');
+    throw new ConflictError('User already exists');
   }
 
   const hash = await bcrypt.hash(password, 10);
@@ -35,8 +35,8 @@ const registerUserController = asyncHandler(async (req, res) => {
     }
   );
   const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('token', token, { 
-    httpOnly: true, 
+  res.cookie('token', token, {
+    httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax'
   });
@@ -62,7 +62,7 @@ const loginUserController = asyncHandler(async (req, res) => {
     throw new BadRequestError('All fields are required');
   }
 
-  const user = await userModel.findOne({ email });
+  const user = await userModel.findOne({ email }).select('+password');
   if (!user) {
     throw new NotFoundError('User not found');
   }
@@ -80,8 +80,8 @@ const loginUserController = asyncHandler(async (req, res) => {
     }
   );
   const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('token', token, { 
-    httpOnly: true, 
+  res.cookie('token', token, {
+    httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax'
   });
@@ -102,13 +102,16 @@ const loginUserController = asyncHandler(async (req, res) => {
  */
 const logoutUserController = asyncHandler(async (req, res) => {
   const token = req.cookies.token;
+  const isProd = process.env.NODE_ENV === 'production';
 
-  if (!token) {
-    throw new BadRequestError('No token provided');
+  if (token) {
+    try {
+      await blackListTokenModel.create({ token });
+    } catch (blacklistErr) {
+      console.warn('[Auth] Blacklist token logging failed:', blacklistErr.message);
+    }
   }
 
-  await blackListTokenModel.create({ token });
-  const isProd = process.env.NODE_ENV === 'production';
   res.clearCookie('token', {
     httpOnly: true,
     secure: isProd,
