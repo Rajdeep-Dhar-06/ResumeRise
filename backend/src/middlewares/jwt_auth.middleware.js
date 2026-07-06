@@ -5,7 +5,7 @@ import { UnauthorizedError } from '../utils/error_handler.js';
 import { asyncHandler } from '../utils/async_handler.js';
 
 const authUser = asyncHandler(async (req, res, next) => {
-  if (process.env.DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
+  if (process.env.DISABLE_AUTH === 'true') {
     let user = await userModel.findOne();
     if (!user) {
       user = await userModel.create({
@@ -21,6 +21,7 @@ const authUser = asyncHandler(async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
+    console.log('[Auth Middleware] Token is missing for request path:', req.originalUrl);
     throw new UnauthorizedError('Token is missing');
   }
 
