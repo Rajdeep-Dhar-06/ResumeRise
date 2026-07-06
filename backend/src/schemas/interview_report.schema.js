@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { SEVERITY_LEVELS } from '../utils/enums.js';
 
-// 1. Schema for Match Score & Title
+// 1. Schema for Title
 export const reportScoreSchema = z.object({
   title: z.string().describe('The title of the interview report'),
 });
@@ -27,6 +28,7 @@ export const reportTechQuestionsSchema = z.object({
           ),
       })
     )
+    .length(5)
     .describe(
       'A list of technical questions that can be asked during the interview, along with the intention behind asking each question and the ideal answer.'
     ),
@@ -54,6 +56,7 @@ export const reportBehavioralQuestionsSchema = z.object({
           ),
       })
     )
+    .length(3)
     .describe(
       'A list of behavioral questions that can be asked during the interview, along with the intention behind asking each question and the ideal answer.'
     ),
@@ -68,7 +71,7 @@ export const reportGapsAndPlanSchema = z.object({
           .string()
           .describe('The skill that is identified as a gap for the candidate'),
         severity: z
-          .enum(['low', 'medium', 'high'])
+          .enum(SEVERITY_LEVELS)
           .describe(
             'The severity of the skill gap for the candidate, indicating how critical it is for the job'
           ),
@@ -98,4 +101,28 @@ export const reportGapsAndPlanSchema = z.object({
     .describe(
       'A list of days in the preparation plan till the interview, along with the focus and tasks for each day.'
     ),
+  learningResources: z
+    .array(
+      z.object({
+        skill: z
+          .string()
+          .describe('The name of the skill/technology gap'),
+        resources: z
+          .array(
+            z.object({
+              title: z
+                .string()
+                .describe('Title of the documentation, course, or tutorial'),
+              url: z
+                .string()
+                .describe('The exact URL link found in the search results'),
+              snippet: z
+                .string()
+                .describe('Brief description of what this resource covers')
+            })
+          )
+          .describe('List of verified tutorials or documentation links')
+      })
+    )
+    .describe('Structured list of web resources grouped by skill gap')
 });

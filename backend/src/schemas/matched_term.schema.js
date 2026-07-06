@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { MATCH_STATUS, COMPLEXITY_LEVELS } from '../utils/enums.js';
 
 export const matchedTermSchema = z.object({
   term: z.string().describe("The skill or requirement being evaluated"),
 
-  status: z.enum(["MATCHED", "WEAK_MATCH", "MISSING"]).describe(
+  status: z.enum(MATCH_STATUS).describe(
     "MATCHED: skill is directly evidenced in real work/project experience with context. " +
     "WEAK_MATCH: skill appears only in a skills/tools list with zero supporting project or work evidence, " +
     "OR the only evidence is a trivial/tutorial-level project. " +
@@ -19,7 +20,7 @@ export const matchedTermSchema = z.object({
     "Call out if the evidence is a tutorial clone, a toy project, boilerplate, or surface-level usage."
   ),
 
-  complexity: z.enum(["TRIVIAL", "BASIC", "INTERMEDIATE", "ADVANCED", "PRODUCTION", "N/A"]).describe(
+  complexity: z.enum(COMPLEXITY_LEVELS).describe(
     "Rate the complexity of the evidence project/experience. " +
     "TRIVIAL: todo app, weather app, portfolio site, YouTube tutorial clone. " +
     "BASIC: standard CRUD app, simple REST API, no meaningful scale or architecture decisions. " +
