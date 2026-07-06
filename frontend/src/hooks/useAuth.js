@@ -17,7 +17,7 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Login failed:", error);
-      toast.error(error?.response?.data?.error || "Login failed. Please check your credentials.", { id: toastId });
+      toast.error("Invalid email or password. Please try again.", { id: toastId });
       return false;
     } finally {
       setLoading(false);
@@ -34,7 +34,13 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
-      toast.error(error?.response?.data?.error || "Registration failed. Please try again.", { id: toastId });
+      const isConflict = error?.response?.status === 409;
+      toast.error(
+        isConflict
+          ? "An account with this email or username already exists."
+          : "Failed to create account. Please check your details and try again.",
+        { id: toastId }
+      );
       return false;
     } finally {
       setLoading(false);

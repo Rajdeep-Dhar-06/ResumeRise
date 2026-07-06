@@ -3,6 +3,7 @@ import {
   generateInterviewReport,
   getInterviewReportById,
   getAllInterviewReports,
+  deleteInterviewReport,
 } from "../services/interview.api.js";
 import { InterviewContext } from "../context/InterviewContext.jsx";
 import { useAuth } from "./useAuth.js";
@@ -64,6 +65,28 @@ export const useInterview = () => {
     }
   }, [setReports, setLoading]);
 
+  const deleteReport = useCallback(
+    async (id) => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        await deleteInterviewReport(id);
+        // Remove from reports list
+        setReports((prev) => prev.filter((p) => p._id !== id));
+        // Clear current report if it matches the deleted one
+        if (report?._id === id) {
+          setReport(null);
+        }
+      } catch (error) {
+        console.error("Error deleting report:", error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [report?._id, setReport, setReports, setLoading],
+  );
+
   useEffect(() => {
     if (!user) return;
     // 2. Kill the "Ghost": Clear the old report state as soon as the ID changes
@@ -82,5 +105,6 @@ export const useInterview = () => {
     generateReport,
     getReportById,
     getReports,
+    deleteReport,
   };
 };

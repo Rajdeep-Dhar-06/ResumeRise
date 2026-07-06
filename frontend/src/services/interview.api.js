@@ -90,3 +90,16 @@ export const getAllInterviewReports = async () => {
     console.error("Error fetching all interview reports:", error);
   }
 };
+
+/**
+ * @description Delete an interview report by ID.
+ */
+export const deleteInterviewReport = async (interviewId) => {
+  try {
+    const response = await api.delete(`/api/interview/report/${interviewId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting interview report:", error);
+    throw error;
+  }
+};

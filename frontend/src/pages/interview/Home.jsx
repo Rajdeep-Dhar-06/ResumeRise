@@ -150,8 +150,6 @@ const Home = () => {
     } catch (error) {
       setGenerating(false);
       toast.error(
-        error?.response?.data?.error ||
-        error.message ||
         "Failed to generate report. Please try again.",
         { id: toastId }
       );

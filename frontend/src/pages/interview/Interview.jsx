@@ -3,7 +3,7 @@ import { useInterview } from "../../hooks/useInterview.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useParams, useNavigate } from "react-router";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
-import { Code, MessageSquare, Compass, ChevronDown, ArrowLeft, BookOpen, ExternalLink, LogOut } from "lucide-react";
+import { Code, MessageSquare, Compass, ChevronDown, ArrowLeft, BookOpen, ExternalLink, LogOut, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -112,10 +112,26 @@ const RoadMapDay = ({ day }) => (
 // Main Interview Component
 const Interview = () => {
   const [activeNav, setActiveNav] = useState("technical");
-  const { report, getReportById, loading } = useInterview();
+  const { report, getReportById, loading, deleteReport } = useInterview();
   const { handleLogout } = useAuth();
   const { interviewId } = useParams();
   const navigate = useNavigate();
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingReport, setDeletingReport] = useState(false);
+
+  const handleDelete = async () => {
+    setDeletingReport(true);
+    try {
+      await deleteReport(interviewId);
+      navigate("/");
+    } catch (error) {
+      console.error("Failed to delete interview report:", error);
+    } finally {
+      setDeletingReport(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   useEffect(() => {
     if (interviewId && report?._id !== interviewId) {
@@ -166,13 +182,42 @@ const Interview = () => {
               {report?.title || "Interview Roadmap"}
             </h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent border border-border rounded-lg transition-all cursor-pointer flex-shrink-0"
-          >
-            <LogOut size={15} />
-            <span>Log out</span>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {showDeleteConfirm ? (
+              <div className="flex items-center gap-1.5 bg-red-950/30 border border-red-500/30 rounded-lg p-1 animate-in fade-in zoom-in-95 duration-150">
+                <span className="text-xs font-medium text-red-400 px-1.5">Delete?</span>
+                <button
+                  onClick={handleDelete}
+                  disabled={deletingReport}
+                  className="px-2.5 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition-all cursor-pointer"
+                >
+                  {deletingReport ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deletingReport}
+                  className="px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent rounded-md transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-red-500/80 hover:text-red-400 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 rounded-lg transition-all cursor-pointer flex-shrink-0"
+              >
+                <Trash2 size={15} />
+                <span className="hidden sm:inline">Delete Plan</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent border border-border rounded-lg transition-all cursor-pointer flex-shrink-0"
+            >
+              <LogOut size={15} />
+              <span>Log out</span>
+            </button>
+          </div>
         </div>
       </header>
 

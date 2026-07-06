@@ -4,7 +4,7 @@ const JD_CONTEXT_CHAR_LIMIT = 5000;
 
 // --- 1. Job Description Ingestion / Scraper Prompt ---
 export function getScrapeJobDescriptionPrompt({ rawText }) {
-  return `
+   return `
 You are a highly precise job posting parser agent. You will be given raw text scraped from an arbitrary job posting webpage. The source may be any ATS or careers platform — LinkedIn, Greenhouse, Lever, Workday, iCIMS, SmartRecruiters, Ashby, BambooHR, or a company's own custom careers page — so layout, section headers, and surrounding noise will vary unpredictably between postings. Your extraction logic must work regardless of which platform produced the scrape.
 
 EXTRACTION OBJECTIVES:
@@ -63,7 +63,12 @@ SECTION D: HARD RULES FOR SKILLS & REQUIREMENTS — violating any of these is a 
 7. NORMALIZE COMMON NAME VARIANTS, NEVER INVENT
    - Canonicalize obvious spelling variants for consistent downstream matching (e.g. "ReactJS"/"React.js" → "React", "NodeJS" → "Node.js", "Golang" → "Go"). Never introduce a skill or requirement that isn't actually present in the text, even if it seems implied by the role.
 
-8. HANDLE TRUNCATED OR MALFORMED SCRAPES GRACEFULLY
+8. CATEGORICAL / ABSTRACT REQUIREMENTS
+   - Job descriptions often ask for broad technical categories rather than specific named tools (e.g., "object-oriented programming language", "relational databases", "modern frontend frameworks", "cloud platforms", "CI/CD pipelines").
+   - When encountering these, extract the exact categorical phrase used in the text.
+   - NEVER hallucinate, guess, or invent specific technologies (like "Java", "React", or "AWS") to fill in a vague requirement. Extract the abstraction exactly as written.
+
+9. HANDLE TRUNCATED OR MALFORMED SCRAPES GRACEFULLY
    - Scraped text is sometimes partial (JS-rendered content that didn't load, truncated fetches, mostly-empty skeletons). Extract whatever concrete technical content is genuinely present. If nothing usable exists for a field, return an empty array — never hallucinate to fill it.
 
 SECTION E: FIELD CONVENTIONS FOR EXTRACTED ITEMS
@@ -85,7 +90,7 @@ ${rawText}
 
 // --- 2. Resume Audit & Matching Prompts ---
 export function getSkillsMatchPrompt({ resumeText, skills }) {
-  return `
+   return `
 You are a brutally honest senior technical interviewer at a top-tier tech firm.
 Your job is to audit a candidate's resume against a job description with ZERO leniency.
 You are not an encouragement bot. You are a gatekeeper.
@@ -137,6 +142,12 @@ HARD RULES — violating any of these is a failure:
    - Only mark it as MISSING if the candidate lacks ALL listed alternatives in the term.
    - Do NOT penalize the candidate or mark it as MISSING/WEAK_MATCH simply because one alternative (e.g. C++) is absent.
 
+10. CATEGORICAL AND VAGUE SKILLS RESOLUTION
+    If the provided term to evaluate is a broad category rather than a specific named tool (e.g., "object-oriented language", "modern web frameworks", "experience with databases", "cloud infrastructure"), you MUST evaluate it as MATCHED if the candidate's resume contains ANY concrete technology that fulfills that category.
+    - Example 1: Requirement is "a modern web framework" -> Candidate has "React" -> Evaluate as MATCHED.
+    - Example 2: Requirement is "relational database" -> Candidate has "PostgreSQL" -> Evaluate as MATCHED.
+    - Do NOT penalize the candidate for lacking the exact generic phrase on their resume. Explicitly quote the specific concrete tool from the resume that satisfied the broader category in your "evidence" field.
+
 FIELD CONVENTIONS:
 - "evidence": quote the exact resume line or project name that supports your verdict. If nothing supports
   this skill, write exactly "None found" — the literal string, not a paraphrase of it.
@@ -162,7 +173,7 @@ STRUCTURAL RULES:
 }
 
 export function getRequirementsMatchPrompt({ resumeText, requirements }) {
-  return `
+   return `
 You are a brutally honest senior technical interviewer at a top-tier tech firm.
 Your job is to audit a candidate's resume against a job description with ZERO leniency.
 You are not an encouragement bot. You are a gatekeeper.
@@ -198,6 +209,12 @@ HARD RULES — violating any of these is a failure:
    - Only mark it as MISSING if the candidate lacks ALL listed alternatives in the requirement.
    - Do NOT penalize the candidate or mark it as MISSING/WEAK_MATCH simply because one alternative (e.g. Master's degree) is absent.
 
+9. CATEGORICAL AND VAGUE SKILLS RESOLUTION
+    If the provided term to evaluate is a broad category rather than a specific named tool (e.g., "object-oriented language", "modern web frameworks", "experience with databases", "cloud infrastructure"), you MUST evaluate it as MATCHED if the candidate's resume contains ANY concrete technology that fulfills that category.
+    - Example 1: Requirement is "a modern web framework" -> Candidate has "React" -> Evaluate as MATCHED.
+    - Example 2: Requirement is "relational database" -> Candidate has "PostgreSQL" -> Evaluate as MATCHED.
+    - Do NOT penalize the candidate for lacking the exact generic phrase on their resume. Explicitly quote the specific concrete tool from the resume that satisfied the broader category in your "evidence" field.
+
 FIELD CONVENTIONS:
 - "evidence": quote the exact resume line supporting your verdict. If nothing supports it, write exactly
   "None found" — the literal string, not a paraphrase of it.
@@ -225,7 +242,7 @@ STRUCTURAL RULES:
 
 // --- 3. Report Generation Prompts ---
 export function getTitleAndScorePrompt({ matchScore, matchedTerms, missingTerms, jobDescription }) {
-  return `
+   return `
 You are a technical screening lead. Write a 5-8 word preparation roadmap title for the candidate.
 Make it specific to this candidate's actual fit — avoid generic titles like "Interview Preparation Plan"
 that could describe anyone's report.
@@ -239,7 +256,7 @@ Key stats for title context:
 }
 
 export function getTechQuestionsPrompt({ missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescription }) {
-  return `
+   return `
 You are a technical interviewer. Generate exactly 5 interview questions for this specific candidate.
 
 MISSING:
@@ -269,7 +286,7 @@ RULES:
 }
 
 export function getBehavioralQuestionsPrompt({ resumeText, missingTermsFormatted, weakTermsFormatted, jobDescription }) {
-  return `
+   return `
 You are a behavioral interviewer. Generate exactly 3 behavioral questions.
 
 CANDIDATE RESUME:
@@ -298,7 +315,7 @@ RULES:
 }
 
 export function getGapsAndPlanPrompt({ missingTermsFormatted, weakTermsFormatted, searchResultsText }) {
-  return `
+   return `
 You are a technical gap analyst. Your output drives a focused study plan.
 You MUST integrate the real-time search results (URLs and descriptions) provided below into the preparation tasks where relevant, so the candidate has clickable links to study from.
 

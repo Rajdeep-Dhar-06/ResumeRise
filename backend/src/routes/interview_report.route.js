@@ -5,7 +5,8 @@ import {
   parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
-  getAllInterviewReportsController
+  getAllInterviewReportsController,
+  deleteInterviewReportController
 } from '../controllers/interview_report.controller.js';
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
@@ -88,6 +89,18 @@ interviewRouter.get(
   authUser,
   validate(interviewIdParamsSchema),
   getInterviewReportByIdController
+);
+
+/**
+ * @route DELETE /api/interview/report/:interviewId
+ * @description Delete interview report by ID
+ * @access private
+ */
+interviewRouter.delete(
+  '/report/:interviewId',
+  authUser,
+  validate(interviewIdParamsSchema),
+  deleteInterviewReportController
 );
 
 /**

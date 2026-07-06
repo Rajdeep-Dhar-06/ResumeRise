@@ -239,10 +239,32 @@ const getAllInterviewReportsController = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @description Controller to delete an interview report by ID
+ */
+const deleteInterviewReportController = asyncHandler(async (req, res) => {
+  const { interviewId } = req.params;
+  const deletedReport = await InterviewReportModel.findOneAndDelete({
+    _id: interviewId,
+    user: req.user.id,
+  });
+
+  if (!deletedReport) {
+    throw new NotFoundError('Interview report not found');
+  }
+
+  res.status(200).json({
+    message: 'Interview report deleted successfully',
+    deletedReport,
+  });
+});
+
 export {
   parseResumeController,
   parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
+  deleteInterviewReportController,
 };
+
