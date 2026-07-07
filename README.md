@@ -21,11 +21,11 @@
 
 ResumeRise solves a real problem: candidates spend hours manually comparing their resume against job descriptions without knowing exactly what to study. ResumeRise automates this end-to-end.
 
-**Upload a resume PDF. Paste a job URL. Get a complete, AI-generated interview roadmap in ~30 seconds.**
+**Upload a resume PDF. Paste a job URL. Get a complete, AI-generated interview roadmap in ~15 seconds.**
 
 The platform:
 - Scrapes job postings dynamically (no manual copy-pasting)
-- Anonymizes your resume before sending it to any AI model (PII-safe by design)
+- Anonymizes your resume before sending it to any AI model (no private information is stored)
 - Caches parsed resumes and job descriptions by content hash to avoid redundant LLM calls
 - Runs a multi-step LangGraph pipeline to produce a structured, actionable report
 
@@ -62,77 +62,6 @@ The platform:
 
 ---
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      React SPA (Vite)                   │
-│                                                         │
-│   AuthContext ──► useAuth hook ──► auth.api.js          │
-│   InterviewContext ──► useInterview hook ──► interview.api.js │
-│                                                         │
-│   Pages: Login / Register / Home (Dashboard) / Interview │
-└───────────────────────────┬─────────────────────────────┘
-                            │ REST API (httpOnly cookie auth)
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Express.js API Server                 │
-│                                                         │
-│   JWT Auth Middleware                                   │
-│   ├── POST /api/auth/register                           │
-│   ├── POST /api/auth/login                              │
-│   ├── GET  /api/auth/logout                             │
-│   ├── GET  /api/auth/get-me                             │
-│   │                                                     │
-│   ├── POST /api/interview/parseResume                   │
-│   ├── POST /api/interview/parseJobDescription           │
-│   ├── POST /api/interview/generateReport                │
-│   ├── GET  /api/interview                               │
-│   ├── GET  /api/interview/report/:id                    │
-│   └── DELETE /api/interview/report/:id                  │
-└────────────┬────────────────────────┬───────────────────┘
-             │                        │
-             ▼                        ▼
-┌────────────────────┐   ┌────────────────────────────────┐
-│    MongoDB Atlas   │   │     LangGraph Pipeline         │
-│                    │   │                                │
-│  ● Users           │   │  startAgent                    │
-│  ● Resumes         │   │      │                         │
-│  ● JobDescriptions │   │      ▼                         │
-│  ● InterviewReports│   │  assembleFinalReport           │
-│  ● (Checkpoints)   │   │  (concurrent LLM calls)        │
-│                    │   │      │                         │
-└────────────────────┘   │      ▼                         │
-                         │  persistInterviewReport         │
-                         └────────────────────────────────┘
-```
-
-### LangGraph Pipeline (3-node linear graph)
-
-```
-__start__
-   │
-   ▼
-startAgent          — validates inputs, computes skill/requirement match scores
-   │
-   ▼
-assembleFinalReport — runs all LLM generation tasks concurrently:
-   │                    • Technical questions (role-specific, with model answers)
-   │                    • Behavioral questions (with STAR-method answers)
-   │                    • Skill gap analysis (severity: high / medium / low)
-   │                    • Multi-day preparation roadmap
-   │                    • Curated learning resources (via Tavily web search)
-   ▼
-persistInterviewReport — saves the complete report to MongoDB
-   │
-   ▼
-__end__
-```
-
-The graph is compiled **lazily** on first invocation and uses **MongoDB as a checkpoint store** for crash recovery and state persistence.
-
----
-
 ## Key Features
 
 - **Privacy-first resume processing** — PII (names, emails, phones, addresses, organizations) is stripped using a combination of regex and NLP (`compromise`) before the resume reaches any LLM
@@ -141,7 +70,6 @@ The graph is compiled **lazily** on first invocation and uses **MongoDB as a che
 - **Structured LLM output** — All AI responses are validated with Zod schemas via LangChain's `.withStructuredOutput()` to ensure consistent, type-safe data
 - **Match scoring** — A priority-weighted algorithm scores resume-to-job fit, with smoothing for sparse job descriptions and hard caps for missing required skills
 - **Delete & manage reports** — Users can delete reports with a two-step inline confirmation directly from the report view
-- **Operational error classification** — Errors are classified as operational (expected, safe) or bugs (unexpected), with appropriate logging and HTTP responses
 
 ---
 
@@ -197,7 +125,7 @@ User pastes URL (debounced 1s) ──► Jina Reader fetches page
                                   assembleFinalReport:
                                   ┌───────────────────────┐
                                   │ • Technical Qs (LLM)  │
-                                  │ • Behavioral Qs (LLM) │  ← concurrent
+                                  │ • Behavioral Qs (LLM) │ 
                                   │ • Skill gaps (LLM)    │
                                   │ • Roadmap (LLM)       │
                                   │ • Resources (Tavily)  │
