@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Progress } from "../ui/progress";
 
 export function ParsingProgressBar({ isParsing, hasValue, error, label, successLabel, defaultLabel }) {
@@ -10,7 +10,7 @@ export function ParsingProgressBar({ isParsing, hasValue, error, label, successL
     if (isParsing) {
       setProgress(0);
       setShowSuccess(false);
-      
+
       const duration = 5000; // 5 seconds minimum delay
       const stepTime = 100; // update every 100ms
       const totalSteps = duration / stepTime;

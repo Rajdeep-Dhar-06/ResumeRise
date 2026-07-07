@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useInterview } from "../../hooks/useInterview.js";
@@ -139,26 +139,6 @@ const Register = () => {
             </Button>
           </form>
 
-          {/* Divider */}
-          {/* <div className="relative flex items-center justify-center text-xs uppercase">
-            <span className="absolute inset-x-0 h-px bg-border" />
-            <span className="relative bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div> */}
-
-          {/* Social login option */}
-          {/* <Button
-            type="button"
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 font-medium"
-            onClick={() => toast.info("GitHub registration coming soon!")}
-          >
-            <svg className="size-4" aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512">
-              <path fill="currentColor" d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3 .3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-21.8-1.4c-.6 2-3 3.2-5.9 2.6-3-1-4.2-3.6-3.6-5.9 .6-2 3-3.2 5.9-2.6 3 1 4.2 3.6 3.6 5.9zm-8.8-10c-1.2 1.3-3.9 1-5.9-1.2-2-2.3-2.6-5.1-1.4-6.4 1.2-1.3 3.9-1 5.9 1.2 2 2.3 2.6 5.1 1.4 6.4zm-15.3-8.2c-.5-1.7-2.9-2.2-5.4-1-2.6 1.3-4.2 3.6-3.7 5.3 .5 1.7 2.9 2.2 5.4 1 2.6-1.3 4.2-3.6 3.7-5.3zm-32.9-34.9c-.8-1.7-3.1-1.5-5.4 .5-2.2 2-2.3 4.5-1.5 6.3 .8 1.7 3.1 1.5 5.4-.5 2.2-2 2.3-4.5 1.5-6.3zm-19-11c-.5-1.7-2.7-2-5.1-.7-2.4 1.3-3.8 3.5-3.3 5.2 .5 1.7 2.7 2 5.1 .7 2.4-1.3 3.8-3.5 3.3-5.2zm-5.4-11c-.5-1.7-2.7-2-5.1-.7-2.4 1.3-3.8 3.5-3.3 5.2 .5 1.7 2.7 2 5.1 .7 2.4-1.3 3.8-3.5 3.3-5.2zm-4.7-18.7c-.8-1.7-3.1-1.5-5.4 .5-2.2 2-2.3 4.5-1.5 6.3 .8 1.7 3.1 1.5 5.4-.5 2.2-2 2.3-4.5 1.5-6.3zm0 0M496 248C496 111.2 384.8 0 248 0S0 111.2 0 248c0 109.7 70.8 202.4 169.2 235.1 12.4 2.3 16.9-5.4 16.9-12 0-5.9-.2-21.4-.3-42-69.7 15.1-84.3-33.6-84.3-33.6-11.4-29-27.8-36.7-27.8-36.7-22.8-15.5 1.7-15.2 1.7-15.2 25.2 1.8 38.5 25.9 38.5 25.9 22.4 38.3 58.7 27.2 73 20.8 2.3-16.2 8.7-27.2 15.8-33.5-55.6-6.3-114-27.8-114-123.8 0-27.3 9.8-49.7 25.8-67.1-2.6-6.3-11.2-31.8 2.5-66.2 0 0 21-6.7 68.8 25.6 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c47.8-32.3 68.8-25.6 68.8-25.6 13.7 34.4 5.1 59.9 2.5 66.2 16 17.4 25.8 39.8 25.8 67.1 0 96.2-58.4 117.4-114.2 123.6 9 7.8 17 23.2 17 46.8 0 33.8-.3 61.1-.3 69.4 0 6.7 4.5 14.5 17 12C425.2 450.3 496 357.7 496 248z" />
-            </svg>
-            Register with GitHub
-          </Button> */}
 
           <div className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}

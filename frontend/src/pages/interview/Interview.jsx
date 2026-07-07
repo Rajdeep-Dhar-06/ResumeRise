@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useInterview } from "../../hooks/useInterview.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useParams, useNavigate } from "react-router";
@@ -7,6 +7,7 @@ import { Code, MessageSquare, Compass, ChevronDown, ArrowLeft, BookOpen, Externa
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
 
 // Navigation items definition
 const NAV_ITEMS = [
@@ -32,17 +33,6 @@ const NAV_ITEMS = [
   },
 ];
 
-const MOTIVATIONAL_QUOTES = [
-  "Trust in the process. You've got this!",
-  "One step at a time. Every interview is a step forward.",
-  "Every expert was once a beginner. Keep learning!",
-  "Preparation breeds confidence.",
-  "Believe in your skills and your journey.",
-  "Focus on progress, not perfection.",
-  "You are closer to landing your target role than you think.",
-  "Success is where preparation and opportunity meet.",
-  "Take a deep breath. We are building your perfect match roadmap...",
-];
 
 // Question Card Component
 const QuestionCard = ({ item, index }) => {
@@ -112,7 +102,7 @@ const RoadMapDay = ({ day }) => (
 // Main Interview Component
 const Interview = () => {
   const [activeNav, setActiveNav] = useState("technical");
-  const { report, getReportById, loading, deleteReport } = useInterview();
+  const { report, loading, deleteReport } = useInterview();
   const { handleLogout } = useAuth();
   const { interviewId } = useParams();
   const navigate = useNavigate();
@@ -133,11 +123,6 @@ const Interview = () => {
     }
   };
 
-  useEffect(() => {
-    if (interviewId && report?._id !== interviewId) {
-      getReportById(interviewId);
-    }
-  }, [getReportById, interviewId, report?._id]);
 
   // Border score styling
   const score = report?.matchScore || 0;
@@ -221,7 +206,7 @@ const Interview = () => {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8 w-full">
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8">
         {/* Top Summary Block */}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Match Score Card */}

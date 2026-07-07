@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { useInterview } from "../../hooks/useInterview.js";
 import { useNavigate } from "react-router";
@@ -10,18 +10,8 @@ import { DashboardStats } from '../../components/interview/DashboardStats'
 import { CreatePlan } from '../../components/interview/CreatePlan'
 import { RecentPlans } from '../../components/interview/RecentPlans'
 import { parseResume, parseJobDescription } from "../../services/interview.api.js";
+import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
 
-const MOTIVATIONAL_QUOTES = [
-  "Trust in the process. You've got this!",
-  "One step at a time. Every interview is a step forward.",
-  "Every expert was once a beginner. Keep learning!",
-  "Preparation breeds confidence.",
-  "Believe in your skills and your journey.",
-  "Focus on progress, not perfection.",
-  "You are closer to landing your target role than you think.",
-  "Success is where preparation and opportunity meet.",
-  "Take a deep breath. We are building your perfect match roadmap...",
-];
 
 const Home = () => {
   const { loading, generateReport, reports } = useInterview();
@@ -181,7 +171,7 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8 w-full">
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8">
         {/* Dashboard: heading + quick stats */}
         <section id="dashboard" className="scroll-mt-20">
           <h1 className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
