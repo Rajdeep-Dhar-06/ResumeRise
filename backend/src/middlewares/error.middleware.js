@@ -12,15 +12,9 @@ export const errorMiddleware = (err, req, res, next) => {
   if (process.env.NODE_ENV !== 'production') response.stack = error.stack;
 
   if (error.isOperational) {
-    // Expected, handled failure mode — bad input, auth failure, not found.
     console.warn(`[Operational] ${error.statusCode} ${error.name}: ${error.message}`);
   } else {
-    // A genuine bug. The app may be in an unknown state.
     console.error('[BUG] Unexpected error:', error.stack || error);
-    // Classic Node practice: for non-operational errors, some teams
-    // deliberately let PM2/Kubernetes restart the process after logging,
-    // rather than keep serving on possibly-corrupted state. Worth a
-    // conscious decision, not silence.
   }
 
   res.status(error.statusCode || 500).json(response);

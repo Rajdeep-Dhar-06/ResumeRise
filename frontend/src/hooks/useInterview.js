@@ -16,6 +16,7 @@ export const useInterview = () => {
   const { user } = useAuth();
   const { interviewId } = useParams();
 
+  /** @description Generate a new interview report from a resume and job description. */
   const generateReport = async ({
     resumeId,
     jobDescriptionId,
@@ -37,6 +38,7 @@ export const useInterview = () => {
     return response;
   };
 
+  /** @description Fetch a single interview report by ID and store it in context. */
   const getReportById = useCallback(
     async (id) => {
       if (!id) return;
@@ -53,6 +55,7 @@ export const useInterview = () => {
     [setReport, setLoading],
   );
 
+  /** @description Fetch all interview reports for the current user. */
   const getReports = useCallback(async () => {
     setLoading(true);
     try {
@@ -65,6 +68,7 @@ export const useInterview = () => {
     }
   }, [setReports, setLoading]);
 
+  /** @description Delete an interview report by ID and remove it from context. */
   const deleteReport = useCallback(
     async (id) => {
       if (!id) return;
@@ -89,14 +93,14 @@ export const useInterview = () => {
 
   useEffect(() => {
     if (!user) return;
-    // 2. Kill the "Ghost": Clear the old report state as soon as the ID changes
+    // Clear the old report state as soon as the ID changes
     if (interviewId && report?._id !== interviewId) {
       setReport(null);
       getReportById(interviewId);
     } else if (!interviewId) {
       getReports();
     }
-  }, [interviewId, getReportById, getReports, report?._id, setReport, user]); // Added proper dependencies
+  }, [interviewId, getReportById, getReports, report?._id, setReport, user]);
 
   return {
     loading,

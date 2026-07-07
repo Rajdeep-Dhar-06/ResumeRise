@@ -7,7 +7,7 @@ import {
   persistInterviewReport
 } from '../nodes/graph_nodes.js';
 
-// --- State Definition ---
+//  State Definition 
 export const GraphState = Annotation.Root({
   userId: Annotation(),
 
@@ -34,13 +34,13 @@ export const GraphState = Annotation.Root({
   savedReport: Annotation()
 });
 
-// --- StateGraph Setup ---
+// StateGraph Setup
 const workflow = new StateGraph(GraphState)
   .addNode("startAgent", startAgent)
   .addNode("assembleFinalReport", assembleFinalReport)
   .addNode("persistInterviewReport", persistInterviewReport)
 
-  // Linear Pipeline (Concurrency handled inside assembleFinalReport)
+  // Linear Pipeline
   .addEdge("__start__", "startAgent")
   .addEdge("startAgent", "assembleFinalReport")
   .addEdge("assembleFinalReport", "persistInterviewReport")
@@ -48,7 +48,7 @@ const workflow = new StateGraph(GraphState)
 
 import { randomUUID } from 'crypto';
 
-// --- Lazy Graph Compilation with MongoDB Saver ---
+// Lazy Graph Compilation with MongoDB Saver 
 let graphPromise = null;
 
 function getGraph() {

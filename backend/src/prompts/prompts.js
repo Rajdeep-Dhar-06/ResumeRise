@@ -9,7 +9,7 @@ You are a highly precise job posting parser agent. You will be given raw text sc
 
 EXTRACTION OBJECTIVES:
 1. "companyName": The hiring company or organization name (e.g. "Cisco", "Netomi", etc.). If not found, use "Company".
-2. "role": The official Job Role / Title.
+2. "role": The official Job Role / Title (should not be more than 3 words approximately)
 3. "skills": The list of required skills (concrete technologies, languages, frameworks, tools, platforms).
 4. "requirements": The list of job requirements (experience level, qualifications, domain knowledge, responsibilities).
 
@@ -277,6 +277,7 @@ RULES:
 - Fallback to MATCHED Technical Skills: If there are fewer than 3 missing or weak technical terms/skills, you MUST target MATCHED technical skills/terms to write deep scenario-based engineering questions. Never fall back to non-technical topics (like degrees or remaining semesters) to fill the question count.
 - Every question must be scenario-based or design-based ("How would you design X given Y?", "What breaks when Z?"). No definition or recall questions.
 - If a cited term's complexity is TRIVIAL or BASIC: write a question that exposes the gap between that and a real production system.
+- The questions should be relevant to the job description, even if those skills are not present in the candidates resume
 - Do not generate generic DSA questions unless an algorithm or data structure appears in MISSING or WEAK_MATCH.
 - Questions must be grounded in this candidate's specific evidence and verdicts above — not the JD alone.
 - HARD LIMIT ON HALLUCINATIONS: Do NOT assume, infer, or hallucinate that the candidate knows, uses, or should be questioned on any framework, library, or tool not explicitly listed as MATCHED or WEAK_MATCH in the inputs. For example, if "Java" is listed, do NOT ask questions about "Spring Boot" or write answers mentioning "Spring Boot" unless Spring Boot itself is explicitly MATCHED/WEAK_MATCH.
@@ -336,7 +337,7 @@ STEP 1 — SEVERITY:
   CRITICAL: The "skill" field for each entry in "skillGaps" MUST be exactly the raw skill term from the list (e.g. "Apache Kafka" or "C++"), character-for-character. Do NOT append commas, verdicts, statuses, colon, or any other metadata text (like ",verdict:" or "| Verdict").
 
 STEP 2 — PREP PLAN (high and medium only):
-  Per gap: one day focus study block with one actionable, verifiable study task written in plain English.
+  Per gap: one day focus study block with one actionable, verifiable and achievable in 8 to 10 hours study task written in plain English.
   HARD RULE: Do NOT include any URLs, hyperlinks, or "https://..." strings inside the tasks array — URLs belong exclusively in the "learningResources" array (STEP 3). Tasks must be self-contained, human-readable study actions (e.g. "Study Kafka's producer-consumer model and practice writing a simple producer in code").
   Skip low severity gaps unless fewer than 2 high/medium gaps remain.
 

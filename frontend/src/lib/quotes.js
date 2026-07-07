@@ -1,6 +1,3 @@
-/**
- * Shared motivational quotes used across loading screens.
- */
 export const MOTIVATIONAL_QUOTES = [
   "Trust in the process. You've got this!",
   "One step at a time. Every interview is a step forward.",

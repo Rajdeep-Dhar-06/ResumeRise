@@ -57,7 +57,7 @@ const parseResumeController = asyncHandler(async (req, res) => {
       throw new BadRequestError('The uploaded resume PDF does not contain any extractable text.');
     }
 
-    // 4. Anonymize personal PII details (Names, Contacts, Locations, Schools)
+    // 4. Anonymize personal details (Names, Contacts, Locations, Schools)
     const anonymizedText = anonymizeResume(parsedText);
 
     // 5. Create new Resume document

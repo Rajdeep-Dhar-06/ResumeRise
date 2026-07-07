@@ -1,10 +1,8 @@
 import api from "../lib/api.js";
 
 /**
- * Auth API Services
- * Handles communication with the backend authentication endpoints.
+ * @description Register a new user account.
  */
-
 export async function register({ username, email, password }) {
   try {
     const response = await api.post("/api/auth/register", {
@@ -19,6 +17,9 @@ export async function register({ username, email, password }) {
   }
 }
 
+/**
+ * @description Log in with email and password.
+ */
 export async function login({ email, password }) {
   try {
     const response = await api.post("/api/auth/login", {
@@ -32,6 +33,9 @@ export async function login({ email, password }) {
   }
 }
 
+/**
+ * @description Log out the current user and clear the session cookie.
+ */
 export async function logout() {
   try {
     const response = await api.get("/api/auth/logout");
@@ -42,6 +46,9 @@ export async function logout() {
   }
 }
 
+/**
+ * @description Fetch the currently authenticated user's profile.
+ */
 export async function getMe() {
   try {
     const response = await api.get("/api/auth/get-me");

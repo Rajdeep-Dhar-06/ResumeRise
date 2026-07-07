@@ -7,6 +7,7 @@ export const useAuth = () => {
   const context = useContext(AuthContext);
   const { user, setUser, loading, setLoading } = context;
 
+  /** @description Authenticate the user and set the session. */
   const handleLogin = async ({ email, password }) => {
     setLoading(true);
     const toastId = toast.loading("Logging in...");
@@ -24,6 +25,7 @@ export const useAuth = () => {
     }
   };
 
+  /** @description Register a new account and set the session. */
   const handleRegister = async ({ username, email, password }) => {
     setLoading(true);
     const toastId = toast.loading("Creating your account...");
@@ -47,6 +49,7 @@ export const useAuth = () => {
     }
   };
 
+  /** @description Clear the session and log the user out. */
   const handleLogout = async () => {
     setLoading(true);
     const toastId = toast.loading("Logging out...");
