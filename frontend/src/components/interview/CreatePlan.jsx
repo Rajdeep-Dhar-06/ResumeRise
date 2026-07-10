@@ -1,29 +1,25 @@
 import { useState } from 'react'
-import { Briefcase, FileText, Info, Sparkles, Upload, X } from 'lucide-react'
+import { Briefcase, FileText, Sparkles, Upload, X, Info } from 'lucide-react'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { ParsingProgressBar } from './ParsingProgressBar.jsx'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { ShadcnSelect } from './ShadcnSelect.jsx'
 
 export function CreatePlan({
   jobDescriptionUrl,
   setJobDescriptionUrl,
   fileName,
-  setFileName,
   resumeInputRef,
   handleFileChange,
   handleGenerateReport,
   loading,
-  resumeId,
-  parsingResume,
-  resumeError,
-  jobDescriptionId,
-  parsingJobDescription,
-  jobDescriptionError,
   handleClearFile,
+  daysLimit,
+  setDaysLimit,
+  hasFile,
 }) {
   const [dragging, setDragging] = useState(false)
 
@@ -34,7 +30,8 @@ export function CreatePlan({
   }
 
   // Determine if strategy button is disabled
-  const isSubmitDisabled = !resumeId || !jobDescriptionId || parsingResume || parsingJobDescription || loading;
+  const hasUrl = jobDescriptionUrl && jobDescriptionUrl.trim().length > 0;
+  const isSubmitDisabled = !hasUrl || !hasFile || loading;
 
   return (
     <Card>
@@ -48,8 +45,8 @@ export function CreatePlan({
                   <Briefcase className="size-5 text-primary" />
                   <h3 className="text-base font-semibold">Target Job Details</h3>
                 </div>
-                <Badge variant={jobDescriptionId ? "default" : "destructive"}>
-                  {jobDescriptionId ? "Ready" : "Required"}
+                <Badge variant={hasUrl ? "default" : "destructive"}>
+                  {hasUrl ? "Ready" : "Required"}
                 </Badge>
               </div>
 
@@ -76,20 +73,7 @@ export function CreatePlan({
                   )}
                 </div>
               </div>
-
-              {/* Status indicator with fixed height to prevent layout shifting */}
-              <div className="min-h-12 flex items-center text-sm border-t border-border/40 mt-1">
-                <ParsingProgressBar
-                  isParsing={parsingJobDescription}
-                  hasValue={!!jobDescriptionId}
-                  error={jobDescriptionError}
-                  label="Gathering information and preparing job details..."
-                  successLabel="Job details prepared successfully!"
-                  defaultLabel="Enter a valid job posting URL to analyze requirements."
-                />
-              </div>
             </div>
-
             <Alert>
               <Info className="size-4" />
               <AlertTitle>Job Description required</AlertTitle>
@@ -107,8 +91,8 @@ export function CreatePlan({
                   <FileText className="size-5 text-primary" />
                   <h3 className="text-base font-semibold">Your Profile</h3>
                 </div>
-                <Badge variant={resumeId ? "default" : "destructive"}>
-                  {resumeId ? "Ready" : "Required"}
+                <Badge variant={hasFile ? "default" : "destructive"}>
+                  {hasFile ? "Ready" : "Required"}
                 </Badge>
               </div>
 
@@ -146,7 +130,7 @@ export function CreatePlan({
                     </Button>
                   </div>
                 ) : (
-                  // Empty state: clickable + drag-and-drop area (fixed height of 88px to match selected state)
+                  // Empty state: clickable + drag-and-drop area
                   <div
                     role="button"
                     tabIndex={0}
@@ -179,20 +163,7 @@ export function CreatePlan({
                   </div>
                 )}
               </div>
-
-              {/* Status indicator with fixed height to prevent layout shifting */}
-              <div className="min-h-12 flex items-center text-sm border-t border-border/40 mt-1">
-                <ParsingProgressBar
-                  isParsing={parsingResume}
-                  hasValue={!!resumeId}
-                  error={resumeError}
-                  label="Getting everything ready..."
-                  successLabel="Ready when you are!"
-                  defaultLabel="Upload a PDF resume to continue."
-                />
-              </div>
             </div>
-
             <Alert>
               <Info className="size-4" />
               <AlertTitle>Resume required</AlertTitle>
@@ -200,10 +171,27 @@ export function CreatePlan({
             </Alert>
           </div>
         </div>
+
+        {/* Dynamic target days selector */}
+        <div className="mt-6 pt-5 border-t border-border flex flex-col gap-2 max-w-xs mx-auto">
+          <Label htmlFor="days-limit" className="font-semibold text-center sm:text-left">Target Preparation Duration</Label>
+          <ShadcnSelect
+            value={daysLimit}
+            onChange={setDaysLimit}
+            disabled={loading}
+            options={[
+              { value: 7, label: "7 Days (Comprehensive)" },
+              { value: 5, label: "5 Days (Standard)" },
+              { value: 3, label: "3 Days (Crash Course)" },
+            ]}
+          />
+          <p className="text-xs text-muted-foreground text-center sm:text-left">
+            The AI will customize the preparation tasks to fit your window.
+          </p>
+        </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <p className="text-sm text-muted-foreground">AI-Powered Strategy Generation &bull; Approx 30s</p>
+      <CardFooter className="flex flex-col items-end gap-4">
         <Button
           onClick={handleGenerateReport}
           className="w-full sm:w-auto"
