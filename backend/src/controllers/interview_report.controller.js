@@ -216,18 +216,10 @@ const getAllInterviewReportsController = asyncHandler(async (req, res) => {
   }
 
   if (search) {
-    const matchingJobs = await JobDescriptionModel.find({
-      $or: [
-        { companyName: { $regex: search, $options: 'i' } },
-        { role: { $regex: search, $options: 'i' } }
-      ]
-    }).select('_id');
-
-    const matchingJobIds = matchingJobs.map(job => job._id);
-
     query.$or = [
       { reportTitle: { $regex: search, $options: 'i' } },
-      { jobDescriptionId: { $in: matchingJobIds } }
+      { companyName: { $regex: search, $options: 'i' } },
+      { role: { $regex: search, $options: 'i' } }
     ];
   }
 
@@ -236,8 +228,7 @@ const getAllInterviewReportsController = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .populate('jobDescriptionId', 'companyName role url') // Fetch company info
-    .select('reportTitle matchScore createdAt');
+    .select('reportTitle matchScore createdAt companyName role jobDescriptionUrl');
 
   res.status(200).json({
     message: 'Interview reports fetched successfully',
@@ -318,7 +309,6 @@ export const checkDuplicateInterviewPlanController = asyncHandler(async (req, re
     }
   }
 
-  // Optimize: single DB query to find existing report using compound index!
   const existingReport = await InterviewReportModel.findOne({
     userId: req.user.id,
     resumeHash,
