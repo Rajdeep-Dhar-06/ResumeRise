@@ -1,5 +1,3 @@
-// Shared across every prompt that embeds jobDescriptionText, so all downstream
-// prompts see the same slice of context instead of three different magic numbers.
 const JD_CONTEXT_CHAR_LIMIT = 5000;
 
 // --- 1. Job Description Ingestion / Scraper Prompt ---

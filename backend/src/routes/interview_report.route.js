@@ -7,7 +7,8 @@ import {
   getInterviewReportByIdController,
   getAllInterviewReportsController,
   getInterviewStatsController,
-  deleteInterviewReportController
+  deleteInterviewReportController,
+  checkDuplicateInterviewPlanController
 } from '../controllers/interview_report.controller.js';
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
@@ -91,6 +92,17 @@ interviewRouter.post(
   upload.single('resume'),
   validate(generateReportSchema),
   generateInterviewReportController
+);
+
+/**
+ * @route POST /api/interview/checkDuplicate
+ * @description Check if an interview plan already exists for this resume and job details combination
+ * @access private
+ */
+interviewRouter.post(
+  '/checkDuplicate',
+  verifyAccess,
+  checkDuplicateInterviewPlanController
 );
 
 /**

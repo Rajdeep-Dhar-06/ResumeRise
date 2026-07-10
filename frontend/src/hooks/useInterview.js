@@ -4,6 +4,7 @@ import {
   getInterviewReportById,
   getAllInterviewReports,
   deleteInterviewReport,
+  checkDuplicatePlan,
 } from "../services/interview.api.js";
 import { InterviewContext } from "../context/InterviewContext.jsx";
 import { useAuth } from "./useAuth.js";
@@ -113,5 +114,6 @@ export const useInterview = () => {
     getReportById,
     getReports,
     deleteReport,
+    checkDuplicatePlan,
   };
 };

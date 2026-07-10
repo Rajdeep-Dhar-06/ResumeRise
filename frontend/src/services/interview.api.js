@@ -119,3 +119,20 @@ export const deleteInterviewReport = async (interviewId) => {
     throw error;
   }
 };
+
+/**
+ * @description Check if an interview report with this resume and job posting combination already exists.
+ */
+export const checkDuplicatePlan = async ({ resumeHash, jobDescriptionUrl, daysLimit }) => {
+  try {
+    const response = await api.post("/api/interview/checkDuplicate", {
+      resumeHash,
+      jobDescriptionUrl,
+      daysLimit,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error checking duplicate plan:", error);
+    throw error;
+  }
+};

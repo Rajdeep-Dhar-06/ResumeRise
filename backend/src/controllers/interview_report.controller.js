@@ -169,31 +169,6 @@ const generateInterviewReportController = asyncHandler(async (req, res) => {
     }
   }
 
-  // Pre-check: Calculate hash and search for existing resume/JD to avoid starting the LangGraph
-  const contentHash = createHash('sha256').update(resumeFile.buffer).digest('hex');
-
-  const [resumeDoc, jobDoc] = await Promise.all([
-    resumeModel.findOne({ user: req.user.id, contentHash }),
-    JobDescriptionModel.findOne({ url: jobDescriptionUrl.trim() })
-  ]);
-
-  if (resumeDoc && jobDoc) {
-    const existingReport = await InterviewReportModel.findOne({
-      userId: req.user.id,
-      resumeId: resumeDoc._id,
-      jobDescriptionId: jobDoc._id,
-      daysLimit: calculatedDaysLimit
-    });
-
-    if (existingReport) {
-      console.log('[Controller] Duplicate plan match. Bypassing LangGraph workflow execution.');
-      return res.status(200).json({
-        message: 'Interview Report Retrieved Successfully!',
-        interviewReport: existingReport,
-      });
-    }
-  }
-
   // Invoke the LangGraph starting at startAgent
   const graphState = await runInterviewReportGraph({
     userId: req.user.id,
@@ -325,6 +300,47 @@ const deleteInterviewReportController = asyncHandler(async (req, res) => {
     message: 'Interview report deleted successfully',
     deletedReport,
   });
+});
+
+/** @description Check if an interview report with this resume and job posting combination already exists. */
+export const checkDuplicateInterviewPlanController = asyncHandler(async (req, res) => {
+  const { resumeHash, jobDescriptionUrl, daysLimit } = req.body;
+
+  if (!resumeHash || !jobDescriptionUrl) {
+    throw new BadRequestError('resumeHash and jobDescriptionUrl are required.');
+  }
+
+  let calculatedDaysLimit = 7;
+  if (daysLimit) {
+    const parsed = parseInt(daysLimit, 10);
+    if ([3, 5, 7].includes(parsed)) {
+      calculatedDaysLimit = parsed;
+    }
+  }
+
+  const [resumeDoc, jobDoc] = await Promise.all([
+    resumeModel.findOne({ user: req.user.id, contentHash: resumeHash }),
+    JobDescriptionModel.findOne({ url: jobDescriptionUrl.trim() })
+  ]);
+
+  if (resumeDoc && jobDoc) {
+    const existingReport = await InterviewReportModel.findOne({
+      userId: req.user.id,
+      resumeId: resumeDoc._id,
+      jobDescriptionId: jobDoc._id,
+      daysLimit: calculatedDaysLimit
+    });
+
+    if (existingReport) {
+      return res.status(200).json({
+        exists: true,
+        reportId: existingReport._id,
+        interviewReport: existingReport
+      });
+    }
+  }
+
+  res.status(200).json({ exists: false });
 });
 
 export {

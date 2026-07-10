@@ -12,7 +12,7 @@ import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
 
 
 const Home = () => {
-  const { loading, generateReport, reports } = useInterview();
+  const { loading, generateReport, checkDuplicatePlan } = useInterview();
   const { user, handleLogout } = useAuth();
 
   const [fileName, setFileName] = useState("");
@@ -54,6 +54,27 @@ const Home = () => {
     setGenerating(true);
 
     try {
+      // 1. Calculate file hash locally in browser
+      const arrayBuffer = await resumeFile.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const resumeHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // 2. Check for duplicate on the backend
+      const checkRes = await checkDuplicatePlan({
+        resumeHash,
+        jobDescriptionUrl: jobDescriptionUrl.trim(),
+        daysLimit
+      });
+
+      if (checkRes && checkRes.exists) {
+        console.log('[Home] Existing plan found. Redirecting...');
+        toast.success("Existing preparation plan loaded!");
+        navigate(`/interview/${checkRes.reportId}`);
+        return;
+      }
+
+      // 3. Generate report if it does not exist
       const data = await generateReport({
         resumeFile,
         jobDescriptionUrl: jobDescriptionUrl.trim(),
