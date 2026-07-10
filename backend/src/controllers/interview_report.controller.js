@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import InterviewReportModel from '../models/interview_report.model.js';
 import resumeModel from '../models/resume.model.js';
 import JobDescriptionModel from '../models/job_description.model.js';
@@ -13,16 +14,14 @@ import { getStructuredModel } from '../nodes/graph_nodes.js';
 import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
 import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
 
-/**
- * @description Controller to upload, parse and anonymize a candidate's resume PDF
- */
+/** @description Controller to upload, parse and anonymize a candidate's resume PDF */
 const parseResumeController = asyncHandler(async (req, res) => {
   const resumeFile = req.file;
   if (!resumeFile) {
     throw new BadRequestError('Resume PDF file is required.');
   }
 
-  // 1. Compute SHA256 content hash of the PDF buffer
+  // 1. Compute SHA256 content hash of the PDF buffer, buffer -> binary data
   const contentHash = createHash('sha256').update(resumeFile.buffer).digest('hex');
 
   // 2. Check if this exact file has already been parsed for this user
@@ -58,27 +57,24 @@ const parseResumeController = asyncHandler(async (req, res) => {
     }
 
     // 4. Anonymize personal details (Names, Contacts, Locations, Schools)
-    const anonymizedText = anonymizeResume(parsedText);
+    const resumeContent = anonymizeResume(parsedText);
 
     // 5. Create new Resume document
     resumeDoc = await resumeModel.create({
       user: req.user.id,
-      fileName: resumeFile.originalname,
       contentHash,
-      resumeContent: anonymizedText,
+      resumeContent,
     });
   }
 
   res.status(200).json({
     message: 'Resume parsed and anonymized successfully!',
     resumeId: resumeDoc._id,
-    fileName: resumeDoc.fileName,
   });
 });
 
-/**
- * @description Controller to scrape, parse and structure a job description from a URL using LangChain and LLM
- */
+
+/** @description Controller to scrape, parse and structure a job description from a URL using LangChain and LLM */
 const parseJobDescriptionController = asyncHandler(async (req, res) => {
   const { jobDescriptionUrl } = req.body;
   if (!jobDescriptionUrl) {
@@ -118,7 +114,7 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
     }
 
     // 3. Extract title, description, skills, and requirements using Gemini
-    let details = { companyName: 'Company', role: 'Job Description', skills: [], requirements: [] };
+    let details = { companyName: 'Company', role: 'Job Description', technicalRequirements: [], nonTechnicalRequirements: [] };
     try {
       const prompt = getScrapeJobDescriptionPrompt({ rawText: cleanedText });
       const structuredLlm = getStructuredModel(jobDescriptionSchema);
@@ -128,7 +124,7 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
       throw new BadRequestError(`Failed to extract structured details from scraped content: ${err.message}`);
     }
 
-    if ((!details.skills || details.skills.length === 0) && (!details.requirements || details.requirements.length === 0)) {
+    if ((!details.technicalRequirements || details.technicalRequirements.length === 0) && (!details.nonTechnicalRequirements || details.nonTechnicalRequirements.length === 0)) {
       throw new BadRequestError('Could not extract any skills or requirements from this job posting. Please try a different URL containing a detailed job description.');
     }
 
@@ -137,8 +133,8 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
       url: cleanedUrl,
       companyName: details.companyName || 'Company',
       role: details.role || 'Job Description',
-      skills: details.skills || [],
-      requirements: details.requirements || [],
+      technicalRequirements: details.technicalRequirements || [],
+      nonTechnicalRequirements: details.nonTechnicalRequirements || [],
     });
   }
 
@@ -147,53 +143,39 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
     jobDescriptionId: jobDoc._id,
     companyName: jobDoc.companyName,
     role: jobDoc.role,
-    skills: jobDoc.skills || [],
-    requirements: jobDoc.requirements || [],
+    technicalRequirements: jobDoc.technicalRequirements || [],
+    nonTechnicalRequirements: jobDoc.nonTechnicalRequirements || [],
   });
 });
 
-/**
- * @description Controller to generate an interview report from pre-parsed resume and JD
- */
+/** @description Controller to generate an interview report from pre-parsed resume and JD */
 const generateInterviewReportController = asyncHandler(async (req, res) => {
-  const { resumeId, jobDescriptionId } = req.body;
-  if (!resumeId || !jobDescriptionId) {
-    throw new BadRequestError('Both resumeId and jobDescriptionId are required.');
+  const { jobDescriptionUrl, daysLimit } = req.body;
+  const resumeFile = req.file;
+
+  if (!resumeFile) {
+    throw new BadRequestError('Resume PDF file is required.');
+  }
+  if (!jobDescriptionUrl) {
+    throw new BadRequestError('Job description URL is required.');
   }
 
-  // 1. Fetch matching documents from MongoDB
-  const resumeDoc = await resumeModel.findOne({ _id: resumeId, user: req.user.id });
-  if (!resumeDoc) {
-    throw new NotFoundError('Resume record not found.');
+  // Calculate daysLimit based on user selection or default to 7 days
+  let calculatedDaysLimit = 7; // Default fallback is 7 days
+  if (daysLimit) {
+    const parsed = parseInt(daysLimit, 10);
+    if ([3, 5, 7].includes(parsed)) {
+      calculatedDaysLimit = parsed;
+    }
   }
 
-  const jobDoc = await JobDescriptionModel.findById(jobDescriptionId);
-  if (!jobDoc) {
-    throw new NotFoundError('Job Description record not found.');
-  }
-
-  // 2. Compile a structured job description summary text from the saved skills and requirements
-  const jobDescriptionText = `Role: ${jobDoc.role || 'Job Description'}.
-Skills:
-${(jobDoc.skills || []).map(s => `- ${s.term} (${s.priority}): ${s.context}`).join('\n')}
-Requirements:
-${(jobDoc.requirements || []).map(r => `- ${r.term} (${r.priority}): ${r.context}`).join('\n')}`;
-
-  const threadId = `${req.user.id}_${Date.now()}`;
-
-  // 3. Invoke the LangGraph starting at startAgent
+  // Invoke the LangGraph starting at startAgent
   const graphState = await runInterviewReportGraph({
     userId: req.user.id,
-    resumeId: resumeDoc._id,
-    resumeText: resumeDoc.resumeContent,
-    jobDescriptionId: jobDoc._id,
-    jobDescriptionText,
-    jobDescriptionSkills: jobDoc.skills || [],
-    jobDescriptionRequirements: jobDoc.requirements || [],
-    jobDescriptionUrl: jobDoc.url,
-    jobDescriptionCompany: jobDoc.companyName || 'Company',
-    jobDescriptionRole: jobDoc.role || 'Role',
-  }, threadId);
+    resumeBuffer: resumeFile.buffer,
+    jobDescriptionUrl,
+    daysLimit: calculatedDaysLimit,
+  });
 
   res.status(201).json({
     message: 'Interview Report Generated Successfully!',
@@ -201,15 +183,13 @@ ${(jobDoc.requirements || []).map(r => `- ${r.term} (${r.priority}): ${r.context
   });
 });
 
-/**
- * @description Controller to get an interview report by ID
- */
+/** @description Controller to get an interview report by ID */
 const getInterviewReportByIdController = asyncHandler(async (req, res) => {
   const { interviewId } = req.params;
   const interviewReport = await InterviewReportModel.findOne({
     _id: interviewId,
-    user: req.user.id,
-  }).populate('jobDescription');
+    userId: req.user.id,
+  }).populate('jobDescriptionId');
 
   if (!interviewReport) {
     throw new NotFoundError('Interview report not found');
@@ -221,32 +201,95 @@ const getInterviewReportByIdController = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @description Controller to get all interview reports for a user
- */
+/** @description Controller to get all interview reports for a user */
 const getAllInterviewReportsController = asyncHandler(async (req, res) => {
-  const interviewReports = await InterviewReportModel.find({
-    user: req.user.id,
-  })
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 9;
+  const search = req.query.search ? req.query.search.trim() : "";
+  const minScore = parseInt(req.query.minScore, 10) || 0;
+
+  const skip = (page - 1) * limit;
+  const query = { userId: req.user.id };
+
+  if (minScore > 0) {
+    query.matchScore = { $gte: minScore };
+  }
+
+  if (search) {
+    const matchingJobs = await JobDescriptionModel.find({
+      $or: [
+        { companyName: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } }
+      ]
+    }).select('_id');
+
+    const matchingJobIds = matchingJobs.map(job => job._id);
+
+    query.$or = [
+      { reportTitle: { $regex: search, $options: 'i' } },
+      { jobDescriptionId: { $in: matchingJobIds } }
+    ];
+  }
+
+  const totalCount = await InterviewReportModel.countDocuments(query);
+  const interviewReports = await InterviewReportModel.find(query)
     .sort({ createdAt: -1 })
-    .select(
-      '-resume -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan'
-    );
+    .skip(skip)
+    .limit(limit)
+    .populate('jobDescriptionId', 'companyName role url') // Fetch company info
+    .select('reportTitle matchScore createdAt');
 
   res.status(200).json({
     message: 'Interview reports fetched successfully',
+    pagination: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    },
     interviewReports,
+  });
+
+});
+
+export const getInterviewStatsController = asyncHandler(async (req, res) => {
+  const defaultStats = {
+    totalPlans: 0,
+    averageMatch: 0,
+    bestMatch: 0,
+  };
+
+  const stats = await InterviewReportModel.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
+    {
+      $group: {
+        _id: null,
+        totalPlans: { $sum: 1 },
+        averageMatch: { $avg: '$matchScore' },
+        bestMatch: { $max: '$matchScore' },
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    message: 'Stats retrieved successfully',
+    stats: stats[0]
+      ? {
+        totalPlans: stats[0].totalPlans,
+        averageMatch: Math.round(stats[0].averageMatch),
+        bestMatch: stats[0].bestMatch,
+      }
+      : defaultStats,
   });
 });
 
-/**
- * @description Controller to delete an interview report by ID
- */
+
+/** @description Controller to delete an interview report by ID */
 const deleteInterviewReportController = asyncHandler(async (req, res) => {
   const { interviewId } = req.params;
   const deletedReport = await InterviewReportModel.findOneAndDelete({
     _id: interviewId,
-    user: req.user.id,
+    userId: req.user.id,
   });
 
   if (!deletedReport) {

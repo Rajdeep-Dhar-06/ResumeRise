@@ -27,10 +27,10 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
         const priorityWeight = PRIORITY_WEIGHT[term.priority] ?? 1.0;
 
         let termScore = 0.0;
-        if (term.status === 'MATCHED') {
-            const complexityMult = COMPLEXITY_MULTIPLIER[term.complexity] ?? 1.0;
+        if (term.matchStatus === 'MATCHED') {
+            const complexityMult = COMPLEXITY_MULTIPLIER[term.complexityLevel] ?? 1.0;
             termScore = 1.0 * complexityMult;
-        } else if (term.status === 'WEAK_MATCH') {
+        } else if (term.matchStatus === 'WEAK_MATCH') {
             termScore = term.matchStrength ?? 0.50;
         }
 
@@ -47,7 +47,7 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
     let score = Math.round((weightedScore / totalWeight) * 100);
 
     const missingRequiredCount = allTerms.filter(
-        t => t.status === 'MISSING' && t.priority === 'REQUIRED'
+        t => t.matchStatus === 'MISSING' && t.priority === 'REQUIRED'
     ).length;
 
     if (missingRequiredCount >= 3) score = Math.min(score, 70);

@@ -1,16 +1,18 @@
 import express from 'express';
-import authUser from '../middlewares/jwt_auth.middleware.js';
+import verifyAccess from '../middlewares/verify_access.middleware.js';
 import {
   parseResumeController,
   parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
+  getInterviewStatsController,
   deleteInterviewReportController
 } from '../controllers/interview_report.controller.js';
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
+import { parseLimiter, reportLimiter } from '../middlewares/ratelimiter.js';
 
 const interviewRouter = express.Router();
 
@@ -27,11 +29,19 @@ const parseJobDescriptionSchema = {
 const generateReportSchema = {
   body: z.object({
     resumeId: z
-      .string({ required_error: 'Resume ID is required.' })
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid resume ID format.'),
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid resume ID format.')
+      .optional(),
     jobDescriptionId: z
-      .string({ required_error: 'Job description ID is required.' })
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid job description ID format.'),
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid job description ID format.')
+      .optional(),
+    jobDescriptionUrl: z
+      .string()
+      .trim()
+      .url('Invalid URL format.')
+      .optional(),
+    daysLimit: z.string().optional(),
   }),
 };
 
@@ -50,7 +60,8 @@ const interviewIdParamsSchema = {
  */
 interviewRouter.post(
   '/parseResume',
-  authUser,
+  verifyAccess,
+  parseLimiter,
   upload.single('resume'),
   parseResumeController
 );
@@ -62,7 +73,8 @@ interviewRouter.post(
  */
 interviewRouter.post(
   '/parseJobDescription',
-  authUser,
+  verifyAccess,
+  parseLimiter,
   validate(parseJobDescriptionSchema),
   parseJobDescriptionController
 );
@@ -74,7 +86,9 @@ interviewRouter.post(
  */
 interviewRouter.post(
   '/generateReport',
-  authUser,
+  verifyAccess,
+  reportLimiter,
+  upload.single('resume'),
   validate(generateReportSchema),
   generateInterviewReportController
 );
@@ -86,9 +100,20 @@ interviewRouter.post(
  */
 interviewRouter.get(
   '/report/:interviewId',
-  authUser,
+  verifyAccess,
   validate(interviewIdParamsSchema),
   getInterviewReportByIdController
+);
+
+/**
+ * @route GET /api/interview/stats
+ * @description Get interview stats for a user
+ * @access private
+ */
+interviewRouter.get(
+  '/stats',
+  verifyAccess,
+  getInterviewStatsController
 );
 
 /**
@@ -98,7 +123,7 @@ interviewRouter.get(
  */
 interviewRouter.delete(
   '/report/:interviewId',
-  authUser,
+  verifyAccess,
   validate(interviewIdParamsSchema),
   deleteInterviewReportController
 );
@@ -108,6 +133,10 @@ interviewRouter.delete(
  * @description Get all interview reports for a user
  * @access private
  */
-interviewRouter.get('/', authUser, getAllInterviewReportsController);
+interviewRouter.get(
+  '/',
+  verifyAccess,
+  getAllInterviewReportsController
+);
 
 export default interviewRouter;

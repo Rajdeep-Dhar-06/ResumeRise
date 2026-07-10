@@ -10,11 +10,11 @@ You are a highly precise job posting parser agent. You will be given raw text sc
 EXTRACTION OBJECTIVES:
 1. "companyName": The hiring company or organization name (e.g. "Cisco", "Netomi", etc.). If not found, use "Company".
 2. "role": The official Job Role / Title (should not be more than 3 words approximately)
-3. "skills": The list of required skills (concrete technologies, languages, frameworks, tools, platforms).
-4. "requirements": The list of job requirements (experience level, qualifications, domain knowledge, responsibilities).
+3. "technicalRequirements": The list of required skills (concrete technologies, languages, frameworks, tools, platforms).
+4. "nonTechnicalRequirements": The list of job requirements (experience level, qualifications, domain knowledge, responsibilities).
 
 SECTION A: SOURCE NOISE — IGNORE REGARDLESS OF PLATFORM 
-Scraped pages contain far more than the job description itself. Never let any of the following influence companyName, role, skills, or requirements:
+Scraped pages contain far more than the job description itself. Never let any of the following influence companyName, role, technicalRequirements, or nonTechnicalRequirements:
 - Site navigation, header/footer menus, login/signup prompts, cookie/privacy/GDPR banners
 - "Apply now", "Share this job", "Save job", and other CTA or social-share widget text
 - Related/similar/"More jobs like this" listings elsewhere on the page
@@ -34,7 +34,7 @@ SECTION C: ROLE TITLE DISAMBIGUATION
 - The title often appears multiple times in a scrape (browser <title> tag noise, breadcrumb trail, a related-jobs sidebar, the actual page heading). Prefer the instance that sits closest to the company name, location, and "Apply" CTA — that is almost always the canonical title.
 - Strip decoration platforms append to page titles (e.g. "- Company Name", "| LinkedIn", "(Remote)") when it's clearly not part of the real role name, but keep legitimate parts of the title such as seniority or team (e.g. "Senior Backend Engineer, Payments").
 
-SECTION D: HARD RULES FOR SKILLS & REQUIREMENTS — violating any of these is a failure
+SECTION D: HARD RULES FOR TECHNICAL & NON-TECHNICAL REQUIREMENTS — violating any of these is a failure
 
 1. ATOMICITY VS. LOGICAL OR / ALTERNATIVES
    - Do NOT extract compound lists of independent required technologies as one item (e.g. split "Spring, Docker, and AWS" into three atomic items: "Spring", "Docker", "AWS").
@@ -45,11 +45,11 @@ SECTION D: HARD RULES FOR SKILLS & REQUIREMENTS — violating any of these is a 
    - Only extract hard skills, specific qualifications (degrees, certifications), experience-level durations (e.g. "3+ years of Java development"), and concrete domain responsibilities (e.g. "Managing Docker containers in production").
 
 3. CLASSIFICATION SYSTEM
-   - "skills" are concrete developer technologies, programming languages (including generic paradigms like "object-oriented language"), libraries, databases, clouds, frameworks, developer tools, and core CS foundations ("data structures", "algorithms").
-   - "requirements" are concrete academic milestones ("BS/MS in Computer Science", "semester remaining"), experience-duration thresholds, specific job responsibilities, or citizenship/work-authorization constraints.
+   - "technicalRequirements" are concrete developer technologies, programming languages (including generic paradigms like "object-oriented language"), libraries, databases, clouds, frameworks, developer tools, and core CS foundations ("data structures", "algorithms").
+   - "nonTechnicalRequirements" are concrete academic milestones ("BS/MS in Computer Science", "semester remaining"), experience-duration thresholds, specific job responsibilities, or citizenship/work-authorization constraints.
 
 4. NO DUPLICATE FACTS ACROSS FIELDS
-   - If a specific technology is already captured as a "skills" entry, do not also add a "requirements" entry that just restates it (e.g. don't add both a skill "AWS" and a requirement "must know AWS"). An experience-duration threshold tied to a named technology (e.g. "5+ years with AWS") belongs in that skill's own context/priority, not as a separate requirement.
+   - If a specific technology is already captured as a "technicalRequirements" entry, do not also add a "nonTechnicalRequirements" entry that just restates it (e.g. don't add both a skill "AWS" and a requirement "must know AWS"). An experience-duration threshold tied to a named technology (e.g. "5+ years with AWS") belongs in that skill's own context/priority, not as a separate requirement.
 
 5. SECTION-HEADER VOCABULARY IS PLATFORM-DEPENDENT
    Different platforms label the same intent with different headers. Recognize these as equivalent signals regardless of exact wording:
@@ -58,7 +58,7 @@ SECTION D: HARD RULES FOR SKILLS & REQUIREMENTS — violating any of these is a 
    Use the section an item appears under as one signal for "priority", combined with the item's own wording.
 
 6. DEDUPLICATION ACROSS THE PAGE
-   - The same skill or requirement is often mentioned more than once across different sections (e.g. once in "About the role" prose, again in "Requirements"). Merge these into a single entry — keep the most specific/informative "context" and the highest-confidence "priority" rather than creating duplicate items.
+   - The same skill or requirement is often mentioned more than once across different sections (e.g. once in "About the role" prose, again in "Requirements"). Merge these into a single entry — keep the most specific/informative "sourceContext" and the highest-confidence "priority" rather than creating duplicate items.
 
 7. NORMALIZE COMMON NAME VARIANTS, NEVER INVENT
    - Canonicalize obvious spelling variants for consistent downstream matching (e.g. "ReactJS"/"React.js" → "React", "NodeJS" → "Node.js", "Golang" → "Go"). Never introduce a skill or requirement that isn't actually present in the text, even if it seems implied by the role.
@@ -72,7 +72,7 @@ SECTION D: HARD RULES FOR SKILLS & REQUIREMENTS — violating any of these is a 
    - Scraped text is sometimes partial (JS-rendered content that didn't load, truncated fetches, mostly-empty skeletons). Extract whatever concrete technical content is genuinely present. If nothing usable exists for a field, return an empty array — never hallucinate to fill it.
 
 SECTION E: FIELD CONVENTIONS FOR EXTRACTED ITEMS
-- "context": one grounded sentence quoting or closely paraphrasing where and how this item appears in the posting's responsibilities or qualifications. If extracted from a tags list or metadata section (e.g. "Top skills", "Insights from previous hires", or a tag cloud) with no surrounding sentence, state where it was found (e.g. "Listed under Top Skills from previous hires"). Never leave this empty.
+- "sourceContext": one grounded sentence quoting or closely paraphrasing where and how this item appears in the posting's responsibilities or qualifications. If extracted from a tags list or metadata section (e.g. "Top skills", "Insights from previous hires", or a tag cloud) with no surrounding sentence, state where it was found (e.g. "Listed under Top Skills from previous hires"). Never leave this empty.
 - "priority": REQUIRED, PREFERRED, or NICE_TO_HAVE, based strictly on the posting's own language and section placement (see Section D.5), not on how important you personally judge the item to be:
   - REQUIRED: mandatory/must-have language ("required", "must have", "X+ years of", or placement under a required-signal header).
   - PREFERRED: the posting explicitly frames it as optional in its own words ("nice to have", "a plus", "bonus", "preferred", or placement under a preferred-signal header).
@@ -81,15 +81,15 @@ SECTION E: FIELD CONVENTIONS FOR EXTRACTED ITEMS
 SECTION F: OUTPUT CONTRACT
 - Return only the JSON object matching the expected schema. No markdown code fences, no preamble, no trailing commentary or explanation — this output is parsed programmatically, so anything other than raw valid JSON will break the pipeline.
 
-Ignore navigation, headers, footers, and similar-job listings when deciding what counts as a companyName, skill, or requirement. Note: you MAY extract skills from "Top skills", "Insights from previous hires", or "Key skills" tag lists if they represent relevant technical skills for the role.
+Ignore navigation, headers, footers, and similar-job listings when deciding what counts as a companyName, technicalRequirements, or nonTechnicalRequirements. Note: you MAY extract skills from "Top skills", "Insights from previous hires", or "Key skills" tag lists if they represent relevant technical skills for the role.
 
 Raw Scraped Text:
 ${rawText}
-`.trim();
+`;
 }
 
 // --- 2. Resume Audit & Matching Prompts ---
-export function getSkillsMatchPrompt({ resumeText, skills }) {
+export function getTechRequirementsPrompt({ resumeText, jobDescriptionTechnicalRequirements }) {
    return `
 You are a brutally honest senior technical interviewer at a top-tier tech firm.
 Your job is to audit a candidate's resume against a job description with ZERO leniency.
@@ -149,9 +149,9 @@ HARD RULES — violating any of these is a failure:
     - Do NOT penalize the candidate for lacking the exact generic phrase on their resume. Explicitly quote the specific concrete tool from the resume that satisfied the broader category in your "evidence" field.
 
 FIELD CONVENTIONS:
-- "evidence": quote the exact resume line or project name that supports your verdict. If nothing supports
+- "resumeEvidence": quote the exact resume line or project name that supports your verdict. If nothing supports
   this skill, write exactly "None found" — the literal string, not a paraphrase of it.
-- "complexity": rate the depth of the evidencing project honestly on the TRIVIAL-through-PRODUCTION scale.
+- "complexityLevel": rate the depth of the evidencing project honestly on the TRIVIAL-through-PRODUCTION scale.
   A later step decides whether to write a question exposing the gap between a trivial project and real
   production use based on this rating alone — an inflated rating here means that question never gets asked.
 - "matchStrength" is optional — include it only for MATCHED or WEAK_MATCH items, as your confidence (0-1)
@@ -160,19 +160,19 @@ FIELD CONVENTIONS:
 Candidate Resume:
 ${resumeText}
 
-Skills to evaluate:
-${JSON.stringify(skills)}
+Technical requirements to evaluate:
+${JSON.stringify(jobDescriptionTechnicalRequirements)}
 
 Return ONLY the JSON matching the schema. Be direct. Do not hedge. Do not add encouragement.
 If something is missing or weak, say exactly why in one sentence without softening.
 
 STRUCTURAL RULES:
-- Return exactly one evaluation object per skill listed above, in the same order.
-- The "term" field in your output MUST exactly match the input term string, character-for-character. Do not paraphrase, reword, expand abbreviations, or change casing.
+- Return exactly one evaluation object per requirement listed above, in the same order.
+- The "requirementName" field in your output MUST exactly match the input requirementName string, character-for-character. Do not paraphrase, reword, expand abbreviations, or change casing.
 `.trim();
 }
 
-export function getRequirementsMatchPrompt({ resumeText, requirements }) {
+export function getNonTechRequirementsPrompt({ resumeText, jobDescriptionNonTechnicalRequirements }) {
    return `
 You are a brutally honest senior technical interviewer at a top-tier tech firm.
 Your job is to audit a candidate's resume against a job description with ZERO leniency.
@@ -216,9 +216,9 @@ HARD RULES — violating any of these is a failure:
     - Do NOT penalize the candidate for lacking the exact generic phrase on their resume. Explicitly quote the specific concrete tool from the resume that satisfied the broader category in your "evidence" field.
 
 FIELD CONVENTIONS:
-- "evidence": quote the exact resume line supporting your verdict. If nothing supports it, write exactly
+- "resumeEvidence": quote the exact resume line supporting your verdict. If nothing supports it, write exactly
   "None found" — the literal string, not a paraphrase of it.
-- "complexity": most requirements are NOT project-based (years of experience, degree, work authorization,
+- "complexityLevel": most requirements are NOT project-based (years of experience, degree, work authorization,
   domain familiarity) — use "N/A" for these by default. Only rate an actual TRIVIAL-through-PRODUCTION
   complexity level when the requirement itself describes a technical/architectural capability (e.g.
   "experience with microservices architecture"), in which case rate it exactly as you would a skill.
@@ -228,15 +228,15 @@ FIELD CONVENTIONS:
 Candidate Resume:
 ${resumeText}
 
-Requirements to evaluate:
-${JSON.stringify(requirements)}
+Non-technical requirements to evaluate:
+${JSON.stringify(jobDescriptionNonTechnicalRequirements)}
 
 Return ONLY the JSON matching the schema. Be direct. Do not hedge. Do not add encouragement.
 If something is missing or weak, say exactly why in one sentence without softening.
 
 STRUCTURAL RULES:
 - Return exactly one evaluation object per requirement listed above, in the same order.
-- The "term" field in your output MUST exactly match the input term string, character-for-character. Do not paraphrase, reword, expand abbreviations, or change casing.
+- The "requirementName" field in your output MUST exactly match the input requirementName string, character-for-character. Do not paraphrase, reword, expand abbreviations, or change casing.
 `.trim();
 }
 
@@ -249,13 +249,13 @@ that could describe anyone's report.
 
 Key stats for title context:
 - Calculated Fit Score: ${matchScore}/100
-- MATCHED: ${matchedTerms.map(t => t.term).join(', ') || 'None'}
-- MISSING: ${missingTerms.map(t => t.term).join(', ') || 'None'}
+- MATCHED: ${matchedTerms.map(t => t.requirementName).join(', ') || 'None'}
+- MISSING: ${missingTerms.map(t => t.requirementName).join(', ') || 'None'}
 - Target Role: ${jobDescription.slice(0, JD_CONTEXT_CHAR_LIMIT)}
 `.trim();
 }
 
-export function getTechQuestionsPrompt({ missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescription }) {
+export function getTechQuestionsPrompt({ missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescriptionText }) {
    return `
 You are a technical interviewer. Generate exactly 5 interview questions for this specific candidate.
 
@@ -268,7 +268,7 @@ ${weakTermsFormatted}
 MATCHED:
 ${matchedTermsFormatted}
 
-ROLE: ${jobDescription.slice(0, JD_CONTEXT_CHAR_LIMIT)}
+ROLE: ${jobDescriptionText.slice(0, JD_CONTEXT_CHAR_LIMIT)}
 
 RULES:
 - CRITICAL TECHNICAL FOCUS: Every question generated must be a hard technical engineering question (system design, concurrency, architecture, debugging, coding logic, database design, etc.).
@@ -281,43 +281,48 @@ RULES:
 - Do not generate generic DSA questions unless an algorithm or data structure appears in MISSING or WEAK_MATCH.
 - Questions must be grounded in this candidate's specific evidence and verdicts above — not the JD alone.
 - HARD LIMIT ON HALLUCINATIONS: Do NOT assume, infer, or hallucinate that the candidate knows, uses, or should be questioned on any framework, library, or tool not explicitly listed as MATCHED or WEAK_MATCH in the inputs. For example, if "Java" is listed, do NOT ask questions about "Spring Boot" or write answers mentioning "Spring Boot" unless Spring Boot itself is explicitly MATCHED/WEAK_MATCH.
-- "intention": one sentence naming the specific gap or claim this question targets.
-- "answer": a concise model answer written from the candidate's point of view, covering what a strong response should include — not a full essay.
+- "interviewerIntent": one sentence naming the specific gap or claim this question targets.
+- "idealAnswer": a concise model answer written from the point of view of the candidate, covering what a strong response should include — not a full essay.
 `.trim();
 }
 
-export function getBehavioralQuestionsPrompt({ resumeText, missingTermsFormatted, weakTermsFormatted, jobDescription }) {
+export function getNonTechnicalQuestionsPrompt({ resumeText, missingTermsFormatted, weakTermsFormatted, jobDescriptionText }) {
    return `
-You are a behavioral interviewer. Generate exactly 3 behavioral questions.
-
+You are a non-technical interviewer. Generate exactly 3 non-technical / behavioral questions.
+ 
 CANDIDATE RESUME:
 ${resumeText || 'No resume content.'}
-
+ 
 GAPS TO PROBE:
 MISSING:
 ${missingTermsFormatted}
-
+ 
 WEAK_MATCH:
 ${weakTermsFormatted}
-
-ROLE: ${jobDescription.slice(0, JD_CONTEXT_CHAR_LIMIT)}
-
+ 
+ROLE: ${jobDescriptionText.slice(0, JD_CONTEXT_CHAR_LIMIT)}
+ 
 RULES:
 - Each question must probe a specific gap or unsubstantiated claim visible in the candidate's background.
-- Name the behavior you are probing inside the question itself (e.g. "You describe leading a project — what was the team structure and how did you resolve a technical disagreement?").
+- Name the behavior/situation you are probing inside the question itself (e.g. "You describe leading a project — what was the team structure and how did you resolve a disagreement?").
 - If no evidence of team collaboration exists: probe team dynamics. If leadership or impact claims are vague: probe specifics.
 - Three distinct topics — no thematic overlap between questions.
 - Only the last question can be a generic STAR prompt ("Tell me about a time you faced a challenge").
 - HARD LIMIT ON HALLUCINATIONS: Do NOT assume or mention that the candidate has experience with related frameworks, languages, or tools unless they are explicitly present in the candidate resume or MATCHED/WEAK_MATCH inputs. Keep questions strictly grounded.
-- "intention": one sentence naming the specific gap or claim this question targets.
-- "answer": a concise model answer written from the candidate's point of view, covering what a strong
+- "interviewerIntent": one sentence naming the specific gap or claim this question targets.
+- "idealAnswer": a concise model answer written from the point of view of the candidate, covering what a strong
   response should include — not a full essay.
 `.trim();
 }
 
-export function getGapsAndPlanPrompt({ missingTermsFormatted, weakTermsFormatted, searchResultsText }) {
+export function getGapsAndPlanPrompt({ missingTermsFormatted, weakTermsFormatted, searchResultsText, daysLimit }) {
    return `
 You are a technical gap analyst. Your output drives a focused study plan.
+You MUST distribute the study blocks and tasks dynamically over EXACTLY ${daysLimit} days (Day 1 to Day ${daysLimit}). 
+Each day must represent a focus study block targeting one or more gaps, containing actionable tasks.
+Do not exceed or fall short of ${daysLimit} days in your daily prep plan output.
+If the number of high/medium severity gaps is larger than ${daysLimit}, consolidate multiple gaps into a single day's focus. If the number of gaps is smaller, focus each day on deep-diving into different aspects/projects of the available gaps.
+
 You MUST integrate the real-time search results (URLs and descriptions) provided below into the preparation tasks where relevant, so the candidate has clickable links to study from.
 
 RAW AUDIT DATA:
@@ -334,17 +339,21 @@ STEP 1 — SEVERITY:
   high = MISSING term that is a primary, non-negotiable requirement.
   medium = WEAK_MATCH term, or a MISSING secondary/preferred requirement.
   low = nice-to-have.
-  CRITICAL: The "skill" field for each entry in "skillGaps" MUST be exactly the raw skill term from the list (e.g. "Apache Kafka" or "C++"), character-for-character. Do NOT append commas, verdicts, statuses, colon, or any other metadata text (like ",verdict:" or "| Verdict").
+  CRITICAL: The "requirementName" field for each entry in "preparationGaps" MUST be exactly the raw requirementName from the list (e.g. "Apache Kafka" or "C++"), character-for-character. Do NOT append commas, verdicts, statuses, colon, or any other metadata text (like ",verdict:" or "| Verdict").
 
 STEP 2 — PREP PLAN (high and medium only):
-  Per gap: one day focus study block with one actionable, verifiable and achievable in 8 to 10 hours study task written in plain English.
+  Generate exactly ${daysLimit} daily prep plan objects (one object per day, from Day 1 to Day ${daysLimit}).
+  Each daily plan object must contain:
+  - dayNumber: from 1 to ${daysLimit}.
+  - dailyFocus: the focus of study for that day.
+  - dailyTasks: an array of actionable, verifiable and achievable tasks written in plain English.
   HARD RULE: Do NOT include any URLs, hyperlinks, or "https://..." strings inside the tasks array — URLs belong exclusively in the "learningResources" array (STEP 3). Tasks must be self-contained, human-readable study actions (e.g. "Study Kafka's producer-consumer model and practice writing a simple producer in code").
   Skip low severity gaps unless fewer than 2 high/medium gaps remain.
 
 STEP 3 — LEARNING RESOURCES (Extract from search engine results):
-  For each retained skill gap, parse the relevant links from the SEARCH ENGINE RESULTS FOR GAPS section.
+  For each retained requirementName gap, parse the relevant links from the SEARCH ENGINE RESULTS FOR GAPS section.
   Group these links under the "learningResources" array.
-  For each link, capture the exact "title", the raw "url" (must be a valid link starting with http:// or https://), and a short "snippet" summary of what the guide covers. Do not leave the resources array empty.
-  CRITICAL: The "skill" field for each learningResources entry MUST exactly match the raw input term string, character-for-character (e.g. "Apache Kafka"). Do not paraphrase, rename, or reformat it, and do NOT append any other metadata text or status strings.
+  For each link, capture the exact "resourceTitle", the raw "resourceUrl" (must be a valid link starting with http:// or https://), and a short "resourceSnippet" summary of what the guide covers. Do not leave the resources array empty.
+  CRITICAL: The "requirementName" field for each learningResources entry MUST exactly match the raw input requirementName string, character-for-character (e.g. "Apache Kafka"). Do not paraphrase, rename, or reformat it, and do NOT append any other metadata text or status strings.
 `.trim();
 }

@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 // Matches the pattern already used correctly in interview_report.model.js.
 const jdTermSchema = new mongoose.Schema(
     {
-        term: {
+        requirementName: {
             type: String,
             required: true
         },
@@ -15,7 +15,7 @@ const jdTermSchema = new mongoose.Schema(
             enum: ["REQUIRED", "PREFERRED", "NICE_TO_HAVE"],
             default: "REQUIRED",
         },
-        context: {
+        sourceContext: {
             type: String,
             required: true
         },
@@ -35,11 +35,8 @@ const jobDescriptionSchema = new mongoose.Schema(
         role: {
             type: String,
         },
-        // publishedAt: {
-        //     type: Date,
-        // },
-        skills: [jdTermSchema],
-        requirements: [jdTermSchema],
+        technicalRequirements: [jdTermSchema],
+        nonTechnicalRequirements: [jdTermSchema],
     },
     { timestamps: true }
 );

@@ -7,35 +7,42 @@ import { computeMatchScore } from '../utils/score_calculator.js';
 import JobDescriptionModel from '../models/job_description.model.js';
 import InterviewReportModel from '../models/interview_report.model.js';
 import LearningResourceModel from '../models/learning_resource.model.js';
+import resumeModel from '../models/resume.model.js';
+import { createHash } from 'crypto';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import axios from 'axios';
+import { anonymizeResume } from '../utils/anonymizer.js';
+import { compactText } from '../utils/text_compact.js';
+import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
+import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
 
 // LangChain Community Tools & Loaders
 import { TavilySearch } from '@langchain/tavily';
 
 // Zod Schemas
-import { skillsMatchSchema, requirementsMatchSchema } from '../schemas/matched_term.schema.js';
+import { techRequirementsMatchSchema, nonTechRequirementsMatchSchema } from '../schemas/matched_term.schema.js';
 import {
     reportGapsAndPlanSchema,
     reportTechQuestionsSchema,
-    reportBehavioralQuestionsSchema
+    reportNonTechnicalQuestionsSchema
 } from '../schemas/interview_report.schema.js';
 
 // Prompts
 import {
-    getSkillsMatchPrompt,
-    getRequirementsMatchPrompt,
+    getTechRequirementsPrompt,
+    getNonTechRequirementsPrompt,
     getGapsAndPlanPrompt,
     getTechQuestionsPrompt,
-    getBehavioralQuestionsPrompt
+    getNonTechnicalQuestionsPrompt
 } from '../prompts/prompts.js';
 
-// Shared helper: formats a list of matched/missing/weak terms into a readable bullet list for prompts.
 function formatTerms(terms) {
     if (!terms || terms.length === 0) return '  None.';
-    return terms.map(t =>
-        `  • "${t.term}" | Priority: ${t.priority || 'REQUIRED'} | Complexity: ${t.complexity || 'N/A'} | Evidence: "${t.evidence || 'None found'}" | Verdict: "${t.verdict || 'None'}"`
+    const formatted = terms.map(t =>
+        `  • "${t.requirementName}" | Priority: ${t.priority || 'REQUIRED'} | Complexity: ${t.complexityLevel || 'N/A'} | Evidence: "${t.resumeEvidence || 'None found'}" | Verdict: "${t.depthAssessment || 'None'}"`
     ).join('\n');
+    return formatted;
 }
-
 
 const model = new ChatGoogle({
     model: "gemini-3.1-flash-lite",
@@ -65,66 +72,159 @@ export function getCreativeStructuredModel(schema) {
     ]);
 }
 
+// Helper to parse and persist a resume PDF
+async function parseAndSaveResume(userId, resumeBuffer) {
+    const contentHash = createHash('sha256').update(resumeBuffer).digest('hex');
+    let doc = await resumeModel.findOne({ user: userId, contentHash });
+    if (!doc) {
+        console.log('[Node Ingestion] Parsing PDF and anonymizing resume content...');
+        let parsedText = '';
+        const blob = new Blob([resumeBuffer]);
+        const loader = new PDFLoader(blob);
+        const docs = await loader.load();
+        parsedText = docs.map((doc) => doc.pageContent).join('\n');
+
+        const RESUME_NOISE = [
+            /references available (on|upon) request/i,
+            /\b(hobbies|interests|objective)\b.*$/im
+        ];
+        parsedText = compactText(parsedText, { extraNoise: RESUME_NOISE, maxLines: 120 });
+
+        if (!parsedText) {
+            throw new Error('The uploaded resume PDF does not contain any extractable text.');
+        }
+
+        const resumeContent = anonymizeResume(parsedText);
+        doc = await resumeModel.create({
+            user: userId,
+            contentHash,
+            resumeContent,
+        });
+    }
+    return doc;
+}
+
+// Helper to scrape and persist a job description from a URL
+async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
+    const cleanedUrl = jobDescriptionUrl.trim();
+    let doc = await JobDescriptionModel.findOne({ url: cleanedUrl });
+    if (!doc) {
+        console.log('[Node Ingestion] Scraping job webpage via Jina Reader...');
+        let cleanedText = '';
+        const jinaUrl = `https://r.jina.ai/${cleanedUrl}`;
+        const headers = {};
+        if (process.env.JINA_API_KEY) {
+            headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
+        }
+        const response = await axios.get(jinaUrl, { headers, timeout: 20000 });
+        cleanedText = response.data || '';
+
+        if (!cleanedText || cleanedText.length < 50) {
+            throw new Error('No sufficient text content could be extracted from this URL.');
+        }
+
+        const prompt = getScrapeJobDescriptionPrompt({ rawText: cleanedText });
+        const structuredLlm = getStructuredModel(jobDescriptionSchema);
+        const details = await structuredLlm.invoke(prompt);
+
+        if ((!details.technicalRequirements || details.technicalRequirements.length === 0) && (!details.nonTechnicalRequirements || details.nonTechnicalRequirements.length === 0)) {
+            throw new Error('Could not extract any skills or requirements from this job description URL.');
+        }
+
+        doc = await JobDescriptionModel.create({
+            url: cleanedUrl,
+            companyName: details.companyName || 'Company',
+            role: details.role || 'Job Description',
+            technicalRequirements: details.technicalRequirements || [],
+            nonTechnicalRequirements: details.nonTechnicalRequirements || [],
+        });
+    }
+    return doc;
+}
+
 export async function startAgent(state) {
+    console.log(`[Node] Beginning concurrent ingestion of resume and job description...`);
+
+    const {
+        userId,
+        resumeBuffer,
+        jobDescriptionUrl
+    } = state;
+
+    // Concurrently execute parsing and scraping helpers
+    const [resumeDoc, jobDoc] = await Promise.all([
+        parseAndSaveResume(userId, resumeBuffer),
+        scrapeAndSaveJobDescription(jobDescriptionUrl)
+    ]);
+
+    const resumeText = resumeDoc.resumeContent;
+    const jobDescriptionTechnicalRequirements = jobDoc.technicalRequirements || [];
+    const jobDescriptionNonTechnicalRequirements = jobDoc.nonTechnicalRequirements || [];
+
     console.log(`[Node] Auditing candidate resume against job requirements...`);
 
-    let matchedSkills = [];
-    let matchedRequirements = [];
+    let evaluatedTechnicalRequirements = [];
+    let evaluatedNonTechnicalRequirements = [];
 
-    if (state.resumeText) {
-        const skillObjects = state.jobDescriptionSkills || [];
-        const reqObjects = state.jobDescriptionRequirements || [];
+    try {
+        const techRequirementsLlm = getStructuredModel(techRequirementsMatchSchema);
+        const nonTechRequirementsLlm = getStructuredModel(nonTechRequirementsMatchSchema);
 
-        if (skillObjects.length > 0 || reqObjects.length > 0) {
-            try {
-                // Initialize structured LLM runners directly using your LangChain model
-                const skillsLlm = getStructuredModel(skillsMatchSchema);
-                const reqsLlm = getStructuredModel(requirementsMatchSchema);
+        // Execute the audit prompts concurrently
+        const [techRequirementsResult, nonTechRequirementsResult] = await Promise.all([
+            techRequirementsLlm.invoke(
+                getTechRequirementsPrompt({ resumeText, jobDescriptionTechnicalRequirements })
+            ),
+            nonTechRequirementsLlm.invoke(
+                getNonTechRequirementsPrompt({ resumeText, jobDescriptionNonTechnicalRequirements })
+            )
+        ]);
 
-                // Execute the audit prompts concurrently
-                const [skillsResult, reqsResult] = await Promise.all([
-                    skillsLlm.invoke(
-                        getSkillsMatchPrompt({ resumeText: state.resumeText, skills: skillObjects })
-                    ),
-                    reqsLlm.invoke(
-                        getRequirementsMatchPrompt({ resumeText: state.resumeText, requirements: reqObjects })
-                    )
-                ]);
-
-                matchedSkills = skillsResult.scrapedSkills || [];
-                matchedRequirements = reqsResult.scrapedRequirements || [];
-            } catch (err) {
-                console.error('[Node] Match check LLM execution failed, defaulting to missing:', err);
-                matchedSkills = skillObjects.map(s => ({ term: s.term, status: 'MISSING', evidence: 'Matching failed' }));
-                matchedRequirements = reqObjects.map(r => ({ term: r.term, status: 'MISSING', evidence: 'Matching failed' }));
-            }
-
-            // Map priorities from job description terms back onto matching audit results
-            const skillPriorityMap = Object.fromEntries(skillObjects.map(s => [s.term, s.priority || 'REQUIRED']));
-            const reqPriorityMap = Object.fromEntries(reqObjects.map(r => [r.term, r.priority || 'REQUIRED']));
-
-            matchedSkills = matchedSkills.map(s => ({
-                ...s,
-                priority: skillPriorityMap[s.term] || 'REQUIRED',
-            }));
-            matchedRequirements = matchedRequirements.map(r => ({
-                ...r,
-                priority: reqPriorityMap[r.term] || 'REQUIRED',
-            }));
-
-            // Defensive checking to warn if LLM paraphrased key names or skipped evaluations
-            if (matchedSkills.length !== skillObjects.length) {
-                console.warn(`[Node] Warning: Skill audit count mismatch! Expected ${skillObjects.length}, evaluated ${matchedSkills.length}.`);
-            }
-            if (matchedRequirements.length !== reqObjects.length) {
-                console.warn(`[Node] Warning: Requirement audit count mismatch! Expected ${reqObjects.length}, evaluated ${matchedRequirements.length}.`);
-            }
-        }
+        evaluatedTechnicalRequirements = techRequirementsResult.evaluatedTechnicalRequirements || [];
+        evaluatedNonTechnicalRequirements = nonTechRequirementsResult.evaluatedNonTechnicalRequirements || [];
+    } catch (err) {
+        console.error('[Node] Match check LLM execution failed, defaulting to missing:', err);
+        evaluatedTechnicalRequirements = jobDescriptionTechnicalRequirements.map(s => ({ requirementName: s.requirementName, matchStatus: 'MISSING', resumeEvidence: 'Matching failed' }));
+        evaluatedNonTechnicalRequirements = jobDescriptionNonTechnicalRequirements.map(r => ({ requirementName: r.requirementName, matchStatus: 'MISSING', resumeEvidence: 'Matching failed' }));
     }
 
+    const techPriorityMap = Object.fromEntries(jobDescriptionTechnicalRequirements.map(s => [s.requirementName, s.priority || 'REQUIRED']));
+    const nonTechPriorityMap = Object.fromEntries(jobDescriptionNonTechnicalRequirements.map(r => [r.requirementName, r.priority || 'REQUIRED']));
+
+    evaluatedTechnicalRequirements = evaluatedTechnicalRequirements.map(s => ({
+        ...s,
+        priority: techPriorityMap[s.requirementName] || 'REQUIRED',
+    }));
+    evaluatedNonTechnicalRequirements = evaluatedNonTechnicalRequirements.map(r => ({
+        ...r,
+        priority: nonTechPriorityMap[r.requirementName] || 'REQUIRED',
+    }));
+
+    if (evaluatedTechnicalRequirements.length !== jobDescriptionTechnicalRequirements.length) {
+        console.warn(`[Node] Warning: Technical requirements count mismatch! Expected ${jobDescriptionTechnicalRequirements.length}, evaluated ${evaluatedTechnicalRequirements.length}.`);
+    }
+    if (evaluatedNonTechnicalRequirements.length !== jobDescriptionNonTechnicalRequirements.length) {
+        console.warn(`[Node] Warning: Non technical requirements count mismatch! Expected ${jobDescriptionNonTechnicalRequirements.length}, evaluated ${evaluatedNonTechnicalRequirements.length}.`);
+    }
+
+    const jobDescriptionText =
+      `Role: ${jobDoc.role || 'Job Description'}.
+      Technical Requirements:
+      ${(jobDoc.technicalRequirements || []).map(s => `- ${s.requirementName} (${s.priority}): ${s.sourceContext}`).join('\n')}
+      Non-Technical Requirements:
+      ${(jobDoc.nonTechnicalRequirements || []).map(r => `- ${r.requirementName} (${r.priority}): ${r.sourceContext}`).join('\n')}`;
+
     return {
-        matchedSkills,
-        matchedRequirements,
+        resumeId: resumeDoc._id,
+        resumeText,
+        jobDescriptionId: jobDoc._id,
+        jobDescriptionText,
+        jobDescriptionCompany: jobDoc.companyName || 'Company',
+        jobDescriptionRole: jobDoc.role || 'Role',
+        jobDescriptionTechnicalRequirements,
+        jobDescriptionNonTechnicalRequirements,
+        evaluatedTechnicalRequirements,
+        evaluatedNonTechnicalRequirements,
     };
 }
 
@@ -135,10 +235,10 @@ async function getResourceForTerm(term, searchTool) {
 
     // 1. Try checking MongoDB cache
     try {
-        const cached = await LearningResourceModel.findOne({ skill: normalized });
+        const cached = await LearningResourceModel.findOne({ requirementName: normalized });
         if (cached?.resources?.length > 0) {
             console.log(`[Node] Found cached learning resources in MongoDB for gap: "${term}"`);
-            const formatted = cached.resources.map(r => `• Title: ${r.title}\n  Link: ${r.url}\n  Description: ${r.snippet || ''}`).join('\n');
+            const formatted = cached.resources.map(r => `• Title: ${r.resourceTitle}\n  Link: ${r.resourceUrl}\n  Description: ${r.resourceSnippet || ''}`).join('\n');
             return `### Search Results for "${term}":\n${formatted}\n`;
         }
     } catch (dbErr) {
@@ -155,19 +255,19 @@ async function getResourceForTerm(term, searchTool) {
 
         if (resultsArray.length > 0) {
             const resources = resultsArray.map(r => ({
-                title: r.title || `${term} Tutorial`,
-                url: r.url,
-                snippet: r.content || ''
+                resourceTitle: r.title || `${term} Tutorial`,
+                resourceUrl: r.url,
+                resourceSnippet: r.content || ''
             }));
 
             // Cache asynchronously (non-blocking) with upsert to prevent E11000 dup key errors
             LearningResourceModel.findOneAndUpdate(
-                { skill: normalized },
-                { skill: normalized, resources },
+                { requirementName: normalized },
+                { requirementName: normalized, resources },
                 { upsert: true, new: true }
             ).catch(cacheErr => console.warn(`[Node] Caching failed for gap "${term}":`, cacheErr.message));
 
-            const formattedRes = resources.map(r => `• Title: ${r.title}\n  Link: ${r.url}\n  Description: ${r.snippet}`).join('\n\n');
+            const formattedRes = resources.map(r => `• Title: ${r.resourceTitle}\n  Link: ${r.resourceUrl}\n  Description: ${r.resourceSnippet}`).join('\n\n');
             return `### Search Results for "${term}":\n${formattedRes}\n`;
         }
     } catch (tavilyErr) {
@@ -182,27 +282,30 @@ async function getResourceForTerm(term, searchTool) {
 export async function processLearningPath(state) {
     console.log(`[Node] Finding learning tutorials for gaps...`);
 
-    // We only process technical skills for the learning path, skipping abstract requirements
-    const missingTerms = (state.matchedSkills || []).filter(s => s.status === "MISSING");
-    const weakTerms = (state.matchedSkills || []).filter(s => s.status === "WEAK_MATCH");
+    const { evaluatedTechnicalRequirements = [], daysLimit = 14 } = state;
 
-    const searchTerms = [...missingTerms, ...weakTerms].map(t => t.term);
+    // We only process technical skills for the learning path, skipping abstract requirements
+    const missingTechnicalRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
+    const weakTechnicalRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
+
+    const searchTechnicalRequirements = [...missingTechnicalRequirements, ...weakTechnicalRequirements].map(t => t.requirementName);
     let searchResultsText = "No web search required.";
 
-    if (searchTerms.length > 0) {
+    if (searchTechnicalRequirements.length > 0) {
         const searchTool = new TavilySearch({ maxResults: 2 });
         const resultsArray = await Promise.all(
-            searchTerms.map(term => getResourceForTerm(term, searchTool))
+            searchTechnicalRequirements.map(term => getResourceForTerm(term, searchTool))
         );
-        // Filter out nulls (terms where Tavily returned nothing)
+        // Filter out nulls
         const validResults = resultsArray.filter(Boolean);
         searchResultsText = validResults.length > 0 ? validResults.join('\n') : "No search results available.";
     }
 
     const prompt = getGapsAndPlanPrompt({
-        missingTermsFormatted: formatTerms(missingTerms),
-        weakTermsFormatted: formatTerms(weakTerms),
-        searchResultsText
+        missingTermsFormatted: formatTerms(missingTechnicalRequirements),
+        weakTermsFormatted: formatTerms(weakTechnicalRequirements),
+        searchResultsText,
+        daysLimit
     });
 
     const structuredLlm = getStructuredModel(reportGapsAndPlanSchema);
@@ -213,58 +316,51 @@ export async function processLearningPath(state) {
     }
 
     return {
-        skillGaps: response.skillGaps || [],
+        preparationGaps: response.preparationGaps || [],
         preparationPlan: response.preparationPlan || [],
         learningResources: response.learningResources || [],
     };
 }
 
-
-/**
- * 5. Node to generate title
- */
 export async function generateScoreAndTitle(state) {
     console.log(`[Node] Generating score and title...`);
 
-    const company = state.jobDescriptionCompany || 'Company';
-    const role = state.jobDescriptionRole || 'Role';
-    const title = `${company} | ${role}`;
+    const {
+        jobDescriptionCompany = 'Company',
+        jobDescriptionRole = 'Role',
+        evaluatedTechnicalRequirements = [],
+        evaluatedNonTechnicalRequirements = []
+    } = state;
 
-    const matchScore = computeMatchScore(state.matchedSkills || [], state.matchedRequirements || []);
+    const title = `${jobDescriptionCompany} | ${jobDescriptionRole}`;
+    const matchScore = computeMatchScore(evaluatedTechnicalRequirements, evaluatedNonTechnicalRequirements);
 
     return {
-        roadmapTitle: title,
+        reportTitle: title,
         matchScore
     };
 }
 
-/**
- * 6. Node to generate technical scenario questions
- */
 export async function generateTechnicalQuestions(state) {
     console.log(`[Node] Generating technical questions...`);
 
-    const matchedTerms = [
-        ...(state.matchedSkills || []).filter(s => s.status === "MATCHED"),
-        ...(state.matchedRequirements || []).filter(r => r.status === "MATCHED")
-    ];
-    const missingTerms = [
-        ...(state.matchedSkills || []).filter(s => s.status === "MISSING"),
-        ...(state.matchedRequirements || []).filter(r => r.status === "MISSING")
-    ];
-    const weakTerms = [
-        ...(state.matchedSkills || []).filter(s => s.status === "WEAK_MATCH"),
-        ...(state.matchedRequirements || []).filter(r => r.status === "WEAK_MATCH")
-    ];
+    const {
+        evaluatedTechnicalRequirements = [],
+        jobDescriptionText = '',
+    } = state;
+
+    // generic technical questions
+    const matchedRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MATCHED");
+    const missingRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
+    const weakRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
 
     const prompt = getTechQuestionsPrompt({
-        missingTermsFormatted: formatTerms(missingTerms),
-        weakTermsFormatted: formatTerms(weakTerms),
-        matchedTermsFormatted: formatTerms(matchedTerms),
-        jobDescription: state.jobDescriptionText || ''
+        missingTermsFormatted: formatTerms(missingRequirements),
+        weakTermsFormatted: formatTerms(weakRequirements),
+        matchedTermsFormatted: formatTerms(matchedRequirements),
+        jobDescriptionText
     });
 
-    // Use creativeModelFallback for questions
     const structuredLlm = getCreativeStructuredModel(reportTechQuestionsSchema);
     const response = await structuredLlm.invoke(prompt);
 
@@ -273,73 +369,94 @@ export async function generateTechnicalQuestions(state) {
     };
 }
 
-/**
- * 7. Node to generate behavioral probing questions
- */
-export async function generateBehavioralQuestions(state) {
-    console.log(`[Node] Generating behavioral questions...`);
+export async function generateNonTechnicalQuestions(state) {
+    console.log(`[Node] Generating non-technical questions...`);
 
-    const missingTerms = [
-        ...(state.matchedSkills || []).filter(s => s.status === "MISSING"),
-        ...(state.matchedRequirements || []).filter(r => r.status === "MISSING")
+    const {
+        evaluatedTechnicalRequirements = [],
+        evaluatedNonTechnicalRequirements = [],
+        resumeText = '',
+        jobDescriptionText = '',
+    } = state;
+    
+    // use the evaluated requirements to generate questions, and the resume text as narrative to make the questions feel personal
+    const missingRequirements = [
+        ...evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING"),
+        ...evaluatedNonTechnicalRequirements.filter(r => r.matchStatus === "MISSING")
     ];
-    const weakTerms = [
-        ...(state.matchedSkills || []).filter(s => s.status === "WEAK_MATCH"),
-        ...(state.matchedRequirements || []).filter(r => r.status === "WEAK_MATCH")
+    const weakRequirements = [
+        ...evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH"),
+        ...evaluatedNonTechnicalRequirements.filter(r => r.matchStatus === "WEAK_MATCH")
     ];
 
-    const prompt = getBehavioralQuestionsPrompt({
-        resumeText: state.resumeText || '',
-        missingTermsFormatted: formatTerms(missingTerms),
-        weakTermsFormatted: formatTerms(weakTerms),
-        jobDescription: state.jobDescriptionText || ''
+    const prompt = getNonTechnicalQuestionsPrompt({
+        resumeText,
+        missingTermsFormatted: formatTerms(missingRequirements),
+        weakTermsFormatted: formatTerms(weakRequirements),
+        jobDescriptionText
     });
 
-    // Use creativeModelFallback for questions
-    const structuredLlm = getCreativeStructuredModel(reportBehavioralQuestionsSchema);
+    const structuredLlm = getCreativeStructuredModel(reportNonTechnicalQuestionsSchema);
     const response = await structuredLlm.invoke(prompt);
 
     return {
-        behavioralQuestions: response.behavioralQuestions || []
+        nonTechnicalQuestions: response.nonTechnicalQuestions || []
     };
 }
 
 export async function persistInterviewReport(state) {
     console.log(`[Node] Saving interview report directly from state to MongoDB...`);
+    const {
+        userId,
+        jobDescriptionId,
+        resumeId,
+
+        evaluatedTechnicalRequirements = [],
+        evaluatedNonTechnicalRequirements = [],
+
+        reportTitle = 'My Interview Plan',
+        matchScore = 0,
+        technicalQuestions = [],
+        nonTechnicalQuestions = [],
+        preparationGaps = [],
+        preparationPlan = [],
+        learningResources = []
+    } = state;
+
     const savedReport = await InterviewReportModel.create({
-        user: state.userId,
-        jobDescription: state.jobDescriptionId,
-        resume: state.resumeId,
-        scrapedSkills: state.matchedSkills || [],
-        scrapedRequirements: state.matchedRequirements || [],
-        title: state.roadmapTitle || 'My Interview Plan',
-        matchScore: state.matchScore || 0,
-        technicalQuestions: state.technicalQuestions || [],
-        behavioralQuestions: state.behavioralQuestions || [],
-        skillGaps: state.skillGaps || [],
-        preparationPlan: state.preparationPlan || [],
-        learningResources: state.learningResources || [],
+        userId,
+        jobDescriptionId,
+        resumeId,
+
+        evaluatedTechnicalRequirements,
+        evaluatedNonTechnicalRequirements,
+
+        reportTitle,
+        matchScore,
+        technicalQuestions,
+        nonTechnicalQuestions,
+        preparationGaps,
+        preparationPlan,
+        learningResources,
     });
 
     return { savedReport };
 }
 
 export async function assembleFinalReport(state) {
-    console.log(`[Node] Assembling final report (running generation tasks concurrently)...`);
+    console.log(`[Node] Assembling final report...`);
 
-    // Execute all four generation nodes concurrently using standard Node.js Promise.all
-    const [scoreRes, pathRes, techRes, behavRes] = await Promise.all([
+    const [scoreRes, pathRes, techRes, nonTechRes] = await Promise.all([
         generateScoreAndTitle(state),
         processLearningPath(state),
         generateTechnicalQuestions(state),
-        generateBehavioralQuestions(state)
+        generateNonTechnicalQuestions(state)
     ]);
 
-    // Merge the individual results into a single consolidated state update
     return {
         ...scoreRes,
         ...pathRes,
         ...techRes,
-        ...behavRes
+        ...nonTechRes
     };
 }

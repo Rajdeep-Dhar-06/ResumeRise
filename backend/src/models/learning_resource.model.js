@@ -2,17 +2,17 @@ import mongoose from 'mongoose';
 
 const resourceItemSchema = new mongoose.Schema(
   {
-    title: {
+    resourceTitle: {
       type: String,
       required: [true, 'Resource title is required'],
       trim: true,
     },
-    url: {
+    resourceUrl: {
       type: String,
       required: [true, 'Resource URL is required'],
       trim: true,
     },
-    snippet: {
+    resourceSnippet: {
       type: String,
       default: '',
       trim: true,
@@ -22,16 +22,16 @@ const resourceItemSchema = new mongoose.Schema(
 );
 
 const learningResourceSchema = new mongoose.Schema({
-  skill: {
+  requirementName: {
     type: String,
-    required: [true, 'Skill name is required'],
+    required: [true, 'Requirement name is required'],
     trim: true,
     lowercase: true, // Normalize casing (e.g., 'react' vs 'React') to optimize caching
   },
   resources: [resourceItemSchema],
 });
 
-learningResourceSchema.index({ skill: 1 }, { unique: true });
+learningResourceSchema.index({ requirementName: 1 }, { unique: true });
 
 const LearningResourceModel = mongoose.model('LearningResource', learningResourceSchema);
 

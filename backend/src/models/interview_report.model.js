@@ -3,50 +3,50 @@ import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, SEVERITY_LEVELS } fro
 
 const technicalQuestionSchema = new mongoose.Schema(
   {
-    question: {
+    questionText: {
       type: String,
-      required: [true, 'Technical Question is required'],
+      required: [true, 'Technical Question text is required'],
     },
-    intention: {
+    interviewerIntent: {
       type: String,
-      required: [true, 'Intention is required'],
+      required: [true, 'Interviewer intent is required'],
     },
-    answer: {
+    idealAnswer: {
       type: String,
-      required: [true, 'Answer is required'],
-    },
-  },
-  { _id: false }
-);
-
-const behavioralQuestionSchema = new mongoose.Schema(
-  {
-    question: {
-      type: String,
-      required: [true, 'Behavioral Question is required'],
-    },
-    intention: {
-      type: String,
-      required: [true, 'Intention is required'],
-    },
-    answer: {
-      type: String,
-      required: [true, 'Answer is required'],
+      required: [true, 'Ideal answer is required'],
     },
   },
   { _id: false }
 );
 
-const skillGapSchema = new mongoose.Schema(
+const nonTechnicalQuestionSchema = new mongoose.Schema(
   {
-    skill: {
+    questionText: {
       type: String,
-      required: [true, 'Skill is required'],
+      required: [true, 'Non-Technical Question text is required'],
     },
-    severity: {
+    interviewerIntent: {
+      type: String,
+      required: [true, 'Interviewer intent is required'],
+    },
+    idealAnswer: {
+      type: String,
+      required: [true, 'Ideal answer is required'],
+    },
+  },
+  { _id: false }
+);
+
+const preparationGapSchema = new mongoose.Schema(
+  {
+    requirementName: {
+      type: String,
+      required: [true, 'Requirement name is required'],
+    },
+    gapSeverity: {
       type: String,
       enum: SEVERITY_LEVELS,
-      required: [true, 'Severity is required'],
+      required: [true, 'Gap severity is required'],
     },
   },
   { _id: false }
@@ -54,50 +54,44 @@ const skillGapSchema = new mongoose.Schema(
 
 const preparationPlanSchema = new mongoose.Schema(
   {
-    day: {
+    dayNumber: {
       type: Number,
-      required: [true, 'Day is required'],
+      required: [true, 'Day number is required'],
     },
-    focus: {
+    dailyFocus: {
       type: String,
-      required: [true, 'Focus is required'],
+      required: [true, 'Daily focus is required'],
     },
-    tasks: [
+    dailyTasks: [
       {
         type: String,
-        required: [true, 'Task is required'],
+        required: [true, 'Daily task is required'],
       },
     ],
   },
   { _id: false }
 );
 
-const scrapedTermSchema = new mongoose.Schema(
+const evaluatedRequirementMongooseSchema = new mongoose.Schema(
   {
-    term: {
+    requirementName: {
       type: String,
       required: true,
     },
-    // FIX: removed `matched: { type: Boolean, required: true }`.
-    // matched_term.schema.js (the Zod schema the LLM actually outputs against)
-    // no longer produces this field — it was replaced by `status` during the
-    // anti-inflation prompt-engineering pass. Leaving it `required: true` here
-    // meant any AI-generated result saved to this model would fail Mongoose
-    // validation, since `matched` would always be undefined.
-    status: {
+    matchStatus: {
       type: String,
       enum: MATCH_STATUS,
       required: true,
     },
-    evidence: {
+    resumeEvidence: {
       type: String,
       default: '',
     },
-    verdict: {
+    depthAssessment: {
       type: String,
       default: '',
     },
-    complexity: {
+    complexityLevel: {
       type: String,
       enum: COMPLEXITY_LEVELS,
       default: 'N/A',
@@ -118,15 +112,15 @@ const scrapedTermSchema = new mongoose.Schema(
 
 const resourceItemSchema = new mongoose.Schema(
   {
-    title: {
+    resourceTitle: {
       type: String,
       required: true,
     },
-    url: {
+    resourceUrl: {
       type: String,
       required: true,
     },
-    snippet: {
+    resourceSnippet: {
       type: String,
       default: '',
     },
@@ -136,7 +130,7 @@ const resourceItemSchema = new mongoose.Schema(
 
 const learningResourceMongooseSchema = new mongoose.Schema(
   {
-    skill: {
+    requirementName: {
       type: String,
       required: true,
     },
@@ -147,40 +141,43 @@ const learningResourceMongooseSchema = new mongoose.Schema(
 
 const interviewReportSchema = new mongoose.Schema(
   {
-    jobDescription: {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'User is required'],
+    },
+    jobDescriptionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JobDescription',
       required: [true, 'Job description reference is required'],
     },
-    scrapedSkills: [scrapedTermSchema],
-    scrapedRequirements: [scrapedTermSchema],
-    resume: { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' },
+    resumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Resume'
+    },
+
+    evaluatedTechnicalRequirements: [evaluatedRequirementMongooseSchema],
+    evaluatedNonTechnicalRequirements: [evaluatedRequirementMongooseSchema],
+
+    reportTitle: {
+      type: String,
+      required: [true, 'Report title is required'],
+    },
     matchScore: {
       type: Number,
       min: 0,
       max: 100,
     },
     technicalQuestions: [technicalQuestionSchema],
-    behavioralQuestions: [behavioralQuestionSchema],
-    skillGaps: [skillGapSchema],
+    nonTechnicalQuestions: [nonTechnicalQuestionSchema],
+    preparationGaps: [preparationGapSchema],
     preparationPlan: [preparationPlanSchema],
     learningResources: [learningResourceMongooseSchema],
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'User is required'],
-    },
-    title: {
-      type: String,
-      required: [true, 'Title is required'],
-    },
   },
   { timestamps: true }
 );
 
-// FIX: added compound index — "list this user's reports, newest first" is the
-// obvious dashboard query pattern and was previously unindexed.
-interviewReportSchema.index({ user: 1, createdAt: -1 });
+interviewReportSchema.index({ userId: 1, createdAt: -1 });
 
 const InterviewReportModel = mongoose.model('InterviewReport', interviewReportSchema);
 
