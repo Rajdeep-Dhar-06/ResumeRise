@@ -169,6 +169,31 @@ const generateInterviewReportController = asyncHandler(async (req, res) => {
     }
   }
 
+  // Pre-check: Calculate hash and search for existing resume/JD to avoid starting the LangGraph
+  const contentHash = createHash('sha256').update(resumeFile.buffer).digest('hex');
+
+  const [resumeDoc, jobDoc] = await Promise.all([
+    resumeModel.findOne({ user: req.user.id, contentHash }),
+    JobDescriptionModel.findOne({ url: jobDescriptionUrl.trim() })
+  ]);
+
+  if (resumeDoc && jobDoc) {
+    const existingReport = await InterviewReportModel.findOne({
+      userId: req.user.id,
+      resumeId: resumeDoc._id,
+      jobDescriptionId: jobDoc._id,
+      daysLimit: calculatedDaysLimit
+    });
+
+    if (existingReport) {
+      console.log('[Controller] Duplicate plan match. Bypassing LangGraph workflow execution.');
+      return res.status(200).json({
+        message: 'Interview Report Retrieved Successfully!',
+        interviewReport: existingReport,
+      });
+    }
+  }
+
   // Invoke the LangGraph starting at startAgent
   const graphState = await runInterviewReportGraph({
     userId: req.user.id,
