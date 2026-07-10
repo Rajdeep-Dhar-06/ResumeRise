@@ -423,6 +423,8 @@ export async function persistInterviewReport(state) {
         resumeHash,
         jobDescriptionUrl,
         daysLimit = 7,
+        jobDescriptionCompany = 'Company',
+        jobDescriptionRole = 'Role',
 
         evaluatedTechnicalRequirements = [],
         evaluatedNonTechnicalRequirements = [],
@@ -443,6 +445,8 @@ export async function persistInterviewReport(state) {
         resumeHash,
         jobDescriptionUrl,
         daysLimit,
+        companyName: jobDescriptionCompany,
+        role: jobDescriptionRole,
 
         evaluatedTechnicalRequirements,
         evaluatedNonTechnicalRequirements,

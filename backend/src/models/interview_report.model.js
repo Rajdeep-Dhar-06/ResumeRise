@@ -163,6 +163,16 @@ const interviewReportSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Job description URL is required'],
     },
+    companyName: {
+      type: String,
+      default: 'Company',
+      required: [true, 'Company name is required'],
+    },
+    role: {
+      type: String,
+      default: 'Role',
+      required: [true, 'Role title is required'],
+    },
     daysLimit: {
       type: Number,
       enum: [3, 5, 7],
