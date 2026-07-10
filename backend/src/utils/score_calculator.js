@@ -15,14 +15,15 @@ const COMPLEXITY_MULTIPLIER = {
 
 const MIN_JD_WEIGHT = 8.0; 
 
-export function computeMatchScore(matchedSkills, matchedRequirements) {
-    const allTerms = [...matchedSkills, ...matchedRequirements];
+export function computeMatchScore(evaluatedTechnicalRequirements, evaluatedNonTechnicalRequirements) {
+    const allTerms = [...evaluatedTechnicalRequirements, ...evaluatedNonTechnicalRequirements];
 
     if (allTerms.length === 0) return 0;
 
     let weightedScore = 0;
     let totalWeight = 0;
 
+    // 1. Calculate Priority Weight and Match Score for each term
     for (const term of allTerms) {
         const priorityWeight = PRIORITY_WEIGHT[term.priority] ?? 1.0;
 
@@ -38,6 +39,7 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
         totalWeight += priorityWeight;
     }
 
+    // 2. Adjust for Job Description density to avoid skewing scores
     if (totalWeight < MIN_JD_WEIGHT) {
         const padding = MIN_JD_WEIGHT - totalWeight;
         weightedScore += padding; 
@@ -46,6 +48,7 @@ export function computeMatchScore(matchedSkills, matchedRequirements) {
 
     let score = Math.round((weightedScore / totalWeight) * 100);
 
+    // 3. Impose critical match caps for missing REQUIRED terms
     const missingRequiredCount = allTerms.filter(
         t => t.matchStatus === 'MISSING' && t.priority === 'REQUIRED'
     ).length;
