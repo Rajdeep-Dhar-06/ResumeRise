@@ -108,7 +108,16 @@ async function parseAndSaveResume(userId, resumeBuffer) {
 async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
     const cleanedUrl = jobDescriptionUrl.trim();
     let doc = await JobDescriptionModel.findOne({ url: cleanedUrl });
-    if (!doc) {
+
+    // Check if the cached job description is still valid (under 24 hours old)
+    const isStillValid = doc && (Date.now() - new Date(doc.createdAt).getTime() < 24 * 60 * 60 * 1000);
+
+    if (!isStillValid) {
+        if (doc) {
+            console.log(`[Node Ingestion] Job description cache expired for ${cleanedUrl}. Deleting old cache...`);
+            await JobDescriptionModel.deleteOne({ _id: doc._id });
+        }
+
         console.log('[Node Ingestion] Scraping job webpage via Jina Reader...');
         let cleanedText = '';
         const jinaUrl = `https://r.jina.ai/${cleanedUrl}`;
@@ -208,7 +217,7 @@ export async function startAgent(state) {
     }
 
     const jobDescriptionText =
-      `Role: ${jobDoc.role || 'Job Description'}.
+        `Role: ${jobDoc.role || 'Job Description'}.
       Technical Requirements:
       ${(jobDoc.technicalRequirements || []).map(s => `- ${s.requirementName} (${s.priority}): ${s.sourceContext}`).join('\n')}
       Non-Technical Requirements:
@@ -378,7 +387,7 @@ export async function generateNonTechnicalQuestions(state) {
         resumeText = '',
         jobDescriptionText = '',
     } = state;
-    
+
     // use the evaluated requirements to generate questions, and the resume text as narrative to make the questions feel personal
     const missingRequirements = [
         ...evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING"),
