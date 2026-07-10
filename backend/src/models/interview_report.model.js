@@ -155,6 +155,20 @@ const interviewReportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Resume'
     },
+    resumeHash: {
+      type: String,
+      required: [true, 'Resume hash is required'],
+    },
+    jobDescriptionUrl: {
+      type: String,
+      required: [true, 'Job description URL is required'],
+    },
+    daysLimit: {
+      type: Number,
+      enum: [3, 5, 7],
+      default: 7,
+      required: [true, 'Days limit is required'],
+    },
 
     evaluatedTechnicalRequirements: [evaluatedRequirementMongooseSchema],
     evaluatedNonTechnicalRequirements: [evaluatedRequirementMongooseSchema],
@@ -178,6 +192,7 @@ const interviewReportSchema = new mongoose.Schema(
 );
 
 interviewReportSchema.index({ userId: 1, createdAt: -1 });
+interviewReportSchema.index({ userId: 1, resumeHash: 1, jobDescriptionUrl: 1, daysLimit: 1 });
 
 const InterviewReportModel = mongoose.model('InterviewReport', interviewReportSchema);
 

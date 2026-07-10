@@ -318,26 +318,20 @@ export const checkDuplicateInterviewPlanController = asyncHandler(async (req, re
     }
   }
 
-  const [resumeDoc, jobDoc] = await Promise.all([
-    resumeModel.findOne({ user: req.user.id, contentHash: resumeHash }),
-    JobDescriptionModel.findOne({ url: jobDescriptionUrl.trim() })
-  ]);
+  // Optimize: single DB query to find existing report using compound index!
+  const existingReport = await InterviewReportModel.findOne({
+    userId: req.user.id,
+    resumeHash,
+    jobDescriptionUrl: jobDescriptionUrl.trim(),
+    daysLimit: calculatedDaysLimit
+  });
 
-  if (resumeDoc && jobDoc) {
-    const existingReport = await InterviewReportModel.findOne({
-      userId: req.user.id,
-      resumeId: resumeDoc._id,
-      jobDescriptionId: jobDoc._id,
-      daysLimit: calculatedDaysLimit
+  if (existingReport) {
+    return res.status(200).json({
+      exists: true,
+      reportId: existingReport._id,
+      interviewReport: existingReport
     });
-
-    if (existingReport) {
-      return res.status(200).json({
-        exists: true,
-        reportId: existingReport._id,
-        interviewReport: existingReport
-      });
-    }
   }
 
   res.status(200).json({ exists: false });

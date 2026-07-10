@@ -226,6 +226,7 @@ export async function startAgent(state) {
     return {
         resumeId: resumeDoc._id,
         resumeText,
+        resumeHash: resumeDoc.contentHash,
         jobDescriptionId: jobDoc._id,
         jobDescriptionText,
         jobDescriptionCompany: jobDoc.companyName || 'Company',
@@ -419,6 +420,9 @@ export async function persistInterviewReport(state) {
         userId,
         jobDescriptionId,
         resumeId,
+        resumeHash,
+        jobDescriptionUrl,
+        daysLimit = 7,
 
         evaluatedTechnicalRequirements = [],
         evaluatedNonTechnicalRequirements = [],
@@ -436,6 +440,9 @@ export async function persistInterviewReport(state) {
         userId,
         jobDescriptionId,
         resumeId,
+        resumeHash,
+        jobDescriptionUrl,
+        daysLimit,
 
         evaluatedTechnicalRequirements,
         evaluatedNonTechnicalRequirements,
