@@ -1,9 +1,8 @@
 import userModel from '../models/user.model.js';
-import blackListTokenModel from '../models/blacklist.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/async_handler.js';
-import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError } from '../utils/error_handler.js';
+import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, ForbiddenError } from '../utils/error_handler.js';
 
 /**
  * @route POST /api/auth/register
@@ -17,9 +16,7 @@ const registerUserController = asyncHandler(async (req, res) => {
     throw new BadRequestError('All fields are required');
   }
 
-  const doesUserExist = await userModel.findOne({
-    $or: [{ username }, { email }],
-  });
+  const doesUserExist = await userModel.findOne({ username });
 
   if (doesUserExist) {
     throw new ConflictError('User already exists');
@@ -27,21 +24,38 @@ const registerUserController = asyncHandler(async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10);
   const newUser = await userModel.create({ username, email, password: hash });
-  const token = jwt.sign(
-    { id: newUser._id, username: newUser.username },
-    process.env.JWT_SECRET,
+  const accessToken = jwt.sign(
     {
-      expiresIn: '1d',
+      id: newUser._id,
+      username: newUser.username
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: '15m',
     }
   );
-  const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('token', token, {
+  const refreshToken = jwt.sign(
+    {
+      id: newUser._id,
+      username: newUser.username
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: '7d',
+    }
+  );
+
+  res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
+
+  newUser.refreshToken = refreshToken;
+  await newUser.save();
+
   res.status(201).json({
     message: 'User registered successfully',
+    accessToken,
     user: {
       id: newUser._id,
       username: newUser.username,
@@ -72,21 +86,38 @@ const loginUserController = asyncHandler(async (req, res) => {
     throw new UnauthorizedError('Invalid credentials');
   }
 
-  const token = jwt.sign(
-    { id: user._id, username: user.username },
-    process.env.JWT_SECRET,
+  const accessToken = jwt.sign(
+    { 
+      id: user._id, 
+      username: user.username 
+    },
+    process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: '1d',
+      expiresIn: '15m',
     }
   );
-  const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('token', token, {
+  const refreshToken = jwt.sign(
+    { 
+      id: user._id, 
+      username: user.username 
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: '7d',
+    }
+  );
+
+  res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
   res.status(200).json({
     message: 'User logged in successfully',
+    accessToken,
     user: {
       id: user._id,
       username: user.username,
@@ -101,21 +132,18 @@ const loginUserController = asyncHandler(async (req, res) => {
  * @access Public
  */
 const logoutUserController = asyncHandler(async (req, res) => {
-  const token = req.cookies.token;
-  const isProd = process.env.NODE_ENV === 'production';
-
-  if (token) {
+  const refreshToken = req.cookies.refreshToken;
+  if (refreshToken) {
     try {
-      await blackListTokenModel.create({ token });
-    } catch (blacklistErr) {
-      console.warn('[Auth] Blacklist token logging failed:', blacklistErr.message);
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+      await userModel.findByIdAndUpdate(decoded.id, { refreshToken: '' });
+    } catch (err) {
+      console.warn('[Logout] Clear user refreshToken failed:', err.message);
     }
   }
 
-  res.clearCookie('token', {
+  res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
   });
   res.status(200).json({ message: 'User logged out successfully' });
 });
@@ -142,9 +170,41 @@ const getMeController = asyncHandler(async (req, res) => {
   });
 });
 
+const refreshAccessController = asyncHandler(async (req, res) => {
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken) {
+    throw new UnauthorizedError('Refresh token is missing');
+  }
+
+  const refreshToken = cookies.refreshToken;
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await userModel.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      throw new ForbiddenError('Session has expired or you have logged out');
+    }
+    const accessToken = jwt.sign(
+      { 
+        id: decoded.id, 
+        username: decoded.username 
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: '15m' 
+      }
+    );
+    res.status(200).json({ accessToken });
+  } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
+    throw new ForbiddenError('Refresh token is expired or invalid');
+  }
+});
+
 export {
   registerUserController,
   loginUserController,
   logoutUserController,
   getMeController,
+  refreshAccessController,
 };

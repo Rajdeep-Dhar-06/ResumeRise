@@ -18,16 +18,16 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+    refreshToken: {
+      type: String,
+      default: '',
+    },
   },
   { timestamps: true }
 );
 
 userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
 
-// FIX: renamed 'users' -> 'User' to match PascalCase singular convention used by
-// every other model (JobDescription, Resume, InterviewReport). Mongoose will
-// derive the lowercase plural collection name ('users') automatically.
 const userModel = mongoose.model('User', userSchema);
 
 export default userModel;

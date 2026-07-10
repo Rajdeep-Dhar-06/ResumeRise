@@ -12,7 +12,9 @@ export const errorMiddleware = (err, req, res, next) => {
   if (process.env.NODE_ENV !== 'production') response.stack = error.stack;
 
   if (error.isOperational) {
-    console.warn(`[Operational] ${error.statusCode} ${error.name}: ${error.message}`);
+    if (error.statusCode !== 401) {
+      console.warn(`[Operational] ${error.statusCode} ${error.name}: ${error.message}`);
+    }
   } else {
     console.error('[BUG] Unexpected error:', error.stack || error);
   }

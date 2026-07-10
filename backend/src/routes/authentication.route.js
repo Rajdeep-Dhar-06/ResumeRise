@@ -4,8 +4,10 @@ import {
   loginUserController,
   logoutUserController,
   getMeController,
+  refreshAccessController,
 } from '../controllers/authentication.controller.js';
-import authUser from '../middlewares/jwt_auth.middleware.js';
+import verifyAccess from '../middlewares/verify_access.middleware.js';
+import { loginLimiter, registerLimiter } from '../middlewares/ratelimiter.js';
 
 const authRouter = express.Router();
 
@@ -14,14 +16,21 @@ const authRouter = express.Router();
  * @desc Register a new user
  * @access Public
  */
-authRouter.post('/register', registerUserController);
+authRouter.post('/register', registerLimiter, registerUserController);
 
 /**
  * @route POST /api/auth/login
  * @desc Login a user
  * @access Public
  */
-authRouter.post('/login', loginUserController);
+authRouter.post('/login', loginLimiter, loginUserController);
+
+/**
+ * @route POST /api/auth/refresh
+ * @desc Mint a new access token using a refresh token cookie
+ * @access Public
+ */
+authRouter.post('/refresh', refreshAccessController);
 
 /**
  * @route GET /api/auth/logout
@@ -35,6 +44,6 @@ authRouter.get('/logout', logoutUserController);
  * @desc Get current user information
  * @access Private
  */
-authRouter.get('/get-me', authUser, getMeController);
+authRouter.get('/get-me', verifyAccess, getMeController);
 
 export default authRouter;
