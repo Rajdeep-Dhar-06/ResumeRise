@@ -35,12 +35,8 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
-      const isConflict = error?.response?.status === 409;
-      toast.error(
-        isConflict
-          ? "An account with this email or username already exists."
-          : "Failed to create account. Please check your details and try again."
-      );
+      const errMsg = error?.response?.data?.message || error?.response?.data?.error || "Failed to create account. Please check your details and try again.";
+      toast.error(errMsg);
       return false;
     } finally {
       setLoading(false);
