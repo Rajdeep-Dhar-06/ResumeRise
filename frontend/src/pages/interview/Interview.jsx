@@ -3,11 +3,16 @@ import { useInterview } from "../../hooks/useInterview.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useParams, useNavigate } from "react-router";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
-import { Code, MessageSquare, Compass, ChevronDown, ArrowLeft, BookOpen, ExternalLink, LogOut, Trash2 } from "lucide-react";
+import { Code, MessageSquare, Compass, ArrowLeft, BookOpen, LogOut, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
+import { RoadMapDay } from "../../components/interview/RoadMapDay.jsx";
+import { ResourceCard } from "../../components/interview/ResourceCard.jsx";
+import { EmptyTabState } from "../../components/interview/EmptyTabState.jsx";
+import { QuestionsList } from "../../components/interview/QuestionsList.jsx";
 
 // Navigation items definition
 const NAV_ITEMS = [
@@ -17,8 +22,8 @@ const NAV_ITEMS = [
     icon: <Code size={16} />,
   },
   {
-    id: "behavioral",
-    label: "Behavioral Questions",
+    id: "nontechnical",
+    label: "Non-Technical Questions",
     icon: <MessageSquare size={16} />,
   },
   {
@@ -32,72 +37,6 @@ const NAV_ITEMS = [
     icon: <BookOpen size={16} />,
   },
 ];
-
-
-// Question Card Component
-const QuestionCard = ({ item, index }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-muted-foreground/30 transition-colors">
-      <div
-        className="flex items-start gap-4 px-6 py-4 cursor-pointer select-none"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="flex-shrink-0 text-xs font-bold text-primary bg-primary/10 border border-primary/20 rounded-md px-2 py-1 mt-0.5">
-          Q{index + 1}
-        </span>
-        <p className="flex-1 text-base font-medium text-foreground leading-relaxed">
-          {item.question}
-        </p>
-        <span
-          className={`flex-shrink-0 text-slate-500 mt-1 transition-transform ${open ? "rotate-180 text-primary" : ""}`}
-        >
-          <ChevronDown size={20} />
-        </span>
-      </div>
-      {open && (
-        <div className="px-6 pb-6 flex flex-col gap-5 border-t border-border pt-5 bg-accent/10">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1 w-fit">
-              Intention
-            </span>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {item.intention}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2.5 py-1 w-fit">
-              Model Answer
-            </span>
-            <p className="text-sm text-foreground leading-relaxed">
-              {item.answer}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Roadmap Day Component
-const RoadMapDay = ({ day }) => (
-  <div className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card">
-    <div className="flex items-center gap-2.5">
-      <Badge variant="default" className="px-2.5 py-0.5 rounded-full font-bold">
-        Day {day.day}
-      </Badge>
-      <h3 className="text-base font-semibold text-foreground">{day.focus}</h3>
-    </div>
-    <ul className="flex flex-col gap-2 list-none p-0 m-0 pl-1">
-      {day.tasks.map((task, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-2" />
-          <span className="flex-1">{task}</span>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
 
 // Main Interview Component
 const Interview = () => {
@@ -155,53 +94,63 @@ const Interview = () => {
       <header className="sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur">
         <div className="mx-auto w-full max-w-5xl px-4 py-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent border border-border rounded-lg transition-all cursor-pointer flex-shrink-0"
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => navigate("/dashboard")}
+              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold flex-shrink-0"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
               <span>Dashboard</span>
-            </button>
+            </Button>
             <Separator orientation="vertical" className="h-5 flex-shrink-0" />
             <h1 className="text-base font-semibold text-foreground truncate">
-              {report?.title || "Interview Roadmap"}
+              {report?.reportTitle || "Interview Roadmap"}
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {showDeleteConfirm ? (
               <div className="flex items-center gap-1.5 bg-red-950/30 border border-red-500/30 rounded-lg p-1 animate-in fade-in zoom-in-95 duration-150">
                 <span className="text-xs font-medium text-red-400 px-1.5">Delete?</span>
-                <button
+                <Button
+                  variant="default"
+                  size="xs"
                   onClick={handleDelete}
                   disabled={deletingReport}
-                  className="px-2.5 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition-all cursor-pointer"
+                  className="bg-red-600 hover:bg-red-700 font-semibold cursor-pointer"
                 >
                   {deletingReport ? "Deleting..." : "Delete"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={deletingReport}
-                  className="px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent rounded-md transition-all cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             ) : (
-              <button
+              <Button
+                variant="destructive"
+                size="default"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-red-500/80 hover:text-red-400 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 rounded-lg transition-all cursor-pointer flex-shrink-0"
+                className="gap-2 cursor-pointer font-semibold flex-shrink-0"
               >
                 <Trash2 size={15} />
                 <span className="hidden sm:inline">Delete Plan</span>
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              variant="outline"
+              size="default"
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-accent/20 hover:bg-accent border border-border rounded-lg transition-all cursor-pointer flex-shrink-0"
+              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold flex-shrink-0"
             >
               <LogOut size={15} />
               <span>Log out</span>
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -228,18 +177,18 @@ const Interview = () => {
               <p className="text-xs text-muted-foreground mt-0.5">Identified missing or weak areas in your profile.</p>
             </div>
             <div className="flex flex-wrap gap-2 overflow-y-auto max-h-28 pr-2">
-              {report?.skillGaps && report.skillGaps.length > 0 ? (
-                report.skillGaps.map((gap, i) => (
+              {report?.preparationGaps && report.preparationGaps.length > 0 ? (
+                report.preparationGaps.map((gap, i) => (
                   <span
                     key={i}
-                    className={`text-xs font-medium px-3 py-1 rounded-md border ${gap.severity === "high"
+                    className={`text-xs font-medium px-3 py-1 rounded-md border ${gap.gapSeverity === "high"
                       ? "text-red-400 bg-red-500/10 border-red-500/20"
-                      : gap.severity === "medium"
+                      : gap.gapSeverity === "medium"
                         ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
                         : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
                       }`}
                   >
-                    {gap.skill}
+                    {gap.requirementName}
                   </span>
                 ))
               ) : (
@@ -270,31 +219,11 @@ const Interview = () => {
           {/* Active Tab Panel Content */}
           <div className="mt-2">
             {activeNav === "technical" && (
-              <section className="flex flex-col gap-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold tracking-tight">Technical Questions</h2>
-                  <Badge variant="secondary">{report?.technicalQuestions?.length || 0} questions</Badge>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {report?.technicalQuestions?.map((q, i) => (
-                    <QuestionCard key={i} item={q} index={i} />
-                  ))}
-                </div>
-              </section>
+              <QuestionsList title="Technical Questions" questions={report?.technicalQuestions} />
             )}
 
-            {activeNav === "behavioral" && (
-              <section className="flex flex-col gap-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold tracking-tight">Behavioral Questions</h2>
-                  <Badge variant="secondary">{report?.behavioralQuestions?.length || 0} questions</Badge>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {report?.behavioralQuestions?.map((q, i) => (
-                    <QuestionCard key={i} item={q} index={i} />
-                  ))}
-                </div>
-              </section>
+            {activeNav === "nontechnical" && (
+              <QuestionsList title="Non-Technical Questions" questions={report?.nonTechnicalQuestions} />
             )}
 
             {activeNav === "roadmap" && (
@@ -303,11 +232,15 @@ const Interview = () => {
                   <h2 className="text-xl font-bold tracking-tight">Study Roadmap</h2>
                   <Badge variant="secondary">{report?.preparationPlan?.length || 0}-day plan</Badge>
                 </div>
-                <div className="flex flex-col gap-4">
-                  {report?.preparationPlan?.map((day) => (
-                    <RoadMapDay key={day.day} day={day} />
-                  ))}
-                </div>
+                {report?.preparationPlan && report.preparationPlan.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {report.preparationPlan.map((day) => (
+                      <RoadMapDay key={day.dayNumber || day.day} day={day} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyTabState message="No preparation plan generated. All requirements are fully matched!" />
+                )}
               </section>
             )}
 
@@ -320,47 +253,11 @@ const Interview = () => {
                 {report?.learningResources && report.learningResources.length > 0 ? (
                   <div className="grid gap-6">
                     {report.learningResources.map((item, i) => (
-                      <div key={i} className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card">
-                        <h3 className="text-base font-bold text-foreground capitalize">
-                          {item.skill}
-                        </h3>
-                        <div className="grid gap-3 md:grid-cols-2 mt-1">
-                          {item.resources && item.resources.length > 0 ? (
-                            item.resources.map((resource, idx) => (
-                              <a
-                                key={idx}
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="group flex flex-col justify-between p-4 rounded-lg border border-border bg-accent/5 hover:bg-accent/15 hover:border-muted-foreground/30 transition-all cursor-pointer"
-                              >
-                                <div className="flex flex-col gap-2">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
-                                      {resource.title}
-                                    </h4>
-                                    <ExternalLink size={14} className="text-muted-foreground flex-shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
-                                  </div>
-                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                                    {resource.snippet || "No description provided."}
-                                  </p>
-                                </div>
-                                <div className="mt-3 text-[10px] font-bold text-primary tracking-wider uppercase flex items-center gap-1">
-                                  <span>View Tutorial</span>
-                                </div>
-                              </a>
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground col-span-2">No learning resources found for this skill.</p>
-                          )}
-                        </div>
-                      </div>
+                      <ResourceCard key={i} item={item} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-10 border border-dashed border-border rounded-xl">
-                    <p className="text-muted-foreground">No resources identified. All skills are fully matched!</p>
-                  </div>
+                  <EmptyTabState message="No resources identified. All skills are fully matched!" />
                 )}
               </section>
             )}
