@@ -18,15 +18,17 @@ export const useInterview = () => {
 
   /** @description Generate a new interview report from a resume and job description. */
   const generateReport = async ({
-    resumeId,
-    jobDescriptionId,
+    resumeFile,
+    jobDescriptionUrl,
+    daysLimit,
   }) => {
     setLoading(true);
     let response = null;
     try {
       response = await generateInterviewReport({
-        resumeId,
-        jobDescriptionId,
+        resumeFile,
+        jobDescriptionUrl,
+        daysLimit,
       });
       setReport(response.interviewReport);
     } catch (error) {
@@ -49,18 +51,19 @@ export const useInterview = () => {
       } catch (error) {
         console.error("Error fetching report:", error);
       } finally {
-         setLoading(false);
+        setLoading(false);
       }
     },
     [setReport, setLoading],
   );
 
   /** @description Fetch all interview reports for the current user. */
-  const getReports = useCallback(async () => {
+  const getReports = useCallback(async (params = {}) => {
     setLoading(true);
     try {
-      const response = await getAllInterviewReports();
+      const response = await getAllInterviewReports(params);
       setReports(response.interviewReports);
+      return response.pagination;
     } catch (error) {
       console.error("Error fetching all reports:", error);
     } finally {

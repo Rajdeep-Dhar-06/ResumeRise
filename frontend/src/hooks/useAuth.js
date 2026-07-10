@@ -2,6 +2,7 @@ import { useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { login, logout, register, getMe } from "../services/auth.api.js";
 import { toast } from "sonner";
+import { setAccessToken } from "../lib/api.js";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -10,15 +11,14 @@ export const useAuth = () => {
   /** @description Authenticate the user and set the session. */
   const handleLogin = async ({ email, password }) => {
     setLoading(true);
-    const toastId = toast.loading("Logging in...");
     try {
       const data = await login({ email, password });
+      setAccessToken(data.accessToken);
       setUser(data.user);
-      toast.success("Welcome back!", { id: toastId });
       return true;
     } catch (error) {
       console.error("Login failed:", error);
-      toast.error("Invalid email or password. Please try again.", { id: toastId });
+      toast.error("Invalid email or password. Please try again.");
       return false;
     } finally {
       setLoading(false);
@@ -28,11 +28,10 @@ export const useAuth = () => {
   /** @description Register a new account and set the session. */
   const handleRegister = async ({ username, email, password }) => {
     setLoading(true);
-    const toastId = toast.loading("Creating your account...");
     try {
       const data = await register({ username, email, password });
+      setAccessToken(data.accessToken);
       setUser(data.user);
-      toast.success("Account created successfully!", { id: toastId });
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
@@ -40,8 +39,7 @@ export const useAuth = () => {
       toast.error(
         isConflict
           ? "An account with this email or username already exists."
-          : "Failed to create account. Please check your details and try again.",
-        { id: toastId }
+          : "Failed to create account. Please check your details and try again."
       );
       return false;
     } finally {
@@ -52,15 +50,14 @@ export const useAuth = () => {
   /** @description Clear the session and log the user out. */
   const handleLogout = async () => {
     setLoading(true);
-    const toastId = toast.loading("Logging out...");
     try {
       await logout();
     } catch (error) {
       console.error("Logout failed on backend:", error);
     } finally {
+      setAccessToken("");
       setUser(null);
       setLoading(false);
-      toast.success("Logged out successfully.", { id: toastId });
     }
     return true;
   };

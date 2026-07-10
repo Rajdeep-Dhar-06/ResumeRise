@@ -43,21 +43,27 @@ export const parseJobDescription = async (jobDescriptionUrl) => {
   }
 };
 
-/**
- * @description Generate an interview report from pre-parsed resume and job description.
- */
 export const generateInterviewReport = async ({
-  resumeId,
-  jobDescriptionId,
+  resumeFile,
+  jobDescriptionUrl,
+  daysLimit,
 }) => {
-  if (!resumeId || !jobDescriptionId) {
-    throw new Error("Both resumeId and jobDescriptionId are required.");
-  }
-
   try {
-    const response = await api.post("/api/interview/generateReport", {
-      resumeId,
-      jobDescriptionId,
+    const formData = new FormData();
+    if (resumeFile) {
+      formData.append("resume", resumeFile);
+    }
+    if (jobDescriptionUrl) {
+      formData.append("jobDescriptionUrl", jobDescriptionUrl);
+    }
+    if (daysLimit) {
+      formData.append("daysLimit", daysLimit.toString());
+    }
+
+    const response = await api.post("/api/interview/generateReport", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
     return response.data;
   } catch (error) {
@@ -82,14 +88,24 @@ export const getInterviewReportById = async (interviewId) => {
 /**
  * @description Get all interview reports.
  */
-export const getAllInterviewReports = async () => {
+export const getAllInterviewReports = async (params = {}) => {
   try {
-    const response = await api.get("/api/interview");
-    return response.data;
+    const response = await api.get("/api/interview", { params });
+    return response.data; // {interviewReports, pagination}
   } catch (error) {
     console.error("Error fetching all interview reports:", error);
   }
 };
+
+export const getInterviewStats = async () => {
+  try {
+    const response = await api.get("/api/interview/stats");
+    return response.data; // {stats: { totalPlans, averageMatch, bestMatch }}
+  } catch (error) {
+    console.error("Error fetching interview stats:", error);
+  }
+};
+
 
 /**
  * @description Delete an interview report by ID.
