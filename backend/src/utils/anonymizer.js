@@ -1,4 +1,5 @@
 import nlp from 'compromise';
+import logger from './logger.js';
 
 /**
  * Anonymize the candidate's resume content by removing names, emails,
@@ -31,7 +32,7 @@ export function anonymizeResume(text) {
     
     cleaned = doc.text();
   } catch (error) {
-    console.error('[Anonymizer] Compromise failed, falling back to regex redaction only:', error);
+    logger.error({ err: error }, 'NLP text anonymization failed; falling back to regex redaction');
   }
 
   return cleaned;

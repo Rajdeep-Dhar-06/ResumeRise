@@ -48,6 +48,7 @@ The platform:
 | Auth | JWT (httpOnly cookies) + `bcryptjs` |
 | Validation | Zod v4 |
 | Graph Checkpointing | `@langchain/langgraph-checkpoint-mongodb` |
+| Structured Logging | `pino` + `pino-http` + `pino-pretty` |
 
 ### Frontend
 | Layer | Technology |
@@ -69,6 +70,7 @@ The platform:
 - **Dynamic job scraping** — Job descriptions are fetched via the Jina Reader API, which handles JavaScript-rendered pages and returns clean markdown — no manual copy-pasting needed
 - **Structured LLM output** — All AI responses are validated with Zod schemas via LangChain's `.withStructuredOutput()` to ensure consistent, type-safe data
 - **Match scoring** — A priority-weighted algorithm scores resume-to-job fit, with smoothing for sparse job descriptions and hard caps for missing required skills
+- **Structured JSON Logging** — Integrated `pino` and `pino-http` for production-ready, structured log tracing. In local development, logs are cleanly colorized and formatted; in production, they stream raw JSON to stdout. Sensitive fields (passwords, tokens, cookies) are automatically redacted.
 - **Delete & manage reports** — Users can delete reports with a two-step inline confirmation directly from the report view
 
 ---
@@ -245,6 +247,7 @@ JINA_API_KEY=your_jina_api_key_here
 # Environment
 NODE_ENV=development
 PORT=5000
+LOG_LEVEL=info
 ```
 
 ### Frontend (`frontend/.env`)

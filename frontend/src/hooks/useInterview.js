@@ -101,10 +101,8 @@ export const useInterview = () => {
     if (interviewId && report?._id !== interviewId) {
       setReport(null);
       getReportById(interviewId);
-    } else if (!interviewId) {
-      getReports();
     }
-  }, [interviewId, getReportById, getReports, report?._id, setReport, user]);
+  }, [interviewId, getReportById, report?._id, setReport, user]);
 
   return {
     loading,

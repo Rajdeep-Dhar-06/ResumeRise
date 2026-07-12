@@ -1,5 +1,6 @@
 import BaseError from '../utils/error_handler.js';
 import { normalizeError } from '../utils/error_normaliser.js';
+import logger from '../utils/logger.js';
 
 const wrapUnknown = (err) => Object.assign(err, { statusCode: 500, isOperational: false });
 
@@ -13,10 +14,10 @@ export const errorMiddleware = (err, req, res, next) => {
 
   if (error.isOperational) {
     if (error.statusCode !== 401) {
-      console.warn(`[Operational] ${error.statusCode} ${error.name}: ${error.message}`);
+      logger.warn({ statusCode: error.statusCode, name: error.name }, `Operational error handled: ${error.message}`);
     }
   } else {
-    console.error('[BUG] Unexpected error:', error.stack || error);
+    logger.error({ err: error }, 'Unhandled system error occurred');
   }
 
   res.status(error.statusCode || 500).json(response);

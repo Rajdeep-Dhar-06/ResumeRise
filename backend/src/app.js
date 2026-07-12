@@ -5,8 +5,12 @@ import authRouter from './routes/authentication.route.js';
 import interviewRouter from './routes/interview_report.route.js';
 import errorMiddleware from './middlewares/error.middleware.js';
 import { apiLimiter } from './middlewares/ratelimiter.js';
+import { httpLogger } from './utils/logger.js';
 
 const app = express();
+
+// HTTP request logging — logs method, url, statusCode, response time, and reqId
+app.use(httpLogger);
 
 app.use(express.json());
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));

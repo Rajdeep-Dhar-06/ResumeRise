@@ -2,6 +2,7 @@ import { ChatGoogle } from '@langchain/google';
 
 // Utils
 import { computeMatchScore } from '../utils/score_calculator.js';
+import logger from '../utils/logger.js';
 
 // Models
 import JobDescriptionModel from '../models/job_description.model.js';
@@ -77,7 +78,7 @@ async function parseAndSaveResume(userId, resumeBuffer) {
     const contentHash = createHash('sha256').update(resumeBuffer).digest('hex');
     let doc = await resumeModel.findOne({ user: userId, contentHash });
     if (!doc) {
-        console.log('[Node Ingestion] Parsing PDF and anonymizing resume content...');
+        logger.info({ userId }, '[Ingestion Node] Parsing candidate resume PDF');
         let parsedText = '';
         const blob = new Blob([resumeBuffer]);
         const loader = new PDFLoader(blob);
@@ -114,11 +115,11 @@ async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
 
     if (!isStillValid) {
         if (doc) {
-            console.log(`[Node Ingestion] Job description cache expired for ${cleanedUrl}. Deleting old cache...`);
+            logger.info({ url: cleanedUrl }, '[Ingestion Node] Cached job description expired; invalidating stale cache');
             await JobDescriptionModel.deleteOne({ _id: doc._id });
         }
 
-        console.log('[Node Ingestion] Scraping job webpage via Jina Reader...');
+        logger.info({ url: cleanedUrl }, '[Ingestion Node] Fetching job webpage contents via Jina Reader');
         let cleanedText = '';
         const jinaUrl = `https://r.jina.ai/${cleanedUrl}`;
         const headers = {};
@@ -152,13 +153,13 @@ async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
 }
 
 export async function startAgent(state) {
-    console.log(`[Node] Beginning concurrent ingestion of resume and job description...`);
-
     const {
         userId,
         resumeBuffer,
         jobDescriptionUrl
     } = state;
+
+    logger.info({ userId }, '[Agent Pipeline] Commencing concurrent resume and job description ingestion');
 
     // Concurrently execute parsing and scraping helpers
     const [resumeDoc, jobDoc] = await Promise.all([
@@ -170,7 +171,7 @@ export async function startAgent(state) {
     const jobDescriptionTechnicalRequirements = jobDoc.technicalRequirements || [];
     const jobDescriptionNonTechnicalRequirements = jobDoc.nonTechnicalRequirements || [];
 
-    console.log(`[Node] Auditing candidate resume against job requirements...`);
+    logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, '[Agent Pipeline] Auditing candidate resume against job requirements');
 
     let evaluatedTechnicalRequirements = [];
     let evaluatedNonTechnicalRequirements = [];
@@ -192,7 +193,7 @@ export async function startAgent(state) {
         evaluatedTechnicalRequirements = techRequirementsResult.evaluatedTechnicalRequirements || [];
         evaluatedNonTechnicalRequirements = nonTechRequirementsResult.evaluatedNonTechnicalRequirements || [];
     } catch (err) {
-        console.error('[Node] Match check LLM execution failed, defaulting to missing:', err);
+        logger.error({ err }, '[Agent Pipeline] Match check LLM execution failed; defaulting requirements to missing');
         evaluatedTechnicalRequirements = jobDescriptionTechnicalRequirements.map(s => ({ requirementName: s.requirementName, matchStatus: 'MISSING', resumeEvidence: 'Matching failed' }));
         evaluatedNonTechnicalRequirements = jobDescriptionNonTechnicalRequirements.map(r => ({ requirementName: r.requirementName, matchStatus: 'MISSING', resumeEvidence: 'Matching failed' }));
     }
@@ -210,10 +211,10 @@ export async function startAgent(state) {
     }));
 
     if (evaluatedTechnicalRequirements.length !== jobDescriptionTechnicalRequirements.length) {
-        console.warn(`[Node] Warning: Technical requirements count mismatch! Expected ${jobDescriptionTechnicalRequirements.length}, evaluated ${evaluatedTechnicalRequirements.length}.`);
+        logger.warn({ userId, expected: jobDescriptionTechnicalRequirements.length, evaluated: evaluatedTechnicalRequirements.length }, '[Agent Pipeline] Technical requirements evaluation count mismatch');
     }
     if (evaluatedNonTechnicalRequirements.length !== jobDescriptionNonTechnicalRequirements.length) {
-        console.warn(`[Node] Warning: Non technical requirements count mismatch! Expected ${jobDescriptionNonTechnicalRequirements.length}, evaluated ${evaluatedNonTechnicalRequirements.length}.`);
+        logger.warn({ userId, expected: jobDescriptionNonTechnicalRequirements.length, evaluated: evaluatedNonTechnicalRequirements.length }, '[Agent Pipeline] Non-technical requirements evaluation count mismatch');
     }
 
     const jobDescriptionText =
@@ -247,16 +248,16 @@ async function getResourceForTerm(term, searchTool) {
     try {
         const cached = await LearningResourceModel.findOne({ requirementName: normalized });
         if (cached?.resources?.length > 0) {
-            console.log(`[Node] Found cached learning resources in MongoDB for gap: "${term}"`);
+            logger.info({ term }, '[Agent Pipeline] Retrieved cached learning resources from database');
             const formatted = cached.resources.map(r => `• Title: ${r.resourceTitle}\n  Link: ${r.resourceUrl}\n  Description: ${r.resourceSnippet || ''}`).join('\n');
             return `### Search Results for "${term}":\n${formatted}\n`;
         }
     } catch (dbErr) {
-        console.warn(`[Node] Failed to fetch cache for gap "${term}":`, dbErr.message);
+        logger.warn({ term, err: dbErr.message }, '[Agent Pipeline] Failed to retrieve cached learning resources');
     }
 
     // 2. Perform web search with Tavily
-    console.log(`[Node] Web searching for gap: "${term}" using Tavily...`);
+    logger.info({ term }, '[Agent Pipeline] Executing learning-resource search via Tavily');
     try {
         const res = await searchTool.invoke({ query: `${term} tutorial free developer documentation` });
 
@@ -274,23 +275,24 @@ async function getResourceForTerm(term, searchTool) {
             LearningResourceModel.findOneAndUpdate(
                 { requirementName: normalized },
                 { requirementName: normalized, resources },
-                { upsert: true, new: true }
-            ).catch(cacheErr => console.warn(`[Node] Caching failed for gap "${term}":`, cacheErr.message));
+                { upsert: true, returnDocument: 'after' }
+            ).catch(cacheErr => logger.warn({ term, err: cacheErr.message }, '[Agent Pipeline] Failed to cache retrieved learning resources'));
 
             const formattedRes = resources.map(r => `• Title: ${r.resourceTitle}\n  Link: ${r.resourceUrl}\n  Description: ${r.resourceSnippet}`).join('\n\n');
             return `### Search Results for "${term}":\n${formattedRes}\n`;
         }
     } catch (tavilyErr) {
-        console.error(`[Node] Tavily search failed for gap "${term}":`, tavilyErr.message);
+        logger.error({ term, err: tavilyErr.message }, '[Agent Pipeline] Tavily web search failed');
     }
 
     // No results found from Tavily or cache — skip this term
-    console.warn(`[Node] No resources found for gap: "${term}". Skipping.`);
+    logger.warn({ term }, '[Agent Pipeline] No learning resources resolved for gap');
     return null;
 }
 
 export async function processLearningPath(state) {
-    console.log(`[Node] Finding learning tutorials for gaps...`);
+    const { userId } = state;
+    logger.info({ userId }, '[Agent Pipeline] Identifying educational tutorials for identified skill gaps');
 
     const { evaluatedTechnicalRequirements = [], daysLimit = 14 } = state;
 
@@ -322,7 +324,7 @@ export async function processLearningPath(state) {
     const response = await structuredLlm.invoke(prompt);
 
     if (process.env.NODE_ENV !== 'production') {
-        console.log('[Node] processLearningPath Gemini Response:', JSON.stringify(response, null, 2));
+        logger.debug({ userId, response }, '[Agent Pipeline] Received processLearningPath response from LLM');
     }
 
     return {
@@ -333,7 +335,8 @@ export async function processLearningPath(state) {
 }
 
 export async function generateScoreAndTitle(state) {
-    console.log(`[Node] Generating score and title...`);
+    const { userId } = state;
+    logger.info({ userId }, '[Agent Pipeline] Generating match score and report title');
 
     const {
         jobDescriptionCompany = 'Company',
@@ -352,7 +355,8 @@ export async function generateScoreAndTitle(state) {
 }
 
 export async function generateTechnicalQuestions(state) {
-    console.log(`[Node] Generating technical questions...`);
+    const { userId } = state;
+    logger.info({ userId }, '[Agent Pipeline] Generating customized technical assessment questions');
 
     const {
         evaluatedTechnicalRequirements = [],
@@ -380,7 +384,8 @@ export async function generateTechnicalQuestions(state) {
 }
 
 export async function generateNonTechnicalQuestions(state) {
-    console.log(`[Node] Generating non-technical questions...`);
+    const { userId } = state;
+    logger.info({ userId }, '[Agent Pipeline] Generating customized non-technical assessment questions');
 
     const {
         evaluatedTechnicalRequirements = [],
@@ -415,7 +420,6 @@ export async function generateNonTechnicalQuestions(state) {
 }
 
 export async function persistInterviewReport(state) {
-    console.log(`[Node] Saving interview report directly from state to MongoDB...`);
     const {
         userId,
         jobDescriptionId,
@@ -437,6 +441,8 @@ export async function persistInterviewReport(state) {
         preparationPlan = [],
         learningResources = []
     } = state;
+
+    logger.info({ userId, resumeId, jobDescriptionId }, '[Agent Pipeline] Persisting completed interview report to database');
 
     const savedReport = await InterviewReportModel.create({
         userId,
@@ -460,11 +466,14 @@ export async function persistInterviewReport(state) {
         learningResources,
     });
 
+    logger.info({ reportId: savedReport._id, userId }, '[Agent Pipeline] Saved completed interview report to database');
+
     return { savedReport };
 }
 
 export async function assembleFinalReport(state) {
-    console.log(`[Node] Assembling final report...`);
+    const { userId } = state;
+    logger.info({ userId }, '[Agent Pipeline] Assembling final comprehensive interview report');
 
     const [scoreRes, pathRes, techRes, nonTechRes] = await Promise.all([
         generateScoreAndTitle(state),

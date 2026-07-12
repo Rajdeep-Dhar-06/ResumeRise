@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/async_handler.js';
 import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, ForbiddenError } from '../utils/error_handler.js';
+import logger from '../utils/logger.js';
 
 /**
  * @route POST /api/auth/register
@@ -138,7 +139,7 @@ const logoutUserController = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
       await userModel.findByIdAndUpdate(decoded.id, { refreshToken: '' });
     } catch (err) {
-      console.warn('[Logout] Clear user refreshToken failed:', err.message);
+      logger.warn({ err: err.message }, 'Failed to clear refresh token during user logout');
     }
   }
 

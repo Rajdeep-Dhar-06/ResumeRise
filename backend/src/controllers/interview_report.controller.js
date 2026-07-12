@@ -13,6 +13,7 @@ import axios from 'axios';
 import { getStructuredModel } from '../nodes/graph_nodes.js';
 import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
 import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
+import logger from '../utils/logger.js';
 
 /** @description Controller to upload, parse and anonymize a candidate's resume PDF */
 const parseResumeController = asyncHandler(async (req, res) => {
@@ -31,9 +32,9 @@ const parseResumeController = asyncHandler(async (req, res) => {
   });
 
   if (resumeDoc) {
-    console.log('[Controller] Retrieving cached parsed resume by content hash.');
+    logger.info('Retrieved cached parsed resume using content hash');
   } else {
-    console.log('[Controller] Parsing PDF and anonymizing resume content...');
+    logger.info('Initiating resume PDF parsing and anonymization');
 
     // 3. Load text from PDF buffer
     let parsedText = '';
@@ -87,9 +88,9 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
   let jobDoc = await JobDescriptionModel.findOne({ url: cleanedUrl });
 
   if (jobDoc) {
-    console.log('[Controller] Job description found in cache database.');
+    logger.info('Retrieved job description from cache database');
   } else {
-    console.log('[Controller] Scraping job webpage and extracting skills/requirements...');
+    logger.info('Initiating job description webpage scraping and skill extraction');
 
     // 2. Load webpage via Jina Reader API (handles dynamic rendering in cloud)
     let cleanedText = '';
@@ -101,11 +102,11 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
         headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
       }
 
-      console.log(`[Controller] Scraping job description via Jina Reader: ${cleanedUrl}...`);
+      logger.info(`Fetching job description webpage via Jina Reader: ${cleanedUrl}`);
       const response = await axios.get(jinaUrl, { headers, timeout: 20000 });
       cleanedText = response.data || '';
     } catch (err) {
-      console.error('[Controller] Jina Reader scraping failed:', err.message);
+      logger.error({ err: err.message }, 'Failed to fetch job description webpage contents using Jina Reader');
       throw new BadRequestError(`Failed to load or scrape the job URL : ${err.message}`);
     }
 
@@ -120,7 +121,7 @@ const parseJobDescriptionController = asyncHandler(async (req, res) => {
       const structuredLlm = getStructuredModel(jobDescriptionSchema);
       details = await structuredLlm.invoke(prompt);
     } catch (err) {
-      console.error('[Controller] Gemini extraction failed on parsed text:', err);
+      logger.error({ err }, 'Failed to extract structured job requirements via LLM');
       throw new BadRequestError(`Failed to extract structured details from scraped content: ${err.message}`);
     }
 

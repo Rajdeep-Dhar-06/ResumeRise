@@ -1,29 +1,62 @@
-import { performance } from 'perf_hooks';
+import pino from 'pino';
+import pinoHttp from 'pino-http';
+
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 
 /**
- * Utility to time asynchronous execution calls (AI/Puppeteer requests).
- * Outputs formatted, colorful metrics when DEBUG_AI_TIMER is true.
- * 
- * @param {string} label - Identifier for the call
- * @param {Function} fn - Async operation to execute
- * @returns {Promise<any>} Response from the execution
+ * Singleton Pino logger instance.
+ * - Development: pretty-printed, colorized output via pino-pretty transport.
+ * - Production: structured JSON output to stdout for log aggregators.
  */
-export async function timeAsyncCall(label, fn) {
-  if (process.env.DEBUG_AI_TIMER !== 'true') {
-    return fn();
-  }
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  redact: {
+    paths: [
+      'password',
+      'accessToken',
+      'refreshToken',
+      'token',
+      'req.headers.authorization',
+      'req.headers.cookie',
+    ],
+    censor: '[REDACTED]',
+  },
+  ...(isDev && {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'SYS:HH:MM:ss',
+        ignore: 'pid,hostname',
+        singleLine: false,
+      },
+    },
+  }),
+});
 
-  const start = performance.now();
-  try {
-    const result = await fn();
-    const duration = ((performance.now() - start) / 1000).toFixed(2);
-    // Cyan [AI TIMER] | Green SUCCESS | Magenta label | Yellow duration
-    console.log(`\x1b[36m[AI TIMER]\x1b[0m \x1b[32mSUCCESS\x1b[0m | \x1b[35m${label}\x1b[0m completed in \x1b[33m${duration}s\x1b[0m`);
-    return result;
-  } catch (error) {
-    const duration = ((performance.now() - start) / 1000).toFixed(2);
-    // Cyan [AI TIMER] | Red FAILED | Magenta label | Yellow duration
-    console.log(`\x1b[36m[AI TIMER]\x1b[0m \x1b[31mFAILED\x1b[0m  | \x1b[35m${label}\x1b[0m after \x1b[33m${duration}s\x1b[0m | Error: ${error.message}`);
-    throw error;
-  }
-}
+/**
+ * Express middleware for HTTP request logging.
+ */
+export const httpLogger = pinoHttp({
+  logger,
+  // ignore preflighted requests
+  autoLogging: {
+    ignore: (req) => req.method === 'OPTIONS',
+  },
+  // clean up the req and res for logging
+  serializers: {
+    req: (req) => ({
+      method: req.method,
+      url: req.url,
+    }),
+    res: (res) => ({
+      statusCode: res.statusCode,
+    }),
+  },
+  customProps: (req) => ({
+    reqId: req.id,
+  }),
+});
+
+export default logger;
+

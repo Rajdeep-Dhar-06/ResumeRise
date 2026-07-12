@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
 
-// FIX: extracted as its own schema with { _id: false } — previously these were
-// inline array objects, which made Mongoose silently give every single skill
-// and requirement entry its own ObjectId (pure storage bloat, never referenced).
-// Matches the pattern already used correctly in interview_report.model.js.
 const jdTermSchema = new mongoose.Schema(
     {
         requirementName: {

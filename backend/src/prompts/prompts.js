@@ -473,11 +473,16 @@ ${weakTermsFormatted}
 ${searchResultsText}
 </search_results_for_gaps>
 
-STEP 1 — SEVERITY:
+STEP 1 — SEVERITY & STANDARDIZATION:
   high = MISSING term that is a primary, non-negotiable requirement.
   medium = WEAK_MATCH term, or a MISSING secondary/preferred requirement.
   low = nice-to-have.
-  CRITICAL: The "requirementName" field for each entry in "preparationGaps" MUST be exactly the raw requirementName from the list (e.g. "Apache Kafka" or "C++"), character-for-character. Do NOT append commas, verdicts, statuses, colon, or any other metadata text (like ",verdict:" or "| Verdict").
+  
+  STANDARDIZATION RULE FOR requirementName:
+  Convert the raw requirementName into a standardized, professional, title-cased skill or topic name before outputting it.
+  - For multi-choice/alternative requirements (e.g. "experience in java/python/go"), standardize it to clean, capitalized options: e.g. "Java/Python/Go".
+  - For long, descriptive, or action-based requirements (e.g. "writing high quality pull requests with test coverage"), convert them to concise, capitalized professional skill names or topics: e.g. "Pull Request Quality & Test Coverage".
+  - Do NOT append commas, status labels, colons, or any other metadata text (like ",verdict:" or "| Verdict").
 
 STEP 2 — PREP PLAN (high and medium only):
   Generate exactly ${daysLimit} daily prep plan objects (one object per day, from Day 1 to Day ${daysLimit}).
@@ -492,7 +497,7 @@ STEP 3 — LEARNING RESOURCES (Extract from search engine results):
   For each retained requirementName gap, parse the relevant links from the SEARCH ENGINE RESULTS FOR GAPS section.
   Group these links under the "learningResources" array.
   For each link, capture the exact "resourceTitle", the raw "resourceUrl" (must be a valid link starting with http:// or https://), and a short "resourceSnippet" summary of what the guide covers. Do not leave the resources array empty.
-  CRITICAL: The "requirementName" field for each learningResources entry MUST exactly match the raw input requirementName string, character-for-character (e.g. "Apache Kafka"). Do not paraphrase, rename, or reformat it, and do NOT append any other metadata text or status strings.
+  CRITICAL: The "requirementName" field for each learningResources entry MUST exactly match the standardized requirementName you generated in STEP 1, character-for-character (e.g. "Java/Python/Go" or "Pull Request Quality & Test Coverage"). Do not use the raw input string here if you standardized it in STEP 1, so that gaps and resources group together perfectly.
 
 <worked_example>
 Given MISSING: "Apache Kafka" (primary requirement) and WEAK_MATCH: "Docker" (skills-list only), with daysLimit = 3, illustrating structure only — never copy these values into real output:
