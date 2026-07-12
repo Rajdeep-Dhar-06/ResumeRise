@@ -44,10 +44,9 @@ The platform:
 | Web Search | Tavily via `@langchain/tavily` |
 | Job Scraping | Jina Reader API (`r.jina.ai`) |
 | PDF Parsing | `pdf-parse` via `@langchain/community` PDFLoader |
-| PII Redaction | `compromise` (NLP) + regex |
+| PII Redaction | `compromise` + regex |
 | Auth | JWT (httpOnly cookies) + `bcryptjs` |
 | Validation | Zod v4 |
-| Graph Checkpointing | `@langchain/langgraph-checkpoint-mongodb` |
 | Structured Logging | `pino` + `pino-http` + `pino-pretty` |
 
 ### Frontend
@@ -77,65 +76,47 @@ The platform:
 
 ## Application Flows
 
-### 1. Authentication
+### 1. Authentication & Token Refresh Flow
 ```
-User fills form ──► POST /api/auth/login
-                        │
-                    JWT signed ──► httpOnly cookie set
-                        │
-                    GET /api/auth/get-me on every page load
-                        │
-                    Protected routes enforce session
-```
-
-### 2. Resume Upload & Processing
-```
-User drops/selects PDF ──► SHA-256 hash computed (client-side buffer)
-                               │
-                           Check DB: same hash for this user?
-                               │
-                    ┌──────────┴──────────┐
-                 Cache HIT            Cache MISS
-                    │                     │
-                Return existing      pdf-parse → extract text
-                resumeId                  │
-                                     Regex + NLP anonymization
-                                          │
-                                     Save anonymized text to DB
-                                          │
-                                     Return resumeId
+User credentials ──► POST /api/auth/login
+                           │
+             ┌─────────────┴─────────────┐
+        Access Token                Refresh Token
+    (Returned in body)       (httpOnly secure cookie set)
+             │                           │
+  Saved in client state          Expires / Page Reload
+             │                           │
+  GET /api/auth/get-me       POST /api/auth/refresh
+  (Authorization: Bearer)    (Generates new access token)
 ```
 
-### 3. Job Description Parsing
+### 2. Report Generation Pipeline
 ```
-User pastes URL (debounced 1s) ──► Jina Reader fetches page
-                                       │
-                               Gemini extracts structured data:
-                               { companyName, role, skills[], requirements[] }
-                                       │
-                               Saved to DB (cached by URL globally)
-                                       │
-                               Return jobDescriptionId
-```
-
-### 4. Interview Report Generation
-```
-[resumeId + jobDescriptionId] ──► LangGraph pipeline invoked
-                                      │
-                                  startAgent: match scoring
-                                      │
-                                  assembleFinalReport:
-                                  ┌───────────────────────┐
-                                  │ • Technical Qs (LLM)  │
-                                  │ • Behavioral Qs (LLM) │ 
-                                  │ • Skill gaps (LLM)    │
-                                  │ • Roadmap (LLM)       │
-                                  │ • Resources (Tavily)  │
-                                  └───────────────────────┘
-                                      │
-                                  persistInterviewReport → MongoDB
-                                      │
-                                  Navigate to /interview/:id
+User inputs PDF & JD URL ──► Compute SHA-256 hash of PDF (Client-side)
+                                        │
+                            POST /api/interview/checkDuplicate
+                                        │
+                     ┌──────────────────┴──────────────────┐
+                 Cache HIT                             Cache MISS
+                     │                                     │
+           Load existing report ID              POST /api/interview/generateReport
+                     │                                     │
+            Navigate to report                 Invoke LangGraph State workflow:
+                     │                                     │
+                    END                      1. startAgent (Concurrent Ingestion):
+                                                • Extract resume PDF & Anonymize PII
+                                                • Scrape JD via Jina Reader & Extract
+                                                • Audit skills against JD requirements
+                                                           │
+                                             2. assembleFinalReport:
+                                                • Compute Match Score & Report Title
+                                                • LLM: Gaps, Roadmap, mock interview Qs
+                                                • Tavily: Fetch gap learning resources
+                                                           │
+                                             3. persistInterviewReport:
+                                                • Save final structured report to MongoDB
+                                                           │
+                                                 Navigate to /interview/:id
 ```
 
 ---
