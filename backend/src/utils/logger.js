@@ -3,36 +3,46 @@ import pinoHttp from 'pino-http';
 
 const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 
-/**
- * Singleton Pino logger instance.
- * - Development: pretty-printed, colorized output via pino-pretty transport.
- * - Production: structured JSON output to stdout for log aggregators.
- */
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  redact: {
-    paths: [
-      'password',
-      'accessToken',
-      'refreshToken',
-      'token',
-      'req.headers.authorization',
-      'req.headers.cookie',
-    ],
-    censor: '[REDACTED]',
-  },
-  ...(isDev && {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:HH:MM:ss',
-        ignore: 'pid,hostname',
-        singleLine: false,
-      },
+let logger;
+
+if (isDev) {
+  // Use dynamic import to prevent production crashes when devDependencies (pino-pretty) are not installed
+  const pretty = (await import('pino-pretty')).default;
+  logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    redact: {
+      paths: [
+        'password',
+        'accessToken',
+        'refreshToken',
+        'token',
+        'req.headers.authorization',
+        'req.headers.cookie',
+      ],
+      censor: '[REDACTED]',
     },
-  }),
-});
+  }, pretty({
+    colorize: true,
+    translateTime: 'SYS:HH:MM:ss',
+    ignore: 'pid,hostname',
+    singleLine: false,
+  }));
+} else {
+  logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    redact: {
+      paths: [
+        'password',
+        'accessToken',
+        'refreshToken',
+        'token',
+        'req.headers.authorization',
+        'req.headers.cookie',
+      ],
+      censor: '[REDACTED]',
+    },
+  });
+}
 
 /**
  * Express middleware for HTTP request logging.
