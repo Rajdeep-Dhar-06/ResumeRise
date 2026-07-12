@@ -210,25 +210,27 @@ npm run dev
 ### Backend (`backend/.env`)
 
 ```env
-# MongoDB
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+LOG_LEVEL=info
+CORS_ORIGIN=http://localhost:5173
+
+# Database Connection
 MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<dbname>
 
-# JWT
-JWT_SECRET=your_jwt_secret_here
+# Authentication Secrets
+ACCESS_TOKEN_SECRET=your_access_token_secret_here
+REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
 
-# Google Gemini
-GOOGLE_API_KEY=your_gemini_api_key_here
-
-# Tavily (for learning resource search)
+# LLM & Search API Keys
+GEMINI_API_KEY=your_gemini_api_key_here
 TAVILY_API_KEY=your_tavily_api_key_here
 
-# Jina Reader (optional — increases rate limits)
+# Optional Configurations
 JINA_API_KEY=your_jina_api_key_here
-
-# Environment
-NODE_ENV=development
-PORT=5000
-LOG_LEVEL=info
+DISABLE_AUTH=false
+DEBUG_AI_TIMER=true
 ```
 
 ### Frontend (`frontend/.env`)
