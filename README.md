@@ -110,8 +110,8 @@ User inputs PDF & JD URL ──► Compute SHA-256 hash of PDF (Client-side)
                                                            │
                                              2. assembleFinalReport:
                                                 • Compute Match Score & Report Title
-                                                • LLM: Gaps, Roadmap, mock interview Qs
-                                                • Tavily: Fetch gap learning resources
+                                                • LLM: Skill Gaps, Roadmap, Interview Qs
+                                                • Tavily: Fetch learning resources
                                                            │
                                              3. persistInterviewReport:
                                                 • Save final structured report to MongoDB
