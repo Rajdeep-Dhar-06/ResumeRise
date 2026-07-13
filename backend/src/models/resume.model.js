@@ -11,9 +11,25 @@ const resumeSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        resumeContent: { 
-            type: String, 
-            required: true 
+        academicInfo: {
+            type: String,
+            default: "",
+        },
+        technicalAchievements: {
+            type: String,
+            default: "",
+        },
+        extracurricularAchievements: {
+            type: String,
+            default: "",
+        },
+        experiences: {
+            type: String,
+            default: "",
+        },
+        technicalProjects: {
+            type: String,
+            default: "",
         },
     },
     { timestamps: true }

@@ -4,12 +4,12 @@ const resourceItemSchema = new mongoose.Schema(
   {
     resourceTitle: {
       type: String,
-      required: [true, 'Resource title is required'],
+      required: true,
       trim: true,
     },
     resourceUrl: {
       type: String,
-      required: [true, 'Resource URL is required'],
+      required: true,
       trim: true,
     },
     resourceSnippet: {
@@ -24,15 +24,14 @@ const resourceItemSchema = new mongoose.Schema(
 const learningResourceSchema = new mongoose.Schema({
   requirementName: {
     type: String,
-    required: [true, 'Requirement name is required'],
+    required: true,
     trim: true,
-    lowercase: true, // Normalize casing (e.g., 'react' vs 'React') to optimize caching
+    lowercase: true,
   },
   resources: [resourceItemSchema],
 });
 
 learningResourceSchema.index({ requirementName: 1 }, { unique: true });
-
 const LearningResourceModel = mongoose.model('LearningResource', learningResourceSchema);
 
 export default LearningResourceModel;

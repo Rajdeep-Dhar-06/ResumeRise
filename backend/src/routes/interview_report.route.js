@@ -1,8 +1,6 @@
 import express from 'express';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
 import {
-  parseResumeController,
-  parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
@@ -13,19 +11,12 @@ import {
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
-import { parseLimiter, reportLimiter } from '../middlewares/ratelimiter.js';
+import { parseLimiter, reportLimiter } from '../middlewares/rate_limiter.middleware.js';
 
 const interviewRouter = express.Router();
 
 // Validation schemas
-const parseJobDescriptionSchema = {
-  body: z.object({
-    jobDescriptionUrl: z
-      .string({ required_error: 'Job description URL is required.' })
-      .trim()
-      .url('Invalid URL format.'),
-  }),
-};
+
 
 const generateReportSchema = {
   body: z.object({
@@ -54,31 +45,7 @@ const interviewIdParamsSchema = {
   }),
 };
 
-/**
- * @route POST /api/interview/parseResume
- * @description Upload and parse the candidate's resume
- * @access private
- */
-interviewRouter.post(
-  '/parseResume',
-  verifyAccess,
-  parseLimiter,
-  upload.single('resume'),
-  parseResumeController
-);
 
-/**
- * @route POST /api/interview/parseJobDescription
- * @description Scrape and parse the job description from a URL using LangChain and LLM
- * @access private
- */
-interviewRouter.post(
-  '/parseJobDescription',
-  verifyAccess,
-  parseLimiter,
-  validate(parseJobDescriptionSchema),
-  parseJobDescriptionController
-);
 
 /**
  * @route POST /api/interview/generateReport

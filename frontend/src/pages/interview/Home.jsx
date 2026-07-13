@@ -5,10 +5,10 @@ import { useNavigate, Link } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth.js";
 import { Sparkles, LogOut, LayoutDashboard } from "lucide-react";
+import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
 
 import { Button } from "@/components/ui/button";
-import { CreatePlan } from '../../components/interview/CreatePlan'
-import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
+import { CreatePlan } from '../../components/interview/CreatePlan';
 
 
 const Home = () => {

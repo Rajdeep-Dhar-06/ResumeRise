@@ -56,7 +56,7 @@ export const reportNonTechnicalQuestionsSchema = z.object({
           ),
       })
     )
-    .length(3)
+    .length(5)
     .describe(
       'A list of non-technical questions that can be asked during the interview, along with the intention behind asking each question and the ideal answer.'
     ),

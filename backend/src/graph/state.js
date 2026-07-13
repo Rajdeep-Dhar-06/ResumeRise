@@ -1,11 +1,6 @@
-import { StateGraph, Annotation } from '@langchain/langgraph';
-import {
-  startAgent,
-  assembleFinalReport,
-  persistInterviewReport
-} from '../nodes/graph_nodes.js';
+import { Annotation } from '@langchain/langgraph';
 
-//  State Definition 
+// State Definition for the LangGraph workflow
 export const GraphState = Annotation.Root({
   userId: Annotation(),
   resumeBuffer: Annotation(),
@@ -38,22 +33,3 @@ export const GraphState = Annotation.Root({
   // Outputs
   savedReport: Annotation()
 });
-
-// StateGraph Setup
-const workflow = new StateGraph(GraphState)
-  .addNode("startAgent", startAgent)
-  .addNode("assembleFinalReport", assembleFinalReport)
-  .addNode("persistInterviewReport", persistInterviewReport)
-
-  // Linear Pipeline
-  .addEdge("__start__", "startAgent")
-  .addEdge("startAgent", "assembleFinalReport")
-  .addEdge("assembleFinalReport", "persistInterviewReport")
-  .addEdge("persistInterviewReport", "__end__");
-
-const graph = workflow.compile();
-
-export async function runInterviewReportGraph(initialContext) {
-  const finalState = await graph.invoke(initialContext);
-  return finalState;
-}

@@ -7,7 +7,7 @@ import {
   refreshAccessController,
 } from '../controllers/authentication.controller.js';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
-import { loginLimiter, registerLimiter } from '../middlewares/ratelimiter.js';
+import { loginLimiter, registerLimiter } from '../middlewares/rate_limiter.middleware.js';
 
 const authRouter = express.Router();
 

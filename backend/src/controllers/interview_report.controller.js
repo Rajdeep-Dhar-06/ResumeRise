@@ -1,153 +1,10 @@
 import mongoose from 'mongoose';
 import InterviewReportModel from '../models/interview_report.model.js';
-import resumeModel from '../models/resume.model.js';
-import JobDescriptionModel from '../models/job_description.model.js';
-import { runInterviewReportGraph } from '../langgraph/interview_report.graph.js';
+import { runInterviewReportGraph } from '../graph/builder.js';
 import { asyncHandler } from '../utils/async_handler.js';
 import { BadRequestError, NotFoundError } from '../utils/error_handler.js';
-import { anonymizeResume } from '../utils/anonymizer.js';
-import { compactText } from '../utils/text_compact.js';
-import { createHash } from 'crypto';
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import axios from 'axios';
-import { getStructuredModel } from '../nodes/graph_nodes.js';
-import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
-import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
-import logger from '../utils/logger.js';
-
-/** @description Controller to upload, parse and anonymize a candidate's resume PDF */
-const parseResumeController = asyncHandler(async (req, res) => {
-  const resumeFile = req.file;
-  if (!resumeFile) {
-    throw new BadRequestError('Resume PDF file is required.');
-  }
-
-  // 1. Compute SHA256 content hash of the PDF buffer, buffer -> binary data
-  const contentHash = createHash('sha256').update(resumeFile.buffer).digest('hex');
-
-  // 2. Check if this exact file has already been parsed for this user
-  let resumeDoc = await resumeModel.findOne({
-    user: req.user.id,
-    contentHash,
-  });
-
-  if (resumeDoc) {
-    logger.info('Retrieved cached parsed resume using content hash');
-  } else {
-    logger.info('Initiating resume PDF parsing and anonymization');
-
-    // 3. Load text from PDF buffer
-    let parsedText = '';
-    try {
-      const blob = new Blob([resumeFile.buffer]);
-      const loader = new PDFLoader(blob);
-      const docs = await loader.load();
-      parsedText = docs.map((doc) => doc.pageContent).join('\n');
-
-      const RESUME_NOISE = [
-        /references available (on|upon) request/i,
-        /\b(hobbies|interests|objective)\b.*$/im
-      ];
-      parsedText = compactText(parsedText, { extraNoise: RESUME_NOISE, maxLines: 120 });
-    } catch (err) {
-      throw new BadRequestError(`Failed to parse the uploaded resume PDF: ${err.message}`);
-    }
-
-    if (!parsedText) {
-      throw new BadRequestError('The uploaded resume PDF does not contain any extractable text.');
-    }
-
-    // 4. Anonymize personal details (Names, Contacts, Locations, Schools)
-    const resumeContent = anonymizeResume(parsedText);
-
-    // 5. Create new Resume document
-    resumeDoc = await resumeModel.create({
-      user: req.user.id,
-      contentHash,
-      resumeContent,
-    });
-  }
-
-  res.status(200).json({
-    message: 'Resume parsed and anonymized successfully!',
-    resumeId: resumeDoc._id,
-  });
-});
 
 
-/** @description Controller to scrape, parse and structure a job description from a URL using LangChain and LLM */
-const parseJobDescriptionController = asyncHandler(async (req, res) => {
-  const { jobDescriptionUrl } = req.body;
-  if (!jobDescriptionUrl) {
-    throw new BadRequestError('Job description URL is required.');
-  }
-
-  const cleanedUrl = jobDescriptionUrl.trim();
-
-  // 1. Check if the job description is already cached globally in the database
-  let jobDoc = await JobDescriptionModel.findOne({ url: cleanedUrl });
-
-  if (jobDoc) {
-    logger.info('Retrieved job description from cache database');
-  } else {
-    logger.info('Initiating job description webpage scraping and skill extraction');
-
-    // 2. Load webpage via Jina Reader API (handles dynamic rendering in cloud)
-    let cleanedText = '';
-    try {
-      const jinaUrl = `https://r.jina.ai/${cleanedUrl}`;
-      const headers = {};
-
-      if (process.env.JINA_API_KEY) {
-        headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
-      }
-
-      logger.info(`Fetching job description webpage via Jina Reader: ${cleanedUrl}`);
-      const response = await axios.get(jinaUrl, { headers, timeout: 20000 });
-      cleanedText = response.data || '';
-    } catch (err) {
-      logger.error({ err: err.message }, 'Failed to fetch job description webpage contents using Jina Reader');
-      throw new BadRequestError(`Failed to load or scrape the job URL : ${err.message}`);
-    }
-
-    if (!cleanedText || cleanedText.length < 50) {
-      throw new BadRequestError('No sufficient text content could be extracted from this URL.');
-    }
-
-    // 3. Extract title, description, skills, and requirements using Gemini
-    let details = { companyName: 'Company', role: 'Job Description', technicalRequirements: [], nonTechnicalRequirements: [] };
-    try {
-      const prompt = getScrapeJobDescriptionPrompt({ rawText: cleanedText });
-      const structuredLlm = getStructuredModel(jobDescriptionSchema);
-      details = await structuredLlm.invoke(prompt);
-    } catch (err) {
-      logger.error({ err }, 'Failed to extract structured job requirements via LLM');
-      throw new BadRequestError(`Failed to extract structured details from scraped content: ${err.message}`);
-    }
-
-    if ((!details.technicalRequirements || details.technicalRequirements.length === 0) && (!details.nonTechnicalRequirements || details.nonTechnicalRequirements.length === 0)) {
-      throw new BadRequestError('Could not extract any skills or requirements from this job posting. Please try a different URL containing a detailed job description.');
-    }
-
-    // 4. Save the structured job description to the database (without raw webpage text)
-    jobDoc = await JobDescriptionModel.create({
-      url: cleanedUrl,
-      companyName: details.companyName || 'Company',
-      role: details.role || 'Job Description',
-      technicalRequirements: details.technicalRequirements || [],
-      nonTechnicalRequirements: details.nonTechnicalRequirements || [],
-    });
-  }
-
-  res.status(200).json({
-    message: 'Job description parsed successfully!',
-    jobDescriptionId: jobDoc._id,
-    companyName: jobDoc.companyName,
-    role: jobDoc.role,
-    technicalRequirements: jobDoc.technicalRequirements || [],
-    nonTechnicalRequirements: jobDoc.nonTechnicalRequirements || [],
-  });
-});
 
 /** @description Controller to generate an interview report from pre-parsed resume and JD */
 const generateInterviewReportController = asyncHandler(async (req, res) => {
@@ -190,7 +47,7 @@ const getInterviewReportByIdController = asyncHandler(async (req, res) => {
   const interviewReport = await InterviewReportModel.findOne({
     _id: interviewId,
     userId: req.user.id,
-  }).populate('jobDescriptionId');
+  }).populate('jobDescriptionId').lean();
 
   if (!interviewReport) {
     throw new NotFoundError('Interview report not found');
@@ -229,7 +86,8 @@ const getAllInterviewReportsController = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select('reportTitle matchScore createdAt companyName role jobDescriptionUrl');
+    .select('reportTitle matchScore createdAt companyName role jobDescriptionUrl')
+    .lean();
 
   res.status(200).json({
     message: 'Interview reports fetched successfully',
@@ -315,7 +173,7 @@ export const checkDuplicateInterviewPlanController = asyncHandler(async (req, re
     resumeHash,
     jobDescriptionUrl: jobDescriptionUrl.trim(),
     daysLimit: calculatedDaysLimit
-  });
+  }).lean();
 
   if (existingReport) {
     return res.status(200).json({
@@ -329,8 +187,6 @@ export const checkDuplicateInterviewPlanController = asyncHandler(async (req, re
 });
 
 export {
-  parseResumeController,
-  parseJobDescriptionController,
   generateInterviewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,

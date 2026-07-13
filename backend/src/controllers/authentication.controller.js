@@ -17,7 +17,7 @@ const registerUserController = asyncHandler(async (req, res) => {
     throw new BadRequestError('All fields are required');
   }
 
-  const doesUserExist = await userModel.findOne({ username });
+  const doesUserExist = await userModel.findOne({ username }).lean();
 
   if (doesUserExist) {
     throw new ConflictError('User already exists');
@@ -155,7 +155,7 @@ const logoutUserController = asyncHandler(async (req, res) => {
  * @access Private
  */
 const getMeController = asyncHandler(async (req, res) => {
-  const user = await userModel.findById(req.user.id);
+  const user = await userModel.findById(req.user.id).lean();
 
   if (!user) {
     throw new NotFoundError('User not found');
@@ -181,7 +181,7 @@ const refreshAccessController = asyncHandler(async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await userModel.findById(decoded.id);
+    const user = await userModel.findById(decoded.id).lean();
     if (!user || user.refreshToken !== refreshToken) {
       throw new ForbiddenError('Session has expired or you have logged out');
     }

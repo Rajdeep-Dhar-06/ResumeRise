@@ -18,7 +18,7 @@ const verifyAccess = asyncHandler(async (req, res, next) => {
         throw new ForbiddenError('Access token is expired or invalid');
     }
 
-    const user = await userModel.findById(decoded.id);
+    const user = await userModel.findById(decoded.id).lean();
     if (!user || !user.refreshToken) {
         throw new UnauthorizedError('Session has expired or you have logged out');
     }

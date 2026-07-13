@@ -5,15 +5,15 @@ const technicalQuestionSchema = new mongoose.Schema(
   {
     questionText: {
       type: String,
-      required: [true, 'Technical Question text is required'],
+      required: true,
     },
     interviewerIntent: {
       type: String,
-      required: [true, 'Interviewer intent is required'],
+      required: true,
     },
     idealAnswer: {
       type: String,
-      required: [true, 'Ideal answer is required'],
+      required: true,
     },
   },
   { _id: false }
@@ -23,15 +23,15 @@ const nonTechnicalQuestionSchema = new mongoose.Schema(
   {
     questionText: {
       type: String,
-      required: [true, 'Non-Technical Question text is required'],
+      required: true,
     },
     interviewerIntent: {
       type: String,
-      required: [true, 'Interviewer intent is required'],
+      required: true,
     },
     idealAnswer: {
       type: String,
-      required: [true, 'Ideal answer is required'],
+      required: true,
     },
   },
   { _id: false }
@@ -41,12 +41,12 @@ const preparationGapSchema = new mongoose.Schema(
   {
     requirementName: {
       type: String,
-      required: [true, 'Requirement name is required'],
+      required: true,
     },
     gapSeverity: {
       type: String,
       enum: SEVERITY_LEVELS,
-      required: [true, 'Gap severity is required'],
+      required: true,
     },
   },
   { _id: false }
@@ -56,16 +56,16 @@ const preparationPlanSchema = new mongoose.Schema(
   {
     dayNumber: {
       type: Number,
-      required: [true, 'Day number is required'],
+      required: true,
     },
     dailyFocus: {
       type: String,
-      required: [true, 'Daily focus is required'],
+      required: true,
     },
     dailyTasks: [
       {
         type: String,
-        required: [true, 'Daily task is required'],
+        required: true,
       },
     ],
   },
@@ -144,12 +144,12 @@ const interviewReportSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User is required'],
+      required: true,
     },
     jobDescriptionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JobDescription',
-      required: [true, 'Job description reference is required'],
+      required: true,
     },
     resumeId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -157,27 +157,27 @@ const interviewReportSchema = new mongoose.Schema(
     },
     resumeHash: {
       type: String,
-      required: [true, 'Resume hash is required'],
+      required: true,
     },
     jobDescriptionUrl: {
       type: String,
-      required: [true, 'Job description URL is required'],
+      required: true,
     },
     companyName: {
       type: String,
       default: 'Company',
-      required: [true, 'Company name is required'],
+      required: true,
     },
     role: {
       type: String,
       default: 'Role',
-      required: [true, 'Role title is required'],
+      required: true,
     },
     daysLimit: {
       type: Number,
       enum: [3, 5, 7],
       default: 7,
-      required: [true, 'Days limit is required'],
+      required: true,
     },
 
     evaluatedTechnicalRequirements: [evaluatedRequirementMongooseSchema],
@@ -185,7 +185,7 @@ const interviewReportSchema = new mongoose.Schema(
 
     reportTitle: {
       type: String,
-      required: [true, 'Report title is required'],
+      required: true,
     },
     matchScore: {
       type: Number,

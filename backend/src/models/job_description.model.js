@@ -38,7 +38,7 @@ const jobDescriptionSchema = new mongoose.Schema(
 );
 
 jobDescriptionSchema.index({ url: 1 }, { unique: true });
-jobDescriptionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 }); // Expire cached job descriptions after 24 hours
+jobDescriptionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hrs
 const JobDescriptionModel = mongoose.model('JobDescription', jobDescriptionSchema);
 
 export default JobDescriptionModel;

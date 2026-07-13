@@ -24,12 +24,6 @@ export function anonymizeResume(text) {
     // Replace names
     doc.people().replaceWith('[REDACTED_NAME]');
     
-    // Replace places (addresses, cities, states, countries)
-    doc.places().replaceWith('[REDACTED_PLACE]');
-    
-    // Replace organizations (schools, universities, companies, institutes)
-    doc.organizations().replaceWith('[REDACTED_ORGANIZATION]');
-    
     cleaned = doc.text();
   } catch (error) {
     logger.error({ err: error }, 'NLP text anonymization failed; falling back to regex redaction');

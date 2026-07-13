@@ -127,16 +127,17 @@ User inputs PDF & JD URL ──► Compute SHA-256 hash of PDF (Client-side)
 ResumeRise/
 ├── backend/
 │   ├── src/
-│   │   ├── config/          # DB connection, environment
-│   │   ├── controllers/     # Route handler logic
-│   │   ├── langgraph/       # LangGraph state graph definition
-│   │   ├── middlewares/     # JWT auth, error handling
-│   │   ├── models/          # Mongoose schemas
-│   │   ├── nodes/           # LangGraph node functions
-│   │   ├── prompts/         # LLM prompt templates
+│   │   ├── config/          # DB connection, environment, and LLM configuration
+│   │   ├── controllers/     # Route handler controllers logic
+│   │   ├── graph/           # LangGraph builder, state schema, and edges definition
+│   │   ├── middlewares/     # HTTP logging, authentication, rate limits, and validation middlewares
+│   │   ├── models/          # Mongoose database models
+│   │   ├── nodes/           # Individual LangGraph execution nodes (start, assemble, persist)
+│   │   ├── prompts/         # LLM system/user prompt templates
 │   │   ├── routes/          # Express route definitions
-│   │   ├── schemas/         # Zod validation schemas
-│   │   └── utils/           # Anonymizer, score calculator, error classes
+│   │   ├── schemas/         # Zod schemas for structured LLM parsing
+│   │   ├── tools/           # Custom scraper, parser, planner, and search execution modules
+│   │   └── utils/           # Anonymizer, score calculator, and custom errors
 │   └── package.json
 │
 └── frontend/

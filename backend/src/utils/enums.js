@@ -4,4 +4,4 @@ export const MATCH_STATUS = ['MATCHED', 'WEAK_MATCH', 'MISSING'];
 
 export const COMPLEXITY_LEVELS = ['TRIVIAL', 'BASIC', 'INTERMEDIATE', 'ADVANCED', 'PRODUCTION', 'N/A'];
 
-export const SEVERITY_LEVELS = ['low', 'medium', 'high'];
+export const SEVERITY_LEVELS = ['LOW', 'MEDIUM', 'HIGH'];
