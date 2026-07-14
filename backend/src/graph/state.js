@@ -6,9 +6,9 @@ export const GraphState = Annotation.Root({
   resumeBuffer: Annotation(),
   jobDescriptionUrl: Annotation(),
 
-  // Intermediate values
   resumeId: Annotation(),
-  resumeText: Annotation(),
+  techResumeText: Annotation(),
+  nonTechResumeText: Annotation(),
   resumeHash: Annotation(),
 
   jobDescriptionId: Annotation(),

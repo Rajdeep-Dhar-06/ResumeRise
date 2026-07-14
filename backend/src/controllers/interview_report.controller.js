@@ -5,8 +5,12 @@ import { asyncHandler } from '../utils/async_handler.js';
 import { BadRequestError, NotFoundError } from '../utils/error_handler.js';
 
 
-
-/** @description Controller to generate an interview report from pre-parsed resume and JD */
+/**
+ * Triggers the LangGraph pipeline to generate an interview prep report.
+ * 
+ * @route POST /api/interview/generateReport
+ * @access Private
+ */
 const generateInterviewReportController = asyncHandler(async (req, res) => {
   const { jobDescriptionUrl, daysLimit } = req.body;
   const resumeFile = req.file;
@@ -41,7 +45,12 @@ const generateInterviewReportController = asyncHandler(async (req, res) => {
   });
 });
 
-/** @description Controller to get an interview report by ID */
+/**
+ * Retrieves a single interview report by its unique ID.
+ * 
+ * @route GET /api/interview/report/:interviewId
+ * @access Private
+ */
 const getInterviewReportByIdController = asyncHandler(async (req, res) => {
   const { interviewId } = req.params;
   const interviewReport = await InterviewReportModel.findOne({
@@ -59,7 +68,12 @@ const getInterviewReportByIdController = asyncHandler(async (req, res) => {
   });
 });
 
-/** @description Controller to get all interview reports for a user */
+/**
+ * Retrieves all interview reports belonging to the current user.
+ * 
+ * @route GET /api/interview/
+ * @access Private
+ */
 const getAllInterviewReportsController = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 9;
@@ -102,6 +116,12 @@ const getAllInterviewReportsController = asyncHandler(async (req, res) => {
 
 });
 
+/**
+ * Computes general stats of interview preparation reports for the current user.
+ * 
+ * @route GET /api/interview/stats
+ * @access Private
+ */
 export const getInterviewStatsController = asyncHandler(async (req, res) => {
   const defaultStats = {
     totalPlans: 0,
@@ -134,7 +154,12 @@ export const getInterviewStatsController = asyncHandler(async (req, res) => {
 });
 
 
-/** @description Controller to delete an interview report by ID */
+/**
+ * Deletes a single interview report by its unique database ID.
+ * 
+ * @route DELETE /api/interview/report/:interviewId
+ * @access Private
+ */
 const deleteInterviewReportController = asyncHandler(async (req, res) => {
   const { interviewId } = req.params;
   const deletedReport = await InterviewReportModel.findOneAndDelete({
@@ -152,7 +177,12 @@ const deleteInterviewReportController = asyncHandler(async (req, res) => {
   });
 });
 
-/** @description Check if an interview report with this resume and job posting combination already exists. */
+/**
+ * Validates whether an active interview report already exists with the same parameters.
+ * 
+ * @route POST /api/interview/checkDuplicate
+ * @access Private
+ */
 export const checkDuplicateInterviewPlanController = asyncHandler(async (req, res) => {
   const { resumeHash, jobDescriptionUrl, daysLimit } = req.body;
 

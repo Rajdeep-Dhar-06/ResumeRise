@@ -8,13 +8,7 @@ import { Sparkles, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-const LOGIN = [
-  "Authenticating human...",
-  "Fetching cookies (the digital kind)...",
-  "Looking under the couch for your data...",
-  "Untangling the internet..."
-];
+import { LOGIN_QUOTES } from "../../lib/quotes.js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,7 +32,7 @@ const Login = () => {
 
   return (
     <main className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground select-none">
-      <LoadingScreen active={loading} minDelay={2000} quotes={LOGIN} message="Logging in…" />
+      <LoadingScreen active={loading} minDelay={2000} quotes={LOGIN_QUOTES} message="Logging in…" />
       {/* Left panel: Auth Form */}
       <div className="flex flex-col p-6 md:p-10 justify-between h-full">
         {/* Brand header */}

@@ -6,7 +6,6 @@ const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 let logger;
 
 if (isDev) {
-  // Use dynamic import to prevent production crashes when devDependencies (pino-pretty) are not installed
   const pretty = (await import('pino-pretty')).default;
   logger = pino({
     level: process.env.LOG_LEVEL || 'info',

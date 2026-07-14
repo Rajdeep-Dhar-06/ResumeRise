@@ -139,6 +139,11 @@ const learningResourceMongooseSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * Mongoose schema representing the final generated Interview/Preparation Report.
+ * Contains user/document references, aggregated match metrics, generated evaluation requirements (technical/non-technical),
+ * customized interview prep questions, skill gaps, customized daily study planner, and associated learning resources.
+ */
 const interviewReportSchema = new mongoose.Schema(
   {
     userId: {

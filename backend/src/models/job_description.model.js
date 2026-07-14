@@ -19,6 +19,11 @@ const jdTermSchema = new mongoose.Schema(
     { _id: false }
 );
 
+/**
+ * Mongoose schema representing scraped Job Description data.
+ * Includes URL, company details, role metadata, and technical/non-technical parsed requirements.
+ * Re-scrapes are cached based on the 24-hour TTL index.
+ */
 const jobDescriptionSchema = new mongoose.Schema(
     {
         url: {

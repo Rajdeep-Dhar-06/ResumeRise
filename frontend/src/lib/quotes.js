@@ -9,3 +9,16 @@ export const MOTIVATIONAL_QUOTES = [
   "Success is where preparation and opportunity meet.",
   "Take a deep breath. We are building your perfect match roadmap...",
 ];
+
+export const REGISTER_QUOTES = [
+  "Creating a brand-new human instance...",
+  "Allocating memory for your greatness...",
+  "Scaling our user base by exactly one..."
+];
+
+export const LOGIN_QUOTES = [
+  "Authenticating human...",
+  "Fetching cookies (the digital kind)...",
+  "Looking under the couch for your data...",
+  "Untangling the internet..."
+];

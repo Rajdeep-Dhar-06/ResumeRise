@@ -12,7 +12,15 @@ export const creativeModel = new ChatGoogle({
     temperature: 0.6
 });
 
-// Helper for structured output with fallbacks (Low Temp)
+/**
+ * Configures and returns a low-temperature Google Chat model with structured output
+ * and automated fallbacks to alternate model versions.
+ * Suitable for analytical, deterministic tasks like requirement auditing and scoring.
+ * 
+ * @function getStructuredModel
+ * @param {object} schema - The Zod schema defining the expected structured JSON output format.
+ * @returns {import('@langchain/core/runnables').Runnable} A runnable model chain with fallbacks configured.
+ */
 export function getStructuredModel(schema) {
     return model.withStructuredOutput(schema).withFallbacks([
         new ChatGoogle({ model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.2 }).withStructuredOutput(schema),
@@ -20,7 +28,15 @@ export function getStructuredModel(schema) {
     ]);
 }
 
-// Helper for structured output with fallbacks (Creative High Temp)
+/**
+ * Configures and returns a higher-temperature (more creative) Google Chat model
+ * with structured output and automated fallbacks to alternate model versions.
+ * Suitable for narrative/generative tasks like question generation and study planning.
+ * 
+ * @function getCreativeStructuredModel
+ * @param {object} schema - The Zod schema defining the expected structured JSON output format.
+ * @returns {import('@langchain/core/runnables').Runnable} A runnable model chain with fallbacks configured.
+ */
 export function getCreativeStructuredModel(schema) {
     return creativeModel.withStructuredOutput(schema).withFallbacks([
         new ChatGoogle({ model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.6 }).withStructuredOutput(schema),

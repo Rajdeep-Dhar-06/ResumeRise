@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+/**
+ * Mongoose schema representing a user of the application.
+ * Defines structure, indexes, and credentials settings (hashing handled in controllers).
+ */
 const userSchema = new mongoose.Schema(
   {
     username: {

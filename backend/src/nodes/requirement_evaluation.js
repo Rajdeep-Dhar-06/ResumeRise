@@ -2,45 +2,23 @@ import logger from '../utils/logger.js';
 import { techRequirementsMatchSchema, nonTechRequirementsMatchSchema } from '../schemas/matched_term.schema.js';
 import { getStructuredModel } from '../config/llm.js';
 import { getTechRequirementsPrompt, getNonTechRequirementsPrompt } from '../prompts/prompts.js';
-import { parseAndSaveResume } from '../tools/parser.js';
-import { scrapeAndSaveJobDescription } from '../tools/scraper.js';
 
 /**
- * Node to concurrently ingest the candidate's resume and scrape the target JD webpage.
- * Performs matching / audit checks concurrently afterwards.
+ * Node to evaluate candidate resume against job description requirements.
+ * Reads pre-built text blocks from state, runs LLM matching, and merges priorities.
  */
-export async function startAgent(state) {
+export async function requirementEvaluation(state) {
     const {
         userId,
-        resumeBuffer,
-        jobDescriptionUrl
+        resumeId,
+        jobDescriptionId,
+        techResumeText,
+        nonTechResumeText,
+        jobDescriptionTechnicalRequirements,
+        jobDescriptionNonTechnicalRequirements,
     } = state;
 
-    logger.info({ userId }, '[Agent] Commencing concurrent resume and job description ingestion');
-
-    // Concurrently execute parsing and scraping helpers from tools
-    const [resumeDoc, jobDoc] = await Promise.all([
-        parseAndSaveResume(userId, resumeBuffer),
-        scrapeAndSaveJobDescription(jobDescriptionUrl)
-    ]);
-
-    const techResumeText = [
-        resumeDoc.academicInfo,
-        resumeDoc.technicalAchievements,
-        resumeDoc.experiences,
-        resumeDoc.technicalProjects
-    ].filter(Boolean).join('\n\n');
-
-    const nonTechResumeText = [
-        resumeDoc.academicInfo,
-        resumeDoc.extracurricularAchievements,
-        resumeDoc.experiences
-    ].filter(Boolean).join('\n\n');
-
-    const jobDescriptionTechnicalRequirements = jobDoc.technicalRequirements || [];
-    const jobDescriptionNonTechnicalRequirements = jobDoc.nonTechnicalRequirements || [];
-
-    logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, '[Agent] Auditing candidate resume against job requirements');
+    logger.info({ userId, resumeId, jobDescriptionId }, '[Agent] Auditing candidate resume against job requirements');
 
     let evaluatedTechnicalRequirements = [];
     let evaluatedNonTechnicalRequirements = [];
@@ -67,6 +45,7 @@ export async function startAgent(state) {
         evaluatedNonTechnicalRequirements = jobDescriptionNonTechnicalRequirements.map(r => ({ requirementName: r.requirementName, matchStatus: 'MISSING', resumeEvidence: 'Matching failed' }));
     }
 
+    // Merge priority from original JD requirements into evaluated results
     const techPriorityMap = Object.fromEntries(jobDescriptionTechnicalRequirements.map(s => [s.requirementName, s.priority || 'REQUIRED']));
     const nonTechPriorityMap = Object.fromEntries(jobDescriptionNonTechnicalRequirements.map(r => [r.requirementName, r.priority || 'REQUIRED']));
 
@@ -86,23 +65,7 @@ export async function startAgent(state) {
         logger.warn({ userId, expected: jobDescriptionNonTechnicalRequirements.length, evaluated: evaluatedNonTechnicalRequirements.length }, '[Agent] Non-technical requirements evaluation count mismatch');
     }
 
-    const jobDescriptionText =
-        `Role: ${jobDoc.role || 'Job Description'}.
-        Technical Requirements:
-        ${(jobDoc.technicalRequirements || []).map(s => `- ${s.requirementName} (${s.priority}): ${s.sourceContext}`).join('\n')}
-        Non-Technical Requirements:
-        ${(jobDoc.nonTechnicalRequirements || []).map(r => `- ${r.requirementName} (${r.priority}): ${r.sourceContext}`).join('\n')}`;
-
     return {
-        resumeId: resumeDoc._id,
-        resumeText: nonTechResumeText,
-        resumeHash: resumeDoc.contentHash,
-        jobDescriptionId: jobDoc._id,
-        jobDescriptionText,
-        jobDescriptionCompany: jobDoc.companyName || 'Company',
-        jobDescriptionRole: jobDoc.role || 'Role',
-        jobDescriptionTechnicalRequirements,
-        jobDescriptionNonTechnicalRequirements,
         evaluatedTechnicalRequirements,
         evaluatedNonTechnicalRequirements,
     };

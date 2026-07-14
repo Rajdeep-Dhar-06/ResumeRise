@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { ShadcnSelect } from './ShadcnSelect.jsx'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function CreatePlan({
   jobDescriptionUrl,
@@ -175,16 +181,20 @@ export function CreatePlan({
         {/* Dynamic target days selector */}
         <div className="mt-6 pt-5 border-t border-border flex flex-col gap-2 max-w-xs mx-auto">
           <Label htmlFor="days-limit" className="font-semibold text-center sm:text-left">Target Preparation Duration</Label>
-          <ShadcnSelect
-            value={daysLimit}
-            onChange={setDaysLimit}
+          <Select
+            value={String(daysLimit)}
+            onValueChange={(val) => setDaysLimit(Number(val))}
             disabled={loading}
-            options={[
-              { value: 7, label: "7 Days (Comprehensive)" },
-              { value: 5, label: "5 Days (Standard)" },
-              { value: 3, label: "3 Days (Crash Course)" },
-            ]}
-          />
+          >
+            <SelectTrigger className="w-full h-10">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 Days (Comprehensive)</SelectItem>
+              <SelectItem value="5">5 Days (Standard)</SelectItem>
+              <SelectItem value="3">3 Days (Crash Course)</SelectItem>
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground text-center sm:text-left">
             The AI will customize the preparation tasks to fit your window.
           </p>

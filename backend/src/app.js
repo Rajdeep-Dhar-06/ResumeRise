@@ -11,7 +11,6 @@ import { httpLogger } from './utils/logger.js';
 const app = express();
 
 app.use(helmet());
-// HTTP request logging — logs method, url, statusCode, response time, and reqId
 app.use(httpLogger);
 
 app.use(express.json());

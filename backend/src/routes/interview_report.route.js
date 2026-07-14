@@ -16,8 +16,6 @@ import { parseLimiter, reportLimiter } from '../middlewares/rate_limiter.middlew
 const interviewRouter = express.Router();
 
 // Validation schemas
-
-
 const generateReportSchema = {
   body: z.object({
     resumeId: z

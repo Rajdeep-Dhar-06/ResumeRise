@@ -1,5 +1,13 @@
 import rateLimit from 'express-rate-limit'
 
+/**
+ * Reusable utility to create an Express rate-limiter middleware.
+ * 
+ * @param {number} windowMinutes - Time window duration in minutes.
+ * @param {number} maxRequests - Max number of requests allowed per window.
+ * @param {string} errorMessage - Error message returned when rate limit is exceeded.
+ * @returns {import('express-rate-limit').RateLimitRequestHandler}
+ */
 const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
     return rateLimit({
         windowMs: windowMinutes * 60 * 1000,

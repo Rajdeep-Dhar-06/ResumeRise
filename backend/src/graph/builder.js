@@ -1,13 +1,15 @@
 import { StateGraph } from '@langchain/langgraph';
 import { GraphState } from './state.js';
 import { setupEdges } from './edges.js';
-import { startAgent } from '../nodes/start_agent.js';
+import { documentExtraction } from '../nodes/document_extraction.js';
+import { requirementEvaluation } from '../nodes/requirement_evaluation.js';
 import { assembleFinalReport } from '../nodes/assemble_final_report.js';
 import { persistInterviewReport } from '../nodes/persist_interview_report.js';
 
 // StateGraph compilation workflow setup
 const workflow = new StateGraph(GraphState)
-  .addNode("startAgent", startAgent)
+  .addNode("documentExtraction", documentExtraction)
+  .addNode("requirementEvaluation", requirementEvaluation)
   .addNode("assembleFinalReport", assembleFinalReport)
   .addNode("persistInterviewReport", persistInterviewReport);
 

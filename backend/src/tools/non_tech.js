@@ -23,7 +23,7 @@ export async function generateNonTechnicalQuestions(state) {
     const {
         evaluatedTechnicalRequirements = [],
         evaluatedNonTechnicalRequirements = [],
-        resumeText = '',
+        nonTechResumeText = '',
         jobDescriptionText = '',
     } = state;
 
@@ -38,7 +38,7 @@ export async function generateNonTechnicalQuestions(state) {
     ];
 
     const prompt = getNonTechnicalQuestionsPrompt({
-        resumeText,
+        resumeText: nonTechResumeText,
         missingTermsFormatted: formatTerms(missingRequirements),
         weakTermsFormatted: formatTerms(weakRequirements),
         jobDescriptionText

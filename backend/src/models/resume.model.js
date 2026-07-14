@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'; // FIX: removed unused `mongo` named import
 
+/**
+ * Mongoose schema representing parsed candidate resume data.
+ * Splits resume details into five key textual segment categories (academicInfo, technicalAchievements, extracurricularAchievements, experiences, technicalProjects).
+ * Unique index on user + contentHash prevents redundant ingestion.
+ */
 const resumeSchema = new mongoose.Schema(
     {
         user: {

@@ -6,11 +6,12 @@ const Protected = ({ children }) => {
 
   if (loading) {
     return (
-      // <main className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-200">
-      // </main>
-      <>
-      
-      </>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Verifying session...</p>
+        </div>
+      </div>
     );
   }
 

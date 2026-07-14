@@ -21,6 +21,10 @@ const resourceItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * Mongoose schema representing cached web search learning resources for skill gaps.
+ * Uses a unique index on lowercase requirementName for cache lookup.
+ */
 const learningResourceSchema = new mongoose.Schema({
   requirementName: {
     type: String,

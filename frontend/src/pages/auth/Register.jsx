@@ -8,12 +8,7 @@ import { Sparkles, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-const REGISTER = [
-  "Creating a brand-new human instance...",
-  "Allocating memory for your greatness...",
-  "Scaling our user base by exactly one..."
-];
+import { REGISTER_QUOTES } from "../../lib/quotes.js";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -38,7 +33,7 @@ const Register = () => {
 
   return (
     <main className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground select-none">
-      <LoadingScreen active={loading} minDelay={2000} quotes={REGISTER} message="Creating your account…" />
+      <LoadingScreen active={loading} minDelay={2000} quotes={REGISTER_QUOTES} message="Creating your account…" />
       {/* Left panel: Auth Form */}
       <div className="flex flex-col p-6 md:p-10 justify-between h-full">
         {/* Brand header */}

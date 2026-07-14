@@ -9,7 +9,13 @@ import { ReportCardGrid } from '../../components/interview/ReportCard.jsx';
 import { toast } from "sonner";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { MOTIVATIONAL_QUOTES } from "../../lib/quotes.js";
-import { ShadcnSelect } from '../../components/interview/ShadcnSelect.jsx';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,16 +187,19 @@ const Dashboard = () => {
                                 {/* Min Score filter dropdown */}
                                 <div className="flex items-center gap-2">
                                     <SlidersHorizontal className="size-4 text-muted-foreground shrink-0" />
-                                    <ShadcnSelect
-                                        value={minScore}
-                                        onChange={handleMinScoreChange}
-                                        className="w-44"
-                                        options={[
-                                            { value: 0, label: "All Scores" },
-                                            { value: 80, label: "Good Match (≥ 80%)" },
-                                            { value: 60, label: "Average Match (≥ 60%)" }
-                                        ]}
-                                    />
+                                    <Select
+                                        value={String(minScore)}
+                                        onValueChange={(val) => handleMinScoreChange(Number(val))}
+                                    >
+                                        <SelectTrigger className="w-44 h-10">
+                                            <SelectValue placeholder="All Scores" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0">All Scores</SelectItem>
+                                            <SelectItem value="80">Good Match (≥ 80%)</SelectItem>
+                                            <SelectItem value="60">Average Match (≥ 60%)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                         )}

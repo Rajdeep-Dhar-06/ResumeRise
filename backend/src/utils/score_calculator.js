@@ -15,6 +15,15 @@ const COMPLEXITY_MULTIPLIER = {
 
 const MIN_JD_WEIGHT = 8.0; 
 
+/**
+ * Computes a weighted overall match score (0-100) between a candidate's resume and job description requirements.
+ * Applies priority weights, complexity multipliers, density padding, and critical required requirement match caps.
+ * 
+ * @function computeMatchScore
+ * @param {Array<object>} evaluatedTechnicalRequirements - Array of evaluated tech terms with status, strength, complexity and priority.
+ * @param {Array<object>} evaluatedNonTechnicalRequirements - Array of evaluated non-tech terms with status, strength, complexity and priority.
+ * @returns {number} An integer percentage match score bounded between 0 and 100.
+ */
 export function computeMatchScore(evaluatedTechnicalRequirements, evaluatedNonTechnicalRequirements) {
     const allTerms = [...evaluatedTechnicalRequirements, ...evaluatedNonTechnicalRequirements];
 
