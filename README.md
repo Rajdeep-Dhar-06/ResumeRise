@@ -78,42 +78,36 @@ The platform:
 
 <table>
   <tr>
-    <td align="center"><b>Login</b></td>
     <td align="center"><b>Register</b></td>
-  </tr>
-  <tr>
-    <td><img src="images/Login.png" alt="Login" width="100%"></td>
-    <td><img src="images/Register.png" alt="Register" width="100%"></td>
-  </tr>
-  <tr>
     <td align="center"><b>Create Plan</b></td>
-    <td align="center"><b>Dashboard</b></td>
   </tr>
   <tr>
+    <td><img src="images/Register.png" alt="Register" width="100%"></td>
     <td><img src="images/Home.png" alt="Create Plan" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dashboard</b></td>
+    <td align="center"><b>Report Overview &amp; Skill Gaps</b></td>
+  </tr>
+  <tr>
     <td><img src="images/Dashboard.png" alt="Dashboard" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Report Overview & Skill Gaps</b></td>
-    <td align="center"><b>Technical Questions</b></td>
-  </tr>
-  <tr>
     <td><img src="images/Report.png" alt="Report Overview" width="100%"></td>
-    <td><img src="images/Technical Questions.png" alt="Technical Questions" width="100%"></td>
   </tr>
   <tr>
+    <td align="center"><b>Technical Questions</b></td>
     <td align="center"><b>Non-Technical Questions</b></td>
-    <td align="center"><b>Study Roadmap</b></td>
   </tr>
   <tr>
+    <td><img src="images/Technical Questions.png" alt="Technical Questions" width="100%"></td>
     <td><img src="images/Non Technical Questions.png" alt="Non-Technical Questions" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Study Roadmap</b></td>
+    <td align="center"><b>Learning Resources</b></td>
+  </tr>
+  <tr>
     <td><img src="images/Roadmap.png" alt="Study Roadmap" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2"><b>Learning Resources</b></td>
-  </tr>
-  <tr>
-    <td colspan="2"><img src="images/Resources.png" alt="Learning Resources" width="100%"></td>
+    <td><img src="images/Resources.png" alt="Learning Resources" width="100%"></td>
   </tr>
 </table>
 
@@ -291,6 +285,4 @@ VITE_API_BASE_URL=http://localhost:5000
 ```
 
 > **Note:** In production, set `VITE_API_BASE_URL` to your deployed backend URL and `NODE_ENV=production` on the server.
-
-
-*Built with LangGraph, Google Gemini, and React.*
+
