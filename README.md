@@ -74,6 +74,51 @@ The platform:
 
 ---
 
+## Application Screenshots
+
+<table>
+  <tr>
+    <td align="center"><b>Login</b></td>
+    <td align="center"><b>Register</b></td>
+  </tr>
+  <tr>
+    <td><img src="images/Login.png" alt="Login" width="100%"></td>
+    <td><img src="images/Register.png" alt="Register" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Create Plan</b></td>
+    <td align="center"><b>Dashboard</b></td>
+  </tr>
+  <tr>
+    <td><img src="images/Home.png" alt="Create Plan" width="100%"></td>
+    <td><img src="images/Dashboard.png" alt="Dashboard" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Report Overview & Skill Gaps</b></td>
+    <td align="center"><b>Technical Questions</b></td>
+  </tr>
+  <tr>
+    <td><img src="images/Report.png" alt="Report Overview" width="100%"></td>
+    <td><img src="images/Technical Questions.png" alt="Technical Questions" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Non-Technical Questions</b></td>
+    <td align="center"><b>Study Roadmap</b></td>
+  </tr>
+  <tr>
+    <td><img src="images/Non Technical Questions.png" alt="Non-Technical Questions" width="100%"></td>
+    <td><img src="images/Roadmap.png" alt="Study Roadmap" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><b>Learning Resources</b></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="images/Resources.png" alt="Learning Resources" width="100%"></td>
+  </tr>
+</table>
+
+---
+
 ## Application Flows
 
 ### 1. Authentication & Token Refresh Flow
@@ -101,19 +146,24 @@ User inputs PDF & JD URL ──► Compute SHA-256 hash of PDF (Client-side)
                      │                                     │
            Load existing report ID              POST /api/interview/generateReport
                      │                                     │
-            Navigate to report                 Invoke LangGraph State workflow:
+            Navigate to report                 Invoke LangGraph pipeline:
                      │                                     │
-                    END                      1. startAgent (Concurrent Ingestion):
-                                                • Extract resume PDF & Anonymize PII
-                                                • Scrape JD via Jina Reader & Extract
-                                                • Audit skills against JD requirements
+                    END                      1. documentExtraction:
+                                                • Parse resume PDF & anonymize PII
+                                                • Scrape JD via Jina Reader
+                                                • Build techResumeText & nonTechResumeText
                                                            │
-                                             2. assembleFinalReport:
-                                                • Compute Match Score & Report Title
-                                                • LLM: Skill Gaps, Roadmap, Interview Qs
+                                             2. requirementEvaluation:
+                                                • LLM: Match resume against JD requirements
+                                                • Merge priority metadata from JD
+                                                • Fallback to MISSING on LLM failure
+                                                           │
+                                             3. assembleFinalReport:
+                                                • Compute weighted match score & report title
+                                                • LLM: Skill gaps, study roadmap, interview Qs
                                                 • Tavily: Fetch learning resources
                                                            │
-                                             3. persistInterviewReport:
+                                             4. persistInterviewReport:
                                                 • Save final structured report to MongoDB
                                                            │
                                                  Navigate to /interview/:id
@@ -132,7 +182,7 @@ ResumeRise/
 │   │   ├── graph/           # LangGraph builder, state schema, and edges definition
 │   │   ├── middlewares/     # HTTP logging, authentication, rate limits, and validation middlewares
 │   │   ├── models/          # Mongoose database models
-│   │   ├── nodes/           # Individual LangGraph execution nodes (start, assemble, persist)
+│   │   ├── nodes/           # LangGraph nodes (documentExtraction, requirementEvaluation, assembleFinalReport, persistInterviewReport)
 │   │   ├── prompts/         # LLM system/user prompt templates
 │   │   ├── routes/          # Express route definitions
 │   │   ├── schemas/         # Zod schemas for structured LLM parsing
@@ -242,6 +292,5 @@ VITE_API_BASE_URL=http://localhost:5000
 
 > **Note:** In production, set `VITE_API_BASE_URL` to your deployed backend URL and `NODE_ENV=production` on the server.
 
----
 
 *Built with LangGraph, Google Gemini, and React.*
