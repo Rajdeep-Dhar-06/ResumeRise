@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth.js";
-import { useInterview } from "../../hooks/useInterview.js";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
@@ -13,7 +12,6 @@ import { REGISTER_QUOTES } from "../../lib/quotes.js";
 const Register = () => {
   const navigate = useNavigate();
   const { loading, handleRegister } = useAuth();
-  const { getReports } = useInterview();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +24,6 @@ const Register = () => {
     }
     const success = await handleRegister({ username, email, password });
     if (success) {
-      await getReports();
       navigate("/");
     }
   };

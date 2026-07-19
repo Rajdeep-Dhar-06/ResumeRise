@@ -4,14 +4,7 @@ import { getStructuredModel } from '../config/llm.js';
 import { reportGapsAndPlanSchema } from '../schemas/interview_report.schema.js';
 import { getGapsAndPlanPrompt } from '../prompts/prompts.js';
 import { getResourceForTerm } from './search.js';
-
-function formatTerms(terms) {
-    if (!terms || terms.length === 0) return '  None.';
-    const formatted = terms.map(t =>
-        `  • "${t.requirementName}" | Priority: ${t.priority || 'REQUIRED'} | Complexity: ${t.complexityLevel || 'N/A'} | Evidence: "${t.resumeEvidence || 'None found'}" | Verdict: "${t.depthAssessment || 'None'}"`
-    ).join('\n');
-    return formatted;
-}
+import { formatTerms } from '../utils/format.js';
 
 /**
  * Helper to process skill gaps and plan learning roadmap
@@ -22,7 +15,7 @@ export async function processLearningPath(state) {
     const { userId } = state;
     logger.info({ userId }, '[Agent] Identifying educational tutorials for identified skill gaps');
 
-    const { evaluatedTechnicalRequirements = [], daysLimit = 14 } = state;
+    const { evaluatedTechnicalRequirements = [], daysLimit = 7 } = state;
 
     // We only process technical skills for the learning path, skipping abstract requirements
     const missingTechnicalRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");

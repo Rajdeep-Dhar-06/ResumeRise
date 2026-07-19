@@ -181,9 +181,9 @@ const Interview = () => {
                 report.preparationGaps.map((gap, i) => (
                   <span
                     key={i}
-                    className={`text-xs font-medium px-3 py-1 rounded-md border ${gap.gapSeverity === "high"
+                    className={`text-xs font-medium px-3 py-1 rounded-md border ${gap.gapSeverity === "HIGH"
                       ? "text-red-400 bg-red-500/10 border-red-500/20"
-                      : gap.gapSeverity === "medium"
+                      : gap.gapSeverity === "MEDIUM"
                         ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
                         : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
                       }`}

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'; // FIX: removed unused `mongo` named import
+import mongoose from 'mongoose';
 
 /**
  * Mongoose schema representing parsed candidate resume data.

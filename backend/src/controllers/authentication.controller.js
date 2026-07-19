@@ -4,6 +4,16 @@ import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/async_handler.js';
 import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, ForbiddenError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';
+import { redisClient } from '../config/redis.js';
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: 'Strict',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
 
 /**
  * Registers a new user account.
@@ -11,17 +21,21 @@ import logger from '../utils/logger.js';
  * @route POST /api/auth/register
  * @access Public
  */
-const registerUserController = asyncHandler(async (req, res) => {
+export const registerUserController = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
     throw new BadRequestError('All fields are required');
   }
 
-  const doesUserExist = await userModel.findOne({ username }).lean();
+  const doesUsernameExist = await userModel.findOne({ username }).lean();
+  if (doesUsernameExist) {
+    throw new ConflictError('Username is already taken');
+  }
 
-  if (doesUserExist) {
-    throw new ConflictError('User already exists');
+  const doesEmailExist = await userModel.findOne({ email }).lean();
+  if (doesEmailExist) {
+    throw new ConflictError('An account with this email already exists');
   }
 
   const hash = await bcrypt.hash(password, 10);
@@ -47,10 +61,7 @@ const registerUserController = asyncHandler(async (req, res) => {
     }
   );
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
+  res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
   newUser.refreshToken = refreshToken;
   await newUser.save();
@@ -72,7 +83,7 @@ const registerUserController = asyncHandler(async (req, res) => {
  * @route POST /api/auth/login
  * @access Public
  */
-const loginUserController = asyncHandler(async (req, res) => {
+export const loginUserController = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -90,9 +101,9 @@ const loginUserController = asyncHandler(async (req, res) => {
   }
 
   const accessToken = jwt.sign(
-    { 
-      id: user._id, 
-      username: user.username 
+    {
+      id: user._id,
+      username: user.username
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
@@ -100,9 +111,9 @@ const loginUserController = asyncHandler(async (req, res) => {
     }
   );
   const refreshToken = jwt.sign(
-    { 
-      id: user._id, 
-      username: user.username 
+    {
+      id: user._id,
+      username: user.username
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
@@ -110,10 +121,7 @@ const loginUserController = asyncHandler(async (req, res) => {
     }
   );
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
+  res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
   user.refreshToken = refreshToken;
   await user.save();
@@ -130,17 +138,40 @@ const loginUserController = asyncHandler(async (req, res) => {
 });
 
 /**
- * Logs out the current user by clearing the cookies and invalidating the session.
+ * Logs out the current user.
  * 
- * @route GET /api/auth/logout
- * @access Public
+ * - Blacklists the access token in Redis.
+ * - Deletes the cached user session key.
+ * - Clears cookies and invalidates MongoDB session.
+ * 
+ * @param req - Express request object
+ * @param res - Express response object
  */
-const logoutUserController = asyncHandler(async (req, res) => {
+export const logoutUserController = asyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization;
   const refreshToken = req.cookies.refreshToken;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const accessToken = authHeader.split(' ')[1];
+
+    if (accessToken) {
+      try {
+        const decodedAccessToken = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+        const ttl = decodedAccessToken.exp - Math.floor(Date.now() / 1000);
+        if (ttl > 0) {
+          await redisClient.set(`blacklist:${accessToken}`, 1, { EX: ttl });
+        }
+      } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to add access token to blacklist during user logout');
+      }
+    }
+  }
+
   if (refreshToken) {
     try {
-      const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-      await userModel.findByIdAndUpdate(decoded.id, { refreshToken: '' });
+      const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+      await redisClient.del(`user:${decodedRefreshToken.id}`);
+      await userModel.findByIdAndUpdate(decodedRefreshToken.id, { refreshToken: '' });
     } catch (err) {
       logger.warn({ err: err.message }, 'Failed to clear refresh token during user logout');
     }
@@ -148,6 +179,8 @@ const logoutUserController = asyncHandler(async (req, res) => {
 
   res.clearCookie('refreshToken', {
     httpOnly: true,
+    secure: isProduction,
+    sameSite: 'Strict',
   });
   res.status(200).json({ message: 'User logged out successfully' });
 });
@@ -155,23 +188,48 @@ const logoutUserController = asyncHandler(async (req, res) => {
 /**
  * Retrieves the current logged-in user profile info.
  * 
- * @route GET /api/auth/get-me
- * @access Private
+ * - Checks the Redis user session cache first.
+ * - Queries MongoDB and warms Redis cache on miss.
+ * 
+ * @param req - Express request object
+ * @param res - Express response object
  */
-const getMeController = asyncHandler(async (req, res) => {
+export const getMeController = asyncHandler(async (req, res) => {
+  const cacheKey = `user:${req.user.id}`;
+
+  try {
+    const cachedUser = await redisClient.get(cacheKey);
+    if (cachedUser) {
+      return res.status(200).json({
+        message: 'User retrieved successfully',
+        user: JSON.parse(cachedUser),
+      });
+    }
+  } catch (error) {
+    logger.warn({ err: error }, 'Failed to retrieve user from cache');
+  }
+
   const user = await userModel.findById(req.user.id).lean();
 
   if (!user) {
     throw new NotFoundError('User not found');
   }
 
+  const userProfile = {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+  }
+
+  try {
+    await redisClient.set(cacheKey, JSON.stringify(userProfile), { EX: 60 * 15 });
+  } catch (error) {
+    logger.warn({ err: error }, 'Failed to set user in cache');
+  }
+
   res.status(200).json({
     message: 'User retrieved successfully',
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
+    user: userProfile,
   });
 });
 
@@ -181,7 +239,7 @@ const getMeController = asyncHandler(async (req, res) => {
  * @route POST /api/auth/refresh
  * @access Public
  */
-const refreshAccessController = asyncHandler(async (req, res) => {
+export const refreshAccessController = asyncHandler(async (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.refreshToken) {
     throw new UnauthorizedError('Refresh token is missing');
@@ -196,13 +254,13 @@ const refreshAccessController = asyncHandler(async (req, res) => {
       throw new ForbiddenError('Session has expired or you have logged out');
     }
     const accessToken = jwt.sign(
-      { 
-        id: decoded.id, 
-        username: decoded.username 
+      {
+        id: decoded.id,
+        username: decoded.username
       },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: '15m' 
+        expiresIn: '15m'
       }
     );
     res.status(200).json({ accessToken });
@@ -211,11 +269,3 @@ const refreshAccessController = asyncHandler(async (req, res) => {
     throw new ForbiddenError('Refresh token is expired or invalid');
   }
 });
-
-export {
-  registerUserController,
-  loginUserController,
-  logoutUserController,
-  getMeController,
-  refreshAccessController,
-};

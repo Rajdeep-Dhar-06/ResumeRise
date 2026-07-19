@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth.js";
-import { useInterview } from "../../hooks/useInterview.js";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
@@ -13,7 +12,6 @@ import { LOGIN_QUOTES } from "../../lib/quotes.js";
 const Login = () => {
   const navigate = useNavigate();
   const { loading, handleLogin } = useAuth();
-  const { getReports } = useInterview();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -25,7 +23,6 @@ const Login = () => {
     }
     const success = await handleLogin({ email, password });
     if (success) {
-      await getReports();
       navigate("/");
     }
   };

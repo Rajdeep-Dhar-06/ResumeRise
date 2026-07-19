@@ -1,25 +1,5 @@
 import mongoose from 'mongoose';
-
-const resourceItemSchema = new mongoose.Schema(
-  {
-    resourceTitle: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    resourceUrl: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    resourceSnippet: {
-      type: String,
-      default: '',
-      trim: true,
-    },
-  },
-  { _id: false }
-);
+import { resourceItemSchema } from './resource_item.model.js';
 
 /**
  * Mongoose schema representing cached web search learning resources for skill gaps.

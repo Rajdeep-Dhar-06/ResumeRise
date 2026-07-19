@@ -1,8 +1,6 @@
 import LearningResourceModel from '../models/learning_resource.model.js';
 import logger from '../utils/logger.js';
-
-// In-memory registry of active Tavily search promises to prevent parallel search race conditions/rate-limiting
-const activeSearches = new Map();
+import { redisClient } from '../config/redis.js';
 
 /**
  * Formats a resources array into the display string returned to the agent.
@@ -18,28 +16,53 @@ function formatResources(term, resources) {
 }
 
 /**
- * Looks up cached resources for a normalized term.
- * @param {string} normalized
- * @returns {Promise<Array|null>} resources array, or null on cache miss/failure
+ * Looks up cached resources for a concept gap.
+ * 
+ * - Checks Redis first for hot cache.
+ * - Queries MongoDB and warms Redis on miss.
+ * 
+ * @param requirementName - The standardized skill gap name
  */
-async function getCachedResources(normalized) {
+async function getCachedResources(requirementName) {
+    const redisKey = `search:${requirementName}`;
+
     try {
-        const cached = await LearningResourceModel.findOne({ requirementName: normalized }).lean();
-        return cached?.resources?.length > 0 ? cached.resources : null;
+        const cachedResources = await redisClient.get(redisKey);
+        if (cachedResources) {
+            logger.info({ term: requirementName }, '[Agent] Retrieved cached learning resources from Redis');
+            return JSON.parse(cachedResources);
+        }
+    } catch (error) {
+        logger.warn({ term: requirementName, err: error.message }, '[Agent] Failed to retrieve cached learning resources');
+    }
+
+    try {
+        const cached = await LearningResourceModel.findOne({ requirementName }).lean();
+
+        if (cached?.resources?.length > 0) {
+            logger.info({ term: requirementName }, '[Agent] Retrieved cached learning resources from MongoDB');
+            await redisClient.set(redisKey, JSON.stringify(cached.resources), { EX: 48 * 60 * 60 }).catch(() => { });
+            return cached.resources;
+        } else {
+            return null;
+        }
     } catch (dbErr) {
-        logger.warn({ term: normalized, err: dbErr.message }, '[Agent] Failed to retrieve cached learning resources');
+        logger.warn({ term: requirementName, err: dbErr.message }, '[Agent] Failed to retrieve cached learning resources');
         return null;
     }
 }
 
 /**
- * Runs a fresh Tavily search for a term and persists the results to the cache.
- * @param {string} term - Original (unnormalized) term, used in the query and fallback title
- * @param {string} normalized - Lowercased/trimmed cache key
- * @param {Object} searchTool - Instantiated Tavily search tool
- * @returns {Promise<Array>} resources array (empty if nothing found)
+ * Runs a Tavily web search and caches the result.
+ * 
+ * - Fetches free developer documentation and tutorials.
+ * - Caches in Redis for 48 hours and MongoDB permanently.
+ * 
+ * @param term - The raw skill gap name
+ * @param requirementName - The standardized cache key
+ * @param searchTool - Instantiated search utility
  */
-async function searchAndCacheResources(term, normalized, searchTool) {
+async function searchAndCacheResources(term, requirementName, searchTool) {
     logger.info({ term }, '[Agent] Executing learning-resource search via Tavily');
     const res = await searchTool.invoke({ query: `${term} tutorial free developer documentation` });
     const results = Array.isArray(res?.results) ? res.results : [];
@@ -52,10 +75,15 @@ async function searchAndCacheResources(term, normalized, searchTool) {
         resourceSnippet: r.content || ''
     }));
 
-    // Await the write so it's fully cached by the time any waiting parallel requests resolve
+    try {
+        await redisClient.set(`search:${requirementName}`, JSON.stringify(resources), { EX: 48 * 60 * 60 });
+    } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to save search results to Redis cache');
+    }
+
     await LearningResourceModel.findOneAndUpdate(
-        { requirementName: normalized },
-        { requirementName: normalized, resources },
+        { requirementName },
+        { requirementName, resources },
         { upsert: true, returnDocument: 'after' }
     );
 
@@ -63,44 +91,56 @@ async function searchAndCacheResources(term, normalized, searchTool) {
 }
 
 /**
- * Fetches or searches learning resources for a single skill/concept gap.
- * @param {string} term - The skill/concept gap to search for
- * @param {Object} searchTool - Instantiated Tavily search tool
- * @returns {Promise<string|null>} Formatted resources string, or null if none found
+ * Fetches learning resources for a skill gap.
+ * 
+ * - Uses a Redis distributed lock to avoid parallel searches.
+ * - Polls Redis cache if another instance is already searching.
+ * 
+ * @param term - The skill gap name
+ * @param searchTool - Instantiated search utility
  */
 export async function getResourceForTerm(term, searchTool) {
-    const normalized = term.toLowerCase().trim();
+    const requirementName = term.toLowerCase().trim();
+    const lockKey = `lock:search:${requirementName}`;
+    const lockTtl = 30;
 
-    // 1. If another request is already searching this term, piggyback on its result
-    if (activeSearches.has(normalized)) {
-        logger.info({ term }, '[Agent] Waiting for parallel web search for this term to finish');
-        try {
-            const resources = await activeSearches.get(normalized);
-            return resources.length > 0 ? formatResources(term, resources) : null;
-        } catch (err) {
-            logger.error({ term, err: err.message }, '[Agent] Parallel Tavily web search failed');
-            return null;
+    let cachedResources = await getCachedResources(requirementName);
+    if (cachedResources) {
+        return formatResources(term, cachedResources);
+    }
+
+    let lockAcquired = false;
+    try {
+        lockAcquired = await redisClient.set(lockKey, '1', { NX: true, EX: lockTtl });
+    } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to acquire search lock from Redis');
+    }
+    if (!lockAcquired) {
+        const resourceKey = `search:${requirementName}`;
+
+        for (let attempt = 1; attempt <= 10; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            try {
+                const cachedResources = await redisClient.get(resourceKey);
+                if (cachedResources) {
+                    return formatResources(term, JSON.parse(cachedResources));
+                }
+            } catch (err) {
+                logger.warn({ err: err.message }, 'Failed to read from Redis during polling');
+            }
         }
     }
 
-    // 2. Check MongoDB cache
-    const cached = await getCachedResources(normalized);
-    if (cached) {
-        logger.info({ term }, '[Agent] Retrieved cached learning resources from database');
-        return formatResources(term, cached);
-    }
-
-    // 3. Kick off a fresh search, registering the promise so parallel callers can await it
-    const searchPromise = searchAndCacheResources(term, normalized, searchTool);
-    activeSearches.set(normalized, searchPromise);
-
     try {
-        const resources = await searchPromise;
+        const resources = await searchAndCacheResources(term, requirementName, searchTool);
         return resources.length > 0 ? formatResources(term, resources) : null;
     } catch (err) {
         logger.error({ term, err: err.message }, '[Agent] Tavily web search failed');
         return null;
     } finally {
-        activeSearches.delete(normalized);
+        if (lockAcquired) {
+            await redisClient.del(lockKey).catch(() => { });
+        }
     }
 }

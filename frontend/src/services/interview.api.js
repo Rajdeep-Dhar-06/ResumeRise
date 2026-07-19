@@ -39,6 +39,7 @@ export const getInterviewReportById = async (interviewId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching interview report by ID:", error);
+    throw error;
   }
 };
 
@@ -51,6 +52,7 @@ export const getAllInterviewReports = async (params = {}) => {
     return response.data; // {interviewReports, pagination}
   } catch (error) {
     console.error("Error fetching all interview reports:", error);
+    throw error;
   }
 };
 
@@ -60,6 +62,7 @@ export const getInterviewStats = async () => {
     return response.data; // {stats: { totalPlans, averageMatch, bestMatch }}
   } catch (error) {
     console.error("Error fetching interview stats:", error);
+    throw error;
   }
 };
 

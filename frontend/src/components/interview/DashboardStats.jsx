@@ -1,20 +1,16 @@
 import { FileText, Target, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
-export function DashboardStats({ plans }) {
-  const total = plans.length
-  const average = total ? Math.round(plans.reduce((sum, p) => sum + p.matchScore, 0) / total) : 0
-  const best = total ? Math.max(...plans.map((p) => p.matchScore)) : 0
-
-  const stats = [
-    { label: 'Total Plans', value: total, icon: FileText },
-    { label: 'Average Match', value: `${average}%`, icon: Target },
-    { label: 'Best Match', value: `${best}%`, icon: TrendingUp },
+export function DashboardStats({ stats }) {
+  const items = [
+    { label: 'Total Plans', value: stats.totalPlans, icon: FileText },
+    { label: 'Average Match', value: `${stats.averageMatch}%`, icon: Target },
+    { label: 'Best Match', value: `${stats.bestMatch}%`, icon: TrendingUp },
   ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      {stats.map((stat) => (
+      {items.map((stat) => (
         <Card key={stat.label}>
           <CardContent className="flex items-center gap-4">
             <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10">
@@ -30,3 +26,4 @@ export function DashboardStats({ plans }) {
     </div>
   )
 }
+

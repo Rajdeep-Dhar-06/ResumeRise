@@ -1,41 +1,7 @@
 import mongoose from 'mongoose';
 import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, SEVERITY_LEVELS } from '../utils/enums.js';
-
-const technicalQuestionSchema = new mongoose.Schema(
-  {
-    questionText: {
-      type: String,
-      required: true,
-    },
-    interviewerIntent: {
-      type: String,
-      required: true,
-    },
-    idealAnswer: {
-      type: String,
-      required: true,
-    },
-  },
-  { _id: false }
-);
-
-const nonTechnicalQuestionSchema = new mongoose.Schema(
-  {
-    questionText: {
-      type: String,
-      required: true,
-    },
-    interviewerIntent: {
-      type: String,
-      required: true,
-    },
-    idealAnswer: {
-      type: String,
-      required: true,
-    },
-  },
-  { _id: false }
-);
+import { questionSchema } from './question.model.js';
+import { resourceItemSchema } from './resource_item.model.js';
 
 const preparationGapSchema = new mongoose.Schema(
   {
@@ -110,23 +76,7 @@ const evaluatedRequirementMongooseSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const resourceItemSchema = new mongoose.Schema(
-  {
-    resourceTitle: {
-      type: String,
-      required: true,
-    },
-    resourceUrl: {
-      type: String,
-      required: true,
-    },
-    resourceSnippet: {
-      type: String,
-      default: '',
-    },
-  },
-  { _id: false }
-);
+
 
 const learningResourceMongooseSchema = new mongoose.Schema(
   {
@@ -197,8 +147,8 @@ const interviewReportSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
-    technicalQuestions: [technicalQuestionSchema],
-    nonTechnicalQuestions: [nonTechnicalQuestionSchema],
+    technicalQuestions: [questionSchema],
+    nonTechnicalQuestions: [questionSchema],
     preparationGaps: [preparationGapSchema],
     preparationPlan: [preparationPlanSchema],
     learningResources: [learningResourceMongooseSchema],

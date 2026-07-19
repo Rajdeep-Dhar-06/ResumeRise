@@ -89,21 +89,6 @@ const Dashboard = () => {
         }
     };
 
-    // Convert stats object to shape expected by DashboardStats component
-    const plansStatsMock = [];
-    if (stats.totalPlans > 0) {
-        if (stats.totalPlans === 1) {
-            plansStatsMock.push({ matchScore: stats.averageMatch });
-        } else {
-            plansStatsMock.push({ matchScore: stats.bestMatch });
-            const remainingSum = (stats.averageMatch * stats.totalPlans) - stats.bestMatch;
-            const remainingAverage = remainingSum / (stats.totalPlans - 1);
-            for (let i = 1; i < stats.totalPlans; i++) {
-                plansStatsMock.push({ matchScore: remainingAverage });
-            }
-        }
-    }
-
     return (
         <div className="min-h-screen w-full bg-background text-foreground flex flex-col items-center">
             <LoadingScreen
@@ -156,7 +141,7 @@ const Dashboard = () => {
                 {/* Stats Section */}
                 {stats.totalPlans > 0 && (
                     <section>
-                        <DashboardStats plans={plansStatsMock} />
+                        <DashboardStats stats={stats} />
                     </section>
                 )}
 

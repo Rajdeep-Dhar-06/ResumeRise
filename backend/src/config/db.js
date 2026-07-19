@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
 
 /**
- * Establishes a connection to the MongoDB database using the MONGO_URI environment variable.
- * Logs successful connection or handles connection errors by terminating the process.
+ * Establishes a connection to the MongoDB database.
  * 
- * @async
- * @function connectDB
- * @throws {Error} If connection fails and process exits
+ * - Uses the MONGO_URI environment variable.
+ * - Logs successful connection or throws on failure.
+ * 
+ * @throws {Error} If connection fails
  */
 export const connectDB = async () => {
   try {
@@ -15,6 +15,6 @@ export const connectDB = async () => {
     logger.info(`Database connection established successfully with host: ${conn.connection.host}`);
   } catch (error) {
     logger.fatal({ err: error }, `Database connection failed: ${error.message}`);
-    process.exit(1);
+    throw error;
   }
 };

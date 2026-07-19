@@ -2,14 +2,7 @@ import logger from '../utils/logger.js';
 import { getCreativeStructuredModel } from '../config/llm.js';
 import { reportTechQuestionsSchema } from '../schemas/interview_report.schema.js';
 import { getTechQuestionsPrompt } from '../prompts/prompts.js';
-
-function formatTerms(terms) {
-    if (!terms || terms.length === 0) return 'None';
-    const formatted = terms.map(t =>
-        `  • "${t.requirementName}" | Priority: ${t.priority || 'REQUIRED'} | Complexity: ${t.complexityLevel || 'N/A'} | Evidence: "${t.resumeEvidence || 'None found'}" | Verdict: "${t.depthAssessment || 'None'}"`
-    ).join('\n');
-    return formatted;
-}
+import { formatTerms } from '../utils/format.js';
 
 /**
  * Helper to generate customized technical questions
@@ -30,9 +23,9 @@ export async function generateTechnicalQuestions(state) {
     const weakRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
 
     const prompt = getTechQuestionsPrompt({
-        missingTermsFormatted: formatTerms(missingRequirements),
-        weakTermsFormatted: formatTerms(weakRequirements),
-        matchedTermsFormatted: formatTerms(matchedRequirements),
+        missingTermsFormatted: formatTerms(missingRequirements, 'None'),
+        weakTermsFormatted: formatTerms(weakRequirements, 'None'),
+        matchedTermsFormatted: formatTerms(matchedRequirements, 'None'),
         jobDescriptionText
     });
 

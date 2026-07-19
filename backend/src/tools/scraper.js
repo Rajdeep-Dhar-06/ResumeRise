@@ -4,10 +4,17 @@ import logger from '../utils/logger.js';
 import { getStructuredModel } from '../config/llm.js';
 import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
 import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
+import { redisClient } from '../config/redis.js';
 
-const activeScrapes = new Map();
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
+/**
+ * Scrapes and extracts requirements from a job posting.
+ * 
+ * - Deletes the old expired MongoDB cache document if present.
+ * - Scrapes page text via Jina Reader and parses via Gemini.
+ * 
+ * @param url - The job posting URL
+ * @param staleDoc - Stale MongoDB document if invalidating cache
+ */
 async function scrapeJobDescription(url, staleDoc) {
     if (staleDoc) {
         logger.info({ url }, '[Agent] Cached job description expired; invalidating stale cache');
@@ -39,34 +46,76 @@ async function scrapeJobDescription(url, staleDoc) {
     });
 }
 
-/** Scrapes and persists a job description from a URL, deduping parallel requests and caching for 24h. */
+/**
+ * Manages scraper caching and concurrency safety.
+ * 
+ * - Retrieves from Redis cache (24h TTL) if available.
+ * - Acquires a Redis lock to deduplicate concurrent scrapes.
+ * - Polls Redis for results if another instance is running the scrape.
+ * 
+ * @param jobDescriptionUrl - The job posting URL
+ */
 export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
     const url = jobDescriptionUrl.trim();
+    const redisKey = `jd:${url}`;
+    const lockKey = `lock:jd:${url}`;
+    const lockTtl = 60;
+    const cacheTtl = 24 * 60 * 60;
 
-    if (activeScrapes.has(url)) {
-        logger.info({ url }, '[Agent] Waiting for parallel scrape to finish');
-        try {
-            return await activeScrapes.get(url);
-        } catch (err) {
-            logger.error({ url, err: err.message }, '[Agent] Parallel job description scrape failed');
-            throw err;
+    try {
+        const cachedJd = await redisClient.get(redisKey);
+        if (cachedJd) {
+            return JSON.parse(cachedJd);
+        }
+    } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to read job description from Redis cache');
+    }
+
+    let lockAcquired = false;
+    try {
+        lockAcquired = await redisClient.set(lockKey, '1', { NX: true, EX: lockTtl });
+    } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to acquire scraper lock from Redis');
+    }
+
+
+    if (!lockAcquired) {
+        for (let attempt = 1; attempt <= 30; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            try {
+                const cachedJd = await redisClient.get(redisKey);
+                if (cachedJd) {
+                    return JSON.parse(cachedJd);
+                }
+            } catch (err) {
+                logger.warn({ err: err.message }, 'Failed to read from Redis during polling');
+            }
         }
     }
 
     const doc = await JobDescriptionModel.findOne({ url }).lean();
-    if (doc && Date.now() - new Date(doc.createdAt).getTime() < CACHE_TTL_MS) {
+    if (doc && Date.now() - new Date(doc.createdAt).getTime() < cacheTtl * 1000) {
+        await redisClient.set(redisKey, JSON.stringify(doc), { EX: cacheTtl }).catch(() => { });
         return doc;
     }
 
-    const scrapePromise = scrapeJobDescription(url, doc);
-    activeScrapes.set(url, scrapePromise);
-
     try {
-        return await scrapePromise;
+        const result = await scrapeJobDescription(url, doc);
+
+        try {
+            await redisClient.set(redisKey, JSON.stringify(result), { EX: cacheTtl });
+        } catch (err) {
+            logger.warn({ err: err.message }, 'Failed to cache job description in Redis');
+        }
+
+        return result;
     } catch (err) {
         logger.error({ url, err: err.message }, '[Agent] Job description scrape failed');
         throw err;
     } finally {
-        activeScrapes.delete(url);
+        if (lockAcquired) {
+            await redisClient.del(lockKey).catch(() => { });
+        }
     }
 }

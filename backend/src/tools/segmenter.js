@@ -1,4 +1,4 @@
-import { getSegmentResumePrompt } from '../prompts/prompts.js';
+import { segmentResumePrompt } from '../prompts/prompts.js';
 import { getStructuredModel } from '../config/llm.js';
 import { resumeSegmentSchema } from '../schemas/resume_segment.schema.js';
 
@@ -8,7 +8,7 @@ import { resumeSegmentSchema } from '../schemas/resume_segment.schema.js';
  * @returns {Promise<Object>} - Object with segmented sections
  */
 export async function segmentResume(rawText) {
-  const prompt = getSegmentResumePrompt({ rawText });
+  const prompt = segmentResumePrompt({ rawText });
   const model = getStructuredModel(resumeSegmentSchema);
   const result = await model.invoke(prompt);
 

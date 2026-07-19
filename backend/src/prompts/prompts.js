@@ -327,28 +327,6 @@ Return ONLY the JSON matching the schema. No markdown fences, no preamble, no tr
 }
 
 // --- 3. Report Generation Prompts ---
-export function getTitleAndScorePrompt({ matchScore, matchedTerms, missingTerms, jobDescription }) {
-   return `
-You are a technical screening lead. Write a 5-8 word preparation roadmap title for the candidate.
-Make it specific to this candidate's actual fit — avoid generic titles like "Interview Preparation Plan"
-that could describe anyone's report.
-
-<examples>
-Good: "Strong Java Fit, Kafka Gap To Close" — names a real matched strength and a real gap.
-Good: "Solid Fundamentals, Cloud Deployment Experience Missing" — grounded in this specific audit.
-Bad: "Interview Preparation Plan" — generic, could describe any candidate.
-Bad: "Your Personalized Roadmap" — no signal about actual fit or gaps.
-</examples>
-
-Key stats for title context:
-- Calculated Fit Score: ${matchScore}/100
-- MATCHED: ${matchedTerms.map(t => t.requirementName).join(', ') || 'None'}
-- MISSING: ${missingTerms.map(t => t.requirementName).join(', ') || 'None'}
-- Target Role: ${jobDescription.slice(0, JD_CONTEXT_CHAR_LIMIT)}
-
-Return only the title text — no quotes, no prefix, no explanation.
-`.trim();
-}
 
 export function getTechQuestionsPrompt({ missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescriptionText }) {
    return `
@@ -521,7 +499,7 @@ Silently verify severity classification, exact day count, task/URL separation, a
 }
 
 // --- 4. Resume Segmentation Prompt ---
-export function getSegmentResumePrompt({ rawText }) {
+export function segmentResumePrompt({ rawText }) {
    return `
 You are a highly precise resume parser agent. Your task is to segment the given candidate's resume raw text into five clean, distinct sections, so that he can secure his dream job interview:
 1. "academicInfo": Education history, academic achievements, degrees, courses, certifications, GPA, and university honors.

@@ -20,10 +20,10 @@ export function anonymizeResume(text) {
   // 3. NLP pass using compromise to replace people, places, and organizations
   try {
     let doc = nlp(cleaned);
-    
+
     // Replace names
     doc.people().replaceWith('[REDACTED_NAME]');
-    
+
     cleaned = doc.text();
   } catch (error) {
     logger.error({ err: error }, 'NLP text anonymization failed; falling back to regex redaction');
