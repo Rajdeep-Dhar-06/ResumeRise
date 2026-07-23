@@ -33,11 +33,11 @@ authRouter.post('/login', loginLimiter, loginUserController);
 authRouter.post('/refresh', refreshAccessController);
 
 /**
- * @route GET /api/auth/logout
+ * @route POST /api/auth/logout
  * @desc Clear token from cookie and add in blacklist
- * @access Public
+ * @access Private
  */
-authRouter.get('/logout', logoutUserController);
+authRouter.post('/logout', verifyAccess, logoutUserController);
 
 /**
  * @route GET /api/auth/get-me

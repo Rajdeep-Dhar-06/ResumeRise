@@ -38,7 +38,7 @@ export const reportLimiter = createRateLimiter(
 
 export const loginLimiter = createRateLimiter(
     5,
-    3,
+    10,
     "Login limit reached. Please wait 5 minutes"
 )
 

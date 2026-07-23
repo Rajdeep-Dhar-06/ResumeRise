@@ -10,6 +10,8 @@ import { httpLogger } from './utils/logger.js';
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(httpLogger);
 
@@ -18,12 +20,20 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', crede
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 app.use(cookieParser());
 
+// health check
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
 // global rate limiter
 app.use('/api', apiLimiter);
 
 // routes
 app.use('/api/auth', authRouter);
 app.use('/api/interview', interviewRouter);
+
+// fallback
+app.use((req, res) => {
+  res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
+});
 
 // centralized error handling
 app.use(errorMiddleware);

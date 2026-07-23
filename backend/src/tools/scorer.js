@@ -6,7 +6,7 @@ import { computeMatchScore } from '../utils/score_calculator.js';
  * @param {Object} state - Graph state
  * @returns {Promise<Object>} - roadmap title and calculated score
  */
-export async function generateScoreAndTitle(state) {
+export function generateScoreAndTitle(state) {
     const { userId } = state;
     logger.info({ userId }, '[Agent] Generating match score and report title');
 

@@ -11,8 +11,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'Strict',
+  sameSite: isProduction ? 'None' : 'Lax',
+  path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
+const CLEAR_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'None' : 'Lax',
+  path: '/',
 };
 
 /**
@@ -28,18 +36,21 @@ export const registerUserController = asyncHandler(async (req, res) => {
     throw new BadRequestError('All fields are required');
   }
 
-  const doesUsernameExist = await userModel.findOne({ username }).lean();
+  const normalizedUsername = username.trim();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const doesUsernameExist = await userModel.findOne({ username: normalizedUsername }).lean();
   if (doesUsernameExist) {
     throw new ConflictError('Username is already taken');
   }
 
-  const doesEmailExist = await userModel.findOne({ email }).lean();
+  const doesEmailExist = await userModel.findOne({ email: normalizedEmail }).lean();
   if (doesEmailExist) {
     throw new ConflictError('An account with this email already exists');
   }
 
   const hash = await bcrypt.hash(password, 10);
-  const newUser = await userModel.create({ username, email, password: hash });
+  const newUser = await userModel.create({ username: normalizedUsername, email: normalizedEmail, password: hash });
   const accessToken = jwt.sign(
     {
       id: newUser._id,
@@ -63,7 +74,7 @@ export const registerUserController = asyncHandler(async (req, res) => {
 
   res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
-  newUser.refreshToken = refreshToken;
+  newUser.refreshToken = await bcrypt.hash(refreshToken, 10);
   await newUser.save();
 
   res.status(201).json({
@@ -90,14 +101,15 @@ export const loginUserController = asyncHandler(async (req, res) => {
     throw new BadRequestError('All fields are required');
   }
 
-  const user = await userModel.findOne({ email }).select('+password');
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await userModel.findOne({ email: normalizedEmail }).select('+password');
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    throw new UnauthorizedError('Invalid credentials');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   const accessToken = jwt.sign(
@@ -123,7 +135,7 @@ export const loginUserController = asyncHandler(async (req, res) => {
 
   res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
-  user.refreshToken = refreshToken;
+  user.refreshToken = await bcrypt.hash(refreshToken, 10);
   await user.save();
 
   res.status(200).json({
@@ -167,21 +179,16 @@ export const logoutUserController = asyncHandler(async (req, res) => {
     }
   }
 
-  if (refreshToken) {
+  if (req.user?.id) {
     try {
-      const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-      await redisClient.del(`user:${decodedRefreshToken.id}`);
-      await userModel.findByIdAndUpdate(decodedRefreshToken.id, { refreshToken: '' });
+      await redisClient.del(`user:${req.user.id}`);
+      await userModel.findByIdAndUpdate(req.user.id, { refreshToken: '' });
     } catch (err) {
-      logger.warn({ err: err.message }, 'Failed to clear refresh token during user logout');
+      logger.warn({ err: err.message }, 'Failed to clear user session during logout');
     }
   }
 
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'Strict',
-  });
+  res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
   res.status(200).json({ message: 'User logged out successfully' });
 });
 
@@ -216,7 +223,7 @@ export const getMeController = asyncHandler(async (req, res) => {
   }
 
   const userProfile = {
-    id: user._id,
+    id: user._id.toString(),
     username: user.username,
     email: user.email,
   }
@@ -249,8 +256,12 @@ export const refreshAccessController = asyncHandler(async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await userModel.findById(decoded.id).lean();
-    if (!user || user.refreshToken !== refreshToken) {
+    const user = await userModel.findById(decoded.id).select('+refreshToken').lean();
+    if (!user || !user.refreshToken) {
+      throw new ForbiddenError('Session has expired or you have logged out');
+    }
+    const isTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
+    if (!isTokenValid) {
       throw new ForbiddenError('Session has expired or you have logged out');
     }
     const accessToken = jwt.sign(

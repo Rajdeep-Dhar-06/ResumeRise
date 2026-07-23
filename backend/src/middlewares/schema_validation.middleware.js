@@ -21,12 +21,15 @@ export const validate = (schemas) => (req, res, next) => {
     next();
   } catch (error) {
     if (error instanceof ZodError) {
+      const issues = error.issues || error.errors || [];
+      const details = issues.map((e) => ({
+        field: Array.isArray(e.path) ? e.path.join('.') : e.path,
+        message: e.message,
+      }));
+      const firstDetail = details[0] ? `${details[0].field ? `${details[0].field}: ` : ''}${details[0].message}` : '';
       return res.status(400).json({
-        error: 'Validation failed',
-        details: error.errors.map((e) => ({
-          field: e.path.join('.'),
-          message: e.message,
-        })),
+        error: firstDetail ? `Validation failed (${firstDetail})` : 'Validation failed',
+        details,
       });
     }
     next(error);

@@ -42,7 +42,7 @@ const verifyAccess = asyncHandler(async (req, res, next) => {
     try {
         decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     } catch (err) {
-        throw new ForbiddenError('Access token is expired or invalid');
+        throw new UnauthorizedError('Access token is expired or invalid');
     }
 
     req.user = decoded;

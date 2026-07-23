@@ -86,7 +86,7 @@ export const getInterviewReportByIdController = asyncHandler(async (req, res) =>
  */
 export const getAllInterviewReportsController = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 9;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 9, 50);
   const search = req.query.search ? req.query.search.trim() : "";
   const minScore = parseInt(req.query.minScore, 10) || 0;
 

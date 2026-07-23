@@ -15,6 +15,19 @@ import { parseLimiter, reportLimiter } from '../middlewares/rate_limiter.middlew
 
 const interviewRouter = express.Router();
 
+const optionalUrlSchema = z
+  .string()
+  .trim()
+  .transform((val) => (!val ? val : /^https?:\/\//i.test(val) ? val : `https://${val}`))
+  .pipe(z.string().url('Invalid URL format.'))
+  .optional();
+
+const requiredUrlSchema = z
+  .string({ required_error: 'jobDescriptionUrl is required.' })
+  .trim()
+  .transform((val) => (/^https?:\/\//i.test(val) ? val : `https://${val}`))
+  .pipe(z.string().url('Invalid URL format.'));
+
 // Validation schemas
 const generateReportSchema = {
   body: z.object({
@@ -26,12 +39,8 @@ const generateReportSchema = {
       .string()
       .regex(/^[0-9a-fA-F]{24}$/, 'Invalid job description ID format.')
       .optional(),
-    jobDescriptionUrl: z
-      .string()
-      .trim()
-      .url('Invalid URL format.')
-      .optional(),
-    daysLimit: z.string().optional(),
+    jobDescriptionUrl: optionalUrlSchema,
+    daysLimit: z.union([z.string(), z.number()]).optional(),
   }),
 };
 
@@ -43,7 +52,13 @@ const interviewIdParamsSchema = {
   }),
 };
 
-
+const checkDuplicateSchema = {
+  body: z.object({
+    resumeHash: z.string({ required_error: 'resumeHash is required.' }),
+    jobDescriptionUrl: requiredUrlSchema,
+    daysLimit: z.union([z.string(), z.number()]).optional(),
+  }),
+};
 
 /**
  * @route POST /api/interview/generateReport
@@ -67,6 +82,7 @@ interviewRouter.post(
 interviewRouter.post(
   '/checkDuplicate',
   verifyAccess,
+  validate(checkDuplicateSchema),
   checkDuplicateInterviewPlanController
 );
 
