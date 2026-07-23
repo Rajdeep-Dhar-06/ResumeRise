@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import authRouter from './routes/authentication.route.js';
 import interviewRouter from './routes/interview_report.route.js';
 import errorMiddleware from './middlewares/error.middleware.js';
-import { apiLimiter } from './middlewares/rate_limiter.middleware.js';
 import { httpLogger } from './utils/logger.js';
 
 const app = express();
@@ -22,9 +21,6 @@ app.use(cookieParser());
 
 // health check
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
-
-// global rate limiter
-app.use('/api', apiLimiter);
 
 // routes
 app.use('/api/auth', authRouter);
