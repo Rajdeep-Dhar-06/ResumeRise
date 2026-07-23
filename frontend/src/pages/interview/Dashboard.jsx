@@ -43,7 +43,7 @@ const Dashboard = () => {
                     setStats(data.stats);
                 }
             } catch (err) {
-                console.error("Failed to fetch dashboard stats:", err);
+                toast.error("Failed to load dashboard stats");
             }
         };
         fetchStats();

@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
         setUser(userData.user);
       } catch (error) {
         console.error("GetMe failed on initial mount:", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

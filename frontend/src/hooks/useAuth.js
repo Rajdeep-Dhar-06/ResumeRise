@@ -35,8 +35,7 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
-      const errMsg = error?.response?.data?.message || error?.response?.data?.error || "Failed to create account. Please check your details and try again.";
-      toast.error(errMsg);
+      toast.error("Failed to create account. Please try again.");
       return false;
     } finally {
       setLoading(false);

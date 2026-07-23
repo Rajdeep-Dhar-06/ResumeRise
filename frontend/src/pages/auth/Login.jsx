@@ -31,17 +31,17 @@ const Login = () => {
     <main className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground select-none">
       <LoadingScreen active={loading} minDelay={2000} quotes={LOGIN_QUOTES} message="Logging in…" />
       {/* Left panel: Auth Form */}
-      <div className="flex flex-col p-6 md:p-10 justify-between h-full">
+      <div className="flex flex-col p-6 md:p-10 h-full">
         {/* Brand header */}
         <div className="flex items-center gap-2 font-medium">
           <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground">
-            <Sparkles className="size-3.5" />
+            <Sparkles className="h-4 w-4" />
           </div>
           ResumeRise
         </div>
 
         {/* Centered Form */}
-        <div className="w-full max-w-sm mx-auto flex flex-col gap-6">
+        <div className="w-full max-w-sm mx-auto flex flex-col gap-6 my-auto">
           <div className="grid gap-2 text-center">
             <h1 className="text-2xl font-bold tracking-tight">Login to your account</h1>
             <p className="text-sm text-muted-foreground">
@@ -69,7 +69,7 @@ const Login = () => {
                     onClick={() => setEmail("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none transition-colors"
                   >
-                    <X className="size-4" />
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -106,7 +106,7 @@ const Login = () => {
                     onClick={() => setPassword("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none transition-colors"
                   >
-                    <X className="size-4" />
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -117,7 +117,6 @@ const Login = () => {
             </Button>
           </form>
 
-
           <div className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
             <Link to="/register" className="font-semibold text-foreground hover:underline hover:text-primary transition-all">
@@ -125,30 +124,24 @@ const Login = () => {
             </Link>
           </div>
         </div>
-
-        {/* Empty placeholder for alignment bottom */}
-        <div className="hidden lg:block text-center text-xs text-muted-foreground">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
-        </div>
       </div>
 
-      {/* Right panel: Glowing & Gradient ResumeRise Logo Showcase */}
-      <div className="relative hidden h-full bg-muted/20 lg:flex flex-col items-center justify-center border-l border-border overflow-hidden p-8">
-        {/* Glow decorative backdrop */}
-        <div className="absolute size-[500px] rounded-full bg-[radial-gradient(circle,_var(--color-primary)_0%,_transparent_70%)] opacity-10 blur-3xl pointer-events-none" />
-
-        <div className="relative flex flex-col items-center gap-8 z-10">
-          {/* Large glowing gradient logo wrapper */}
-          <div className="relative flex size-36 items-center justify-center rounded-[2.25rem] bg-gradient-to-tr from-primary via-indigo-500 to-violet-500 border border-primary/30 shadow-[0_0_50px_10px_rgba(99,102,241,0.25)]">
-            <Sparkles className="size-16 text-white" />
+      {/* Right panel: Clean & Exquisite Brand Showcase */}
+      <div className="hidden lg:flex flex-col items-center justify-center bg-muted/30 border-l border-border p-12">
+        <div className="flex flex-col items-center gap-6 text-center max-w-sm">
+          {/* Logo container with radial white glow */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-white/20 blur-2xl scale-150 pointer-events-none" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary shadow-sm">
+              <Sparkles className="h-10 w-10 text-primary" />
+            </div>
           </div>
+          <div className="space-y-2">
 
-          {/* Title & subtitle */}
-          <div className="text-center max-w-sm">
-            <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
               ResumeRise
             </h2>
-            <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Upload your resume and map skill gaps against real job requirements with a customized study roadmap.
             </p>
           </div>
@@ -159,3 +152,4 @@ const Login = () => {
 };
 
 export default Login;
+
