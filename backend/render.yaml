@@ -1,5 +1,5 @@
 services:
-  # 1. Express Web API Service
+  # Express Web API + BullMQ Worker
   - type: web
     name: resumerise-api
     env: node
@@ -29,42 +29,7 @@ services:
           name: resumerise-redis
           property: connectionString
 
-  # 2. BullMQ Report Worker
-  - type: worker
-    name: resumerise-worker
-    env: node
-    buildCommand: npm install
-    startCommand: npm run worker
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
-        fromService:
-          type: web
-          name: resumerise-api
-          envVarKey: MONGODB_URI
-      - key: GEMINI_API_KEY
-        fromService:
-          type: web
-          name: resumerise-api
-          envVarKey: GEMINI_API_KEY
-      - key: TAVILY_API_KEY
-        fromService:
-          type: web
-          name: resumerise-api
-          envVarKey: TAVILY_API_KEY
-      - key: JINA_API_KEY
-        fromService:
-          type: web
-          name: resumerise-api
-          envVarKey: JINA_API_KEY
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: resumerise-redis
-          property: connectionString
-
-  # 3. Managed Redis Instance
+  # Managed Redis Instance
   - type: redis
     name: resumerise-redis
     plan: free
