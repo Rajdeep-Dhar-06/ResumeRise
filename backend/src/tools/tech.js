@@ -3,6 +3,7 @@ import { getCreativeStructuredModel } from '../config/llm.js';
 import { reportTechQuestionsSchema } from '../schemas/interview_report.schema.js';
 import { getTechQuestionsPrompt } from '../prompts/prompts.js';
 import { formatTerms } from '../utils/format.js';
+import { withLlmCache } from '../utils/llm_cache.js';
 
 /**
  * Helper to generate customized technical questions
@@ -22,15 +23,23 @@ export async function generateTechnicalQuestions(state) {
     const missingRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
     const weakRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
 
+    const missingTermsFormatted = formatTerms(missingRequirements, 'None');
+    const weakTermsFormatted = formatTerms(weakRequirements, 'None');
+    const matchedTermsFormatted = formatTerms(matchedRequirements, 'None');
+
     const prompt = getTechQuestionsPrompt({
-        missingTermsFormatted: formatTerms(missingRequirements, 'None'),
-        weakTermsFormatted: formatTerms(weakRequirements, 'None'),
-        matchedTermsFormatted: formatTerms(matchedRequirements, 'None'),
+        missingTermsFormatted,
+        weakTermsFormatted,
+        matchedTermsFormatted,
         jobDescriptionText
     });
 
     const structuredLlm = getCreativeStructuredModel(reportTechQuestionsSchema);
-    const response = await structuredLlm.invoke(prompt);
+    const response = await withLlmCache(
+        'tech_questions',
+        { missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescriptionText },
+        () => structuredLlm.invoke(prompt)
+    );
 
     return {
         technicalQuestions: response.technicalQuestions || []

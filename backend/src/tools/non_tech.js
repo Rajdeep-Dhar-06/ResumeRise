@@ -3,6 +3,7 @@ import { getCreativeStructuredModel } from '../config/llm.js';
 import { reportNonTechnicalQuestionsSchema } from '../schemas/interview_report.schema.js';
 import { getNonTechnicalQuestionsPrompt } from '../prompts/prompts.js';
 import { formatTerms } from '../utils/format.js';
+import { withLlmCache } from '../utils/llm_cache.js';
 
 /**
  * Helper to generate customized non-technical questions
@@ -20,7 +21,6 @@ export async function generateNonTechnicalQuestions(state) {
         jobDescriptionText = '',
     } = state;
 
-    // use the evaluated requirements to generate questions, and the resume text as narrative to make the questions feel personal
     const missingRequirements = [
         ...evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING"),
         ...evaluatedNonTechnicalRequirements.filter(r => r.matchStatus === "MISSING")
@@ -30,15 +30,22 @@ export async function generateNonTechnicalQuestions(state) {
         ...evaluatedNonTechnicalRequirements.filter(r => r.matchStatus === "WEAK_MATCH")
     ];
 
+    const missingTermsFormatted = formatTerms(missingRequirements);
+    const weakTermsFormatted = formatTerms(weakRequirements);
+
     const prompt = getNonTechnicalQuestionsPrompt({
         resumeText: nonTechResumeText,
-        missingTermsFormatted: formatTerms(missingRequirements),
-        weakTermsFormatted: formatTerms(weakRequirements),
+        missingTermsFormatted,
+        weakTermsFormatted,
         jobDescriptionText
     });
 
     const structuredLlm = getCreativeStructuredModel(reportNonTechnicalQuestionsSchema);
-    const response = await structuredLlm.invoke(prompt);
+    const response = await withLlmCache(
+        'non_technical_questions',
+        { nonTechResumeText, missingTermsFormatted, weakTermsFormatted, jobDescriptionText },
+        () => structuredLlm.invoke(prompt)
+    );
 
     return {
         nonTechnicalQuestions: response.nonTechnicalQuestions || []

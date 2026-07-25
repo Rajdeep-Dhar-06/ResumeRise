@@ -41,7 +41,7 @@ async function getCachedResources(requirementName) {
 
         if (cached?.resources?.length > 0) {
             logger.info({ term: requirementName }, '[Agent] Retrieved cached learning resources from MongoDB');
-            await redisClient.set(redisKey, JSON.stringify(cached.resources), { EX: 48 * 60 * 60 }).catch(() => { });
+            await redisClient.set(redisKey, JSON.stringify(cached.resources), 'EX', 48 * 60 * 60).catch(() => { });
             return cached.resources;
         } else {
             return null;
@@ -76,7 +76,7 @@ async function searchAndCacheResources(term, requirementName, searchTool) {
     }));
 
     try {
-        await redisClient.set(`search:${requirementName}`, JSON.stringify(resources), { EX: 48 * 60 * 60 });
+        await redisClient.set(`search:${requirementName}`, JSON.stringify(resources), 'EX', 48 * 60 * 60);
     } catch (err) {
         logger.warn({ err: err.message }, 'Failed to save search results to Redis cache');
     }
@@ -111,7 +111,7 @@ export async function getResourceForTerm(term, searchTool) {
 
     let lockAcquired = false;
     try {
-        lockAcquired = await redisClient.set(lockKey, '1', { NX: true, EX: lockTtl });
+        lockAcquired = await redisClient.set(lockKey, '1', 'EX', lockTtl, 'NX');
     } catch (err) {
         logger.warn({ err: err.message }, 'Failed to acquire search lock from Redis');
     }

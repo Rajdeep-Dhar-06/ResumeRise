@@ -5,6 +5,7 @@ import { reportGapsAndPlanSchema } from '../schemas/interview_report.schema.js';
 import { getGapsAndPlanPrompt } from '../prompts/prompts.js';
 import { getResourceForTerm } from './search.js';
 import { formatTerms } from '../utils/format.js';
+import { withLlmCache } from '../utils/llm_cache.js';
 
 /**
  * Helper to process skill gaps and plan learning roadmap
@@ -34,15 +35,22 @@ export async function processLearningPath(state) {
         searchResultsText = validResults.length > 0 ? validResults.join('\n') : "No search results available.";
     }
 
+    const missingTermsFormatted = formatTerms(missingTechnicalRequirements);
+    const weakTermsFormatted = formatTerms(weakTechnicalRequirements);
+
     const prompt = getGapsAndPlanPrompt({
-        missingTermsFormatted: formatTerms(missingTechnicalRequirements),
-        weakTermsFormatted: formatTerms(weakTechnicalRequirements),
+        missingTermsFormatted,
+        weakTermsFormatted,
         searchResultsText,
         daysLimit
     });
 
     const structuredLlm = getStructuredModel(reportGapsAndPlanSchema);
-    const response = await structuredLlm.invoke(prompt);
+    const response = await withLlmCache(
+        'planner_learning_path',
+        { missingTermsFormatted, weakTermsFormatted, searchResultsText, daysLimit },
+        () => structuredLlm.invoke(prompt)
+    );
 
     if (process.env.NODE_ENV !== 'production') {
         logger.debug({ userId, response }, '[Agent] Received processLearningPath response from LLM');

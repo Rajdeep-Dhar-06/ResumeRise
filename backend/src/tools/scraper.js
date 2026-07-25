@@ -73,7 +73,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
 
     let lockAcquired = false;
     try {
-        lockAcquired = await redisClient.set(lockKey, '1', { NX: true, EX: lockTtl });
+        lockAcquired = await redisClient.set(lockKey, '1', 'EX', lockTtl, 'NX');
     } catch (err) {
         logger.warn({ err: err.message }, 'Failed to acquire scraper lock from Redis');
     }
@@ -96,7 +96,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
 
     const doc = await JobDescriptionModel.findOne({ url }).lean();
     if (doc && Date.now() - new Date(doc.createdAt).getTime() < cacheTtl * 1000) {
-        await redisClient.set(redisKey, JSON.stringify(doc), { EX: cacheTtl }).catch(() => { });
+        await redisClient.set(redisKey, JSON.stringify(doc), 'EX', cacheTtl).catch(() => { });
         return doc;
     }
 
@@ -104,7 +104,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
         const result = await scrapeJobDescription(url, doc);
 
         try {
-            await redisClient.set(redisKey, JSON.stringify(result), { EX: cacheTtl });
+            await redisClient.set(redisKey, JSON.stringify(result), 'EX', cacheTtl);
         } catch (err) {
             logger.warn({ err: err.message }, 'Failed to cache job description in Redis');
         }
