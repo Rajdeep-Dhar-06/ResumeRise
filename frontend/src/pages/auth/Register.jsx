@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth.js";
-import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { REGISTER_QUOTES } from "../../lib/quotes.js";
 
 const Register = () => {
+  // Custom Hooks & Context
   const navigate = useNavigate();
-  const { loading, handleRegister } = useAuth();
+  const { isRegistering, handleRegister } = useAuth();
+  
+  // State: Form inputs
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,8 +31,7 @@ const Register = () => {
 
   return (
     <main className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground select-none">
-      <LoadingScreen active={loading} minDelay={2000} quotes={REGISTER_QUOTES} message="Creating your account…" />
-      {/* Left panel: Auth Form */}
+      {/* ================= LEFT PANEL: AUTH FORM ================= */}
       <div className="flex flex-col p-6 md:p-10 h-full">
         {/* Brand header */}
         <div className="flex items-center gap-2 font-medium">
@@ -126,8 +126,8 @@ const Register = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-2 font-semibold">
-              Register
+            <Button type="submit" className="w-full mt-2 font-semibold" disabled={isRegistering}>
+              {isRegistering ? "Registering..." : "Register"}
             </Button>
           </form>
 
@@ -141,7 +141,7 @@ const Register = () => {
       </div>
 
 
-      {/* Right panel: Clean & Exquisite Brand Showcase */}
+      {/* ================= RIGHT PANEL: BRAND SHOWCASE ================= */}
       <div className="hidden lg:flex flex-col items-center justify-center bg-muted/30 border-l border-border p-12">
         <div className="flex flex-col items-center gap-6 text-center max-w-sm">
           {/* Logo container with radial white glow */}

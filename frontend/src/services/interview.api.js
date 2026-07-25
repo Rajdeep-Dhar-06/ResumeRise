@@ -27,12 +27,24 @@ export const generateInterviewReport = async ({
   return response.data;
 };
 
+/**
+ * @description Poll status of a background report generation job.
+ */
+export const pollJobStatus = async (jobId, options = {}) => {
+  const response = await api.get(`/api/interview/status/${jobId}`, {
+    signal: options.signal,
+  });
+  return response.data;
+};
+
 
 /**
  * @description Get an interview report by ID.
  */
-export const getInterviewReportById = async (interviewId) => {
-  const response = await api.get(`/api/interview/report/${interviewId}`);
+export const getInterviewReportById = async (interviewId, options = {}) => {
+  const response = await api.get(`/api/interview/report/${interviewId}`, {
+    signal: options.signal,
+  });
   return response.data;
 };
 
@@ -58,14 +70,3 @@ export const deleteInterviewReport = async (interviewId) => {
   return response.data;
 };
 
-/**
- * @description Check if an interview report with this resume and job posting combination already exists.
- */
-export const checkDuplicatePlan = async ({ resumeHash, jobDescriptionUrl, daysLimit }) => {
-  const response = await api.post("/api/interview/checkDuplicate", {
-    resumeHash,
-    jobDescriptionUrl,
-    daysLimit,
-  });
-  return response.data;
-};

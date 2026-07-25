@@ -106,7 +106,7 @@ const LoadingScreen = ({
             {/* Encapsulated Motivational Quote */}
             {quotes && quotes.length > 0 && (
               <p
-                className={`text-sm text-muted-foreground font-medium min-h-[3rem] px-2 flex items-center justify-center transition-opacity duration-300 ${fade ? "opacity-100" : "opacity-0"
+                className={`text-sm text-muted-foreground font-medium min-h-12 px-2 flex items-center justify-center transition-opacity duration-300 ${fade ? "opacity-100" : "opacity-0"
                   }`}
               >
                 "{quotes[quoteIndex]}"

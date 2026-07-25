@@ -39,11 +39,12 @@ export function CreatePlan({
   const hasUrl = jobDescriptionUrl && jobDescriptionUrl.trim().length > 0;
   const isSubmitDisabled = !hasUrl || !hasFile || loading;
 
+  // ================= MAIN CARD CONTAINER =================
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="grid gap-8 md:gap-x-0 md:grid-cols-2 md:divide-x md:divide-border">
-          {/* Left: target job details */}
+          {/* ================= LEFT COLUMN: JOB URL ================= */}
           <div className="flex flex-col justify-between gap-4 md:pr-8">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -89,7 +90,7 @@ export function CreatePlan({
             </Alert>
           </div>
 
-          {/* Right: resume upload */}
+          {/* ================= RIGHT COLUMN: RESUME UPLOAD ================= */}
           <div className="flex flex-col justify-between gap-4 md:pl-8">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -119,7 +120,7 @@ export function CreatePlan({
 
                 {fileName ? (
                   // Selected state: show the file name with a remove button
-                  <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 h-[88px]">
+                  <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 h-24">
                     <div className="flex min-w-0 items-center gap-3">
                       <FileText className="size-5 shrink-0 text-primary" />
                       <span className="truncate text-sm font-medium">{fileName}</span>
@@ -156,7 +157,7 @@ export function CreatePlan({
                       setDragging(false)
                       if (!loading) handleFile(e.dataTransfer.files?.[0])
                     }}
-                    className={`cursor-pointer rounded-lg border border-dashed text-center transition-all h-[88px] flex items-center justify-center ${dragging
+                    className={`cursor-pointer rounded-lg border border-dashed text-center transition-all h-24 flex items-center justify-center ${dragging
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/60 hover:bg-accent/20'
                       }`}
@@ -164,7 +165,7 @@ export function CreatePlan({
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="size-5 text-muted-foreground mb-1" />
                       <h4 className="text-xs font-medium">Click to browse or drag &amp; drop PDF</h4>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">PDF format only (Max 3MB)</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">PDF format only (Max 3MB)</p>
                     </div>
                   </div>
                 )}
@@ -178,7 +179,7 @@ export function CreatePlan({
           </div>
         </div>
 
-        {/* Dynamic target days selector */}
+        {/* ================= BOTTOM BAR: DAYS SELECTOR ================= */}
         <div className="mt-6 pt-5 border-t border-border flex flex-col gap-2 max-w-xs mx-auto">
           <Label htmlFor="days-limit" className="font-semibold text-center sm:text-left">Target Preparation Duration</Label>
           <Select

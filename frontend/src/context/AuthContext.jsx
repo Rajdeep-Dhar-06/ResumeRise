@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
         const userData = await getMe();
         setUser(userData.user);
       } catch (error) {
-        console.error("GetMe failed on initial mount:", error);
+        console.error("Getting the user failed:", error);
         setUser(null);
       } finally {
         setLoading(false);

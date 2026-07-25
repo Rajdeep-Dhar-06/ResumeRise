@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { useInterview } from "../../hooks/useInterview.js";
 import { useNavigate, Link } from "react-router";
@@ -12,21 +12,39 @@ import { CreatePlan } from '../../components/interview/CreatePlan';
 
 
 const Home = () => {
-  const { loading, generateReport, checkDuplicatePlan } = useInterview();
-  const { user, handleLogout } = useAuth();
+  // Custom Hooks & Context
+  const { isLoading, generateReport } = useInterview();
+  const { user, handleLogout, isLoggingOut } = useAuth();
+  const navigate = useNavigate();
 
+  // State: File upload handling
   const [fileName, setFileName] = useState("");
   const resumeInputRef = useRef();
-  const [jobDescriptionUrl, setJobDescriptionUrl] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
+  
+  // State: Form inputs
+  const [jobDescriptionUrl, setJobDescriptionUrl] = useState("");
   const [daysLimit, setDaysLimit] = useState(7);
+  
+  // State: UI toggles
   const [generating, setGenerating] = useState(false);
-  const navigate = useNavigate();
 
   // Handle Resume Selection
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast.error("Only PDF files are allowed.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("PDF size must be less than 3MB");
+      return;
+    }
+
     setFileName(file.name);
     setResumeFile(file);
   };
@@ -54,32 +72,17 @@ const Home = () => {
     setGenerating(true);
 
     try {
-      // 1. Calculate file hash locally in browser
-      const arrayBuffer = await resumeFile.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const resumeHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-      // 2. Check for duplicate on the backend
-      const checkRes = await checkDuplicatePlan({
-        resumeHash,
-        jobDescriptionUrl: jobDescriptionUrl.trim(),
-        daysLimit
-      });
-
-      if (checkRes && checkRes.exists) {
-        console.log('[Home] Existing plan found. Redirecting...');
-        toast.success("Existing preparation plan loaded!");
-        navigate(`/interview/${checkRes.reportId}`);
-        return;
-      }
-
-      // 3. Generate report if it does not exist
       const data = await generateReport({
         resumeFile,
         jobDescriptionUrl: jobDescriptionUrl.trim(),
         daysLimit,
       });
+
+      if (data && data.isDuplicate) {
+        toast.success("Existing preparation plan loaded!");
+        navigate(`/interview/${data.interviewReport._id}`);
+        return;
+      }
 
       if (!data || !data.interviewReport?._id) {
         throw new Error("Unable to generate interview report.");
@@ -96,13 +99,14 @@ const Home = () => {
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
+      {/* ================= LOADING SCREEN ================= */}
       <LoadingScreen
         active={generating}
         minDelay={2500}
         quotes={MOTIVATIONAL_QUOTES}
         message="Generating your custom interview strategy..."
       />
-      {/* Top Header */}
+      {/* ================= TOP HEADER ================= */}
       <header className="sticky top-0 z-10 w-full border-b bg-background/80 px-4 backdrop-blur">
         <div className="mx-auto w-full max-w-5xl flex h-14 items-center justify-between">
           <div className="flex items-center gap-2">
@@ -123,16 +127,17 @@ const Home = () => {
               variant="outline"
               size="default"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold"
             >
               <LogOut size={15} />
-              <span>Log out</span>
+              <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Create Plan Section */}
+      {/* ================= MAIN CONTENT: CREATE PLAN ================= */}
       <main className="flex-grow mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-6 md:gap-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
@@ -152,7 +157,7 @@ const Home = () => {
             resumeInputRef={resumeInputRef}
             handleFileChange={handleFileChange}
             handleGenerateReport={handleGenerateReport}
-            loading={loading || generating}
+            loading={isLoading || generating}
             handleClearFile={handleClearFile}
             daysLimit={daysLimit}
             setDaysLimit={setDaysLimit}

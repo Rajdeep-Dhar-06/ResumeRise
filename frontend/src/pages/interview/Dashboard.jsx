@@ -22,15 +22,16 @@ import { Input } from "@/components/ui/input";
 import MuiPagination from "@mui/material/Pagination";
 
 const Dashboard = () => {
-    const { loading, reports, getReports, deleteReport } = useInterview();
-    const { user, handleLogout } = useAuth();
-    const navigate = useNavigate();
+    const { reports, getReports, deleteReport } = useInterview();
+    const { user, handleLogout, isLoggingOut } = useAuth();
 
-    // Search, filter, and pagination state
+    // State: Search, filter, and pagination
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [minScore, setMinScore] = useState(0);
     const [paginationInfo, setPaginationInfo] = useState({ currentPage: 1, totalPages: 1, totalCount: 0 });
+    
+    // State: Data and loading indicators
     const [stats, setStats] = useState({ totalPlans: 0, averageMatch: 0, bestMatch: 0 });
     const [initialLoading, setInitialLoading] = useState(true);
 
@@ -42,7 +43,7 @@ const Dashboard = () => {
                 if (data && data.stats) {
                     setStats(data.stats);
                 }
-            } catch (err) {
+            } catch {
                 toast.error("Failed to load dashboard stats");
             }
         };
@@ -83,7 +84,7 @@ const Dashboard = () => {
                 if (meta) {
                     setPaginationInfo(meta);
                 }
-            } catch (err) {
+            } catch {
                 toast.error("Failed to delete interview plan");
             }
         }
@@ -91,13 +92,14 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen w-full bg-background text-foreground flex flex-col items-center">
+            {/* ================= LOADING SCREEN ================= */}
             <LoadingScreen
                 active={initialLoading}
                 minDelay={1000}
                 quotes={MOTIVATIONAL_QUOTES}
                 message="Loading your dashboard..."
             />
-            {/* Top Header */}
+            {/* ================= TOP HEADER ================= */}
             <header className="sticky top-0 z-10 w-full border-b bg-background/80 px-4 backdrop-blur">
                 <div className="mx-auto w-full max-w-5xl flex h-14 items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -118,17 +120,19 @@ const Dashboard = () => {
                             variant="outline"
                             size="default"
                             onClick={handleLogout}
+                            disabled={isLoggingOut}
                             className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold"
                         >
                             <LogOut size={15} />
-                            <span>Log out</span>
+                            <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
                         </Button>
                     </div>
                 </div>
             </header>
 
+            {/* ================= MAIN CONTENT: DASHBOARD ================= */}
             <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8 w-full">
-                {/* Heading */}
+                {/* ================= PAGE HEADING ================= */}
                 <section>
                     <h1 className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
                         Interview Preparation <span className="text-primary">Dashboard</span>
@@ -138,14 +142,14 @@ const Dashboard = () => {
                     </p>
                 </section>
 
-                {/* Stats Section */}
+                {/* ================= STATS SECTION ================= */}
                 {stats.totalPlans > 0 && (
                     <section>
                         <DashboardStats stats={stats} />
                     </section>
                 )}
 
-                {/* List Section */}
+                {/* ================= REPORTS LIST SECTION ================= */}
                 <section className="space-y-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>

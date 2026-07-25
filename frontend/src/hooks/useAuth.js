@@ -1,16 +1,21 @@
-import { useContext, useEffect } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext.jsx";
-import { login, logout, register, getMe } from "../services/auth.api.js";
+import { login, logout, register } from "../services/auth.api.js";
 import { toast } from "sonner";
 import { setAccessToken } from "../lib/api.js";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  const { user, setUser, loading, setLoading } = context;
+  const { user, setUser, loading } = context;
+
+  // Loading States 
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   /** @description Authenticate the user and set the session. */
   const handleLogin = async ({ email, password }) => {
-    setLoading(true);
+    setIsLoggingIn(true);
     try {
       const data = await login({ email, password });
       setAccessToken(data.accessToken);
@@ -21,13 +26,13 @@ export const useAuth = () => {
       toast.error("Invalid email or password. Please try again.");
       return false;
     } finally {
-      setLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
   /** @description Register a new account and set the session. */
   const handleRegister = async ({ username, email, password }) => {
-    setLoading(true);
+    setIsRegistering(true);
     try {
       const data = await register({ username, email, password });
       setAccessToken(data.accessToken);
@@ -38,30 +43,33 @@ export const useAuth = () => {
       toast.error("Failed to create account. Please try again.");
       return false;
     } finally {
-      setLoading(false);
+      setIsRegistering(false);
     }
   };
 
   /** @description Clear the session and log the user out. */
   const handleLogout = async () => {
-    setLoading(true);
+    setIsLoggingOut(true);
     try {
       await logout();
     } catch (error) {
-      console.error("Logout failed on backend:", error);
+      console.error("Logout failed:", error);
+      toast.error("Failed to log out account. Please try again.");
     } finally {
       setAccessToken("");
       setUser(null);
-      setLoading(false);
+      setIsLoggingOut(false);
     }
-    return true;
   };
 
   return {
     user,
     loading,
-    handleLogin,
+    isLoggingIn,
+    isRegistering,
+    isLoggingOut,
     handleRegister,
+    handleLogin,
     handleLogout,
   };
 };

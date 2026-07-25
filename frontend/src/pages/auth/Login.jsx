@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "../../hooks/useAuth.js";
-import LoadingScreen from "../../components/LoadingScreen.jsx";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LOGIN_QUOTES } from "../../lib/quotes.js";
 
 const Login = () => {
+  // Custom Hooks & Context
   const navigate = useNavigate();
-  const { loading, handleLogin } = useAuth();
+  const { isLoggingIn, handleLogin } = useAuth();
+  
+  // State: Form inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -29,8 +30,7 @@ const Login = () => {
 
   return (
     <main className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground select-none">
-      <LoadingScreen active={loading} minDelay={2000} quotes={LOGIN_QUOTES} message="Logging in…" />
-      {/* Left panel: Auth Form */}
+      {/* ================= LEFT PANEL: AUTH FORM ================= */}
       <div className="flex flex-col p-6 md:p-10 h-full">
         {/* Brand header */}
         <div className="flex items-center gap-2 font-medium">
@@ -112,8 +112,8 @@ const Login = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-2 font-semibold">
-              Login
+            <Button type="submit" className="w-full mt-2 font-semibold" disabled={isLoggingIn}>
+              {isLoggingIn ? "Logging in..." : "Login"}
             </Button>
           </form>
 
@@ -126,7 +126,7 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right panel: Clean & Exquisite Brand Showcase */}
+      {/* ================= RIGHT PANEL: BRAND SHOWCASE ================= */}
       <div className="hidden lg:flex flex-col items-center justify-center bg-muted/30 border-l border-border p-12">
         <div className="flex flex-col items-center gap-6 text-center max-w-sm">
           {/* Logo container with radial white glow */}

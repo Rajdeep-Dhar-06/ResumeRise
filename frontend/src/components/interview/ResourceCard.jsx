@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
 
+// ================= SINGLE RESOURCE CARD =================
 export const ResourceCard = ({ item }) => (
   <Card>
     <CardHeader>
@@ -30,7 +31,7 @@ export const ResourceCard = ({ item }) => (
                   {resource.resourceSnippet || "No description provided."}
                 </p>
               </div>
-              <div className="mt-3 text-[10px] font-bold text-primary tracking-wider uppercase flex items-center gap-1">
+              <div className="mt-3 text-xs font-bold text-primary tracking-wider uppercase flex items-center gap-1">
                 <span>View Tutorial</span>
               </div>
             </a>

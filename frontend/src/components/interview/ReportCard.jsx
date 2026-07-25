@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react';
 export function ReportCardGrid({ plans, onDelete }) {
   const navigate = useNavigate();
 
+  // ================= REPORT CARDS GRID =================
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {plans.map((plan) => (

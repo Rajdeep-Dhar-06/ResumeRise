@@ -13,6 +13,7 @@ import { RoadMapDay } from "../../components/interview/RoadMapDay.jsx";
 import { ResourceCard } from "../../components/interview/ResourceCard.jsx";
 import { EmptyTabState } from "../../components/interview/EmptyTabState.jsx";
 import { QuestionsList } from "../../components/interview/QuestionsList.jsx";
+import { matchScoreColor } from "../../lib/plans.js";
 
 // Navigation items definition
 const NAV_ITEMS = [
@@ -40,57 +41,53 @@ const NAV_ITEMS = [
 
 // Main Interview Component
 const Interview = () => {
-  const [activeNav, setActiveNav] = useState("technical");
-  const { report, loading, deleteReport } = useInterview();
-  const { handleLogout } = useAuth();
+  // Custom Hooks & Context
+  const { report, isLoading, deleteReport, isDeleting } = useInterview();
+  const { handleLogout, isLoggingOut } = useAuth();
+  
+  // React Router
   const { interviewId } = useParams();
   const navigate = useNavigate();
 
+  // State: UI Navigation and Toggles
+  const [activeNav, setActiveNav] = useState("technical");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletingReport, setDeletingReport] = useState(false);
 
   const handleDelete = async () => {
-    setDeletingReport(true);
     try {
       await deleteReport(interviewId);
       navigate("/");
     } catch (error) {
       console.error("Failed to delete interview report:", error);
     } finally {
-      setDeletingReport(false);
       setShowDeleteConfirm(false);
     }
   };
 
 
-  // Border score styling
+  // Score styling using the shared lib
   const score = report?.matchScore || 0;
-  const scoreColor =
-    score >= 75
-      ? "border-emerald-500/50 bg-emerald-500/5 text-emerald-400"
-      : score >= 60
-        ? "border-amber-500/50 bg-amber-500/5 text-amber-400"
-        : "border-red-500/50 bg-red-500/5 text-red-400";
+  const scoreClasses = matchScoreColor(score);
+  const scoreTextColor = scoreClasses.split(' ').find(c => c.startsWith('text-'));
 
-  // Text score styling
-  const scoreTextColor =
-    score >= 75
-      ? "text-emerald-400"
-      : score >= 60
-        ? "text-amber-400"
-        : "text-red-400";
+  let scoreMessage = "Needs improvement";
+  if (score >= 90) scoreMessage = "Outstanding match";
+  else if (score >= 75) scoreMessage = "Strong match";
+  else if (score >= 60) scoreMessage = "Moderate match";
+  else if (score >= 45) scoreMessage = "Fair match";
+  else if (score >= 30) scoreMessage = "Weak match";
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground flex flex-col items-center">
-      {/* Loading Overlay */}
+      {/* ================= LOADING SCREEN ================= */}
       <LoadingScreen
-        active={loading || !report}
+        active={isLoading || !report}
         minDelay={1500}
         quotes={MOTIVATIONAL_QUOTES}
         message="Loading your interview plan…"
       />
 
-      {/* Top Header */}
+      {/* ================= TOP HEADER ================= */}
       <header className="sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur">
         <div className="mx-auto w-full max-w-5xl px-4 py-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0">
@@ -116,16 +113,16 @@ const Interview = () => {
                   variant="default"
                   size="xs"
                   onClick={handleDelete}
-                  disabled={deletingReport}
+                  disabled={isDeleting}
                   className="bg-red-600 hover:bg-red-700 font-semibold cursor-pointer"
                 >
-                  {deletingReport ? "Deleting..." : "Delete"}
+                  {isDeleting ? "Deleting..." : "Delete"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="xs"
                   onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deletingReport}
+                  disabled={isDeleting}
                   className="text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Cancel
@@ -146,27 +143,29 @@ const Interview = () => {
               variant="outline"
               size="default"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold flex-shrink-0"
             >
               <LogOut size={15} />
-              <span>Log out</span>
+              <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
             </Button>
           </div>
         </div>
       </header>
 
+      {/* ================= MAIN CONTENT: INTERVIEW REPORT ================= */}
       <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8">
-        {/* Top Summary Block */}
+        {/* ================= TOP SUMMARY WIDGETS ================= */}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Match Score Card */}
           <Card className="flex flex-col items-center justify-center p-6 text-center">
             <span className="text-sm font-medium text-muted-foreground mb-4">Match Score</span>
-            <div className={`w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 ${scoreColor} mb-2`}>
+            <div className={`w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 ${scoreClasses} mb-2`}>
               <span className="text-2xl font-bold leading-none">{score}</span>
               <span className="text-xs text-muted-foreground">%</span>
             </div>
             <p className={`text-xs font-semibold ${scoreTextColor}`}>
-              {score >= 75 ? "Strong match for this role" : score >= 60 ? "Moderate match" : "Needs improvement"}
+              {scoreMessage}
             </p>
           </Card>
 
@@ -198,7 +197,7 @@ const Interview = () => {
           </Card>
         </div>
 
-        {/* Tab Selection */}
+        {/* ================= TAB NAVIGATION ================= */}
         <div className="flex flex-col gap-6">
           <div className="flex gap-2 border-b border-border pb-px overflow-x-auto">
             {NAV_ITEMS.map((item) => (
@@ -216,7 +215,7 @@ const Interview = () => {
             ))}
           </div>
 
-          {/* Active Tab Panel Content */}
+          {/* ================= ACTIVE TAB PANELS ================= */}
           <div className="mt-2">
             {activeNav === "technical" && (
               <QuestionsList title="Technical Questions" questions={report?.technicalQuestions} />
