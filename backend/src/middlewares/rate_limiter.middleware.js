@@ -15,7 +15,7 @@ import { redisClient } from '../config/redis.js';
 const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
     return rateLimit({
         store: new RedisStore({
-            sendCommand: (...args) => redisClient.sendCommand(args),
+            sendCommand: (...args) => redisClient.call(...args),
             prefix: 'rl:',
         }),
         windowMs: windowMinutes * 60 * 1000,
@@ -32,7 +32,7 @@ const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
 
 export const reportLimiter = createRateLimiter(
     1,
-    5,
+    10,
     "Report generation limit reached. Please wait 60 seconds"
 )
 
@@ -42,20 +42,8 @@ export const loginLimiter = createRateLimiter(
     "Login limit reached. Please wait 5 minutes"
 )
 
-export const parseLimiter = createRateLimiter(
-    1,
-    5,
-    "Parsing limit reached, Please wait 60 seconds"
-)
-
 export const registerLimiter = createRateLimiter(
     60,
     5,
     "Registration limit reached. Please wait an hour"
-)
-
-export const apiLimiter = createRateLimiter(
-    15,
-    100,
-    "Too many requests to the API. Please wait 15 minutes"
 )

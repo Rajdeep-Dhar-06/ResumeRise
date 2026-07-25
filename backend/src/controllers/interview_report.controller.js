@@ -1,29 +1,26 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import InterviewReportModel from '../models/interview_report.model.js';
-import { runInterviewReportGraph } from '../graph/builder.js';
-import { asyncHandler } from '../utils/async_handler.js';
-import { BadRequestError, NotFoundError } from '../utils/error_handler.js';
+import { reportQueue } from '../queues/report.queue.js';
+import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/error_handler.js';
 import { redisClient } from '../config/redis.js';
 import logger from '../utils/logger.js';
 
 /**
- * Triggers the LangGraph pipeline to generate a report.
+ * Enqueues a report generation job to BullMQ.
  * 
- * - Invokes the LangGraph pipeline with user input.
- * - Invalidates the user's dashboard stats cache.
+ * - Checks for existing duplicate report.
+ * - Adds job to BullMQ queue and returns jobId immediately with 202 status.
  * 
  * @param req - Express request object
  * @param res - Express response object
  */
-export const generateInterviewReportController = asyncHandler(async (req, res) => {
+export const generateInterviewReportController = async (req, res) => {
   const { jobDescriptionUrl, daysLimit } = req.body;
   const resumeFile = req.file;
 
   if (!resumeFile) {
     throw new BadRequestError('Resume PDF file is required.');
-  }
-  if (!jobDescriptionUrl) {
-    throw new BadRequestError('Job description URL is required.');
   }
 
   // Calculate daysLimit based on user selection or default to 7 days
@@ -35,25 +32,77 @@ export const generateInterviewReportController = asyncHandler(async (req, res) =
     }
   }
 
-  // Invoke the LangGraph starting at startAgent
-  const graphState = await runInterviewReportGraph({
+  // Generate hash and check for duplicates
+  const resumeHash = crypto.createHash('sha256').update(resumeFile.buffer).digest('hex');
+  const existingReport = await InterviewReportModel.findOne({
     userId: req.user.id,
-    resumeBuffer: resumeFile.buffer,
-    jobDescriptionUrl,
+    resumeHash,
+    jobDescriptionUrl: jobDescriptionUrl.trim(),
+    daysLimit: calculatedDaysLimit
+  }).populate('jobDescriptionId').lean();
+
+  if (existingReport) {
+    return res.status(200).json({
+      message: 'Existing preparation plan loaded!',
+      isDuplicate: true,
+      interviewReport: existingReport
+    });
+  }
+
+  // Add job to BullMQ queue
+  const job = await reportQueue.add('generate', {
+    userId: req.user.id,
+    resumeBufferBase64: resumeFile.buffer.toString('base64'),
+    jobDescriptionUrl: jobDescriptionUrl.trim(),
     daysLimit: calculatedDaysLimit,
   });
 
-  try {
-    await redisClient.del(`stats:${req.user.id}`);
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to invalidate stats cache after report generation');
+  res.status(202).json({
+    message: 'Report generation started successfully',
+    jobId: job.id,
+  });
+};
+
+/**
+ * Checks the status of a BullMQ report generation job.
+ * 
+ * @route GET /api/interview/status/:jobId
+ * @access Private
+ */
+export const getJobStatusController = async (req, res) => {
+  const { jobId } = req.params;
+  const job = await reportQueue.getJob(jobId);
+
+  if (!job) {
+    throw new NotFoundError('Report generation job not found');
   }
 
-  res.status(201).json({
-    message: 'Interview Report Generated Successfully!',
-    interviewReport: graphState.savedReport,
+  // Ensure user owns this job
+  if (job.data.userId !== req.user.id) {
+    throw new UnauthorizedError('Unauthorized access to this job');
+  }
+
+  const state = await job.getState();
+
+  if (state === 'completed') {
+    return res.status(200).json({
+      status: 'completed',
+      reportId: job.returnvalue?.reportId,
+    });
+  }
+
+  if (state === 'failed') {
+    return res.status(200).json({
+      status: 'failed',
+      failedReason: job.failedReason || 'Report generation failed',
+    });
+  }
+
+  return res.status(200).json({
+    status: 'processing',
+    state,
   });
-});
+};
 
 /**
  * Retrieves a single interview report by its unique ID.
@@ -61,7 +110,7 @@ export const generateInterviewReportController = asyncHandler(async (req, res) =
  * @route GET /api/interview/report/:interviewId
  * @access Private
  */
-export const getInterviewReportByIdController = asyncHandler(async (req, res) => {
+export const getInterviewReportByIdController = async (req, res) => {
   const { interviewId } = req.params;
   const interviewReport = await InterviewReportModel.findOne({
     _id: interviewId,
@@ -76,7 +125,7 @@ export const getInterviewReportByIdController = asyncHandler(async (req, res) =>
     message: 'Interview report fetched successfully',
     interviewReport,
   });
-});
+}
 
 /**
  * Retrieves all interview reports belonging to the current user.
@@ -84,7 +133,7 @@ export const getInterviewReportByIdController = asyncHandler(async (req, res) =>
  * @route GET /api/interview/
  * @access Private
  */
-export const getAllInterviewReportsController = asyncHandler(async (req, res) => {
+export const getAllInterviewReportsController = async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = Math.min(parseInt(req.query.limit, 10) || 9, 50);
   const search = req.query.search ? req.query.search.trim() : "";
@@ -124,7 +173,7 @@ export const getAllInterviewReportsController = asyncHandler(async (req, res) =>
     interviewReports,
   });
 
-});
+}
 
 /**
  * Retrieves stats for the current user's reports.
@@ -135,7 +184,7 @@ export const getAllInterviewReportsController = asyncHandler(async (req, res) =>
  * @param req - Express request object
  * @param res - Express response object
  */
-export const getInterviewStatsController = asyncHandler(async (req, res) => {
+export const getInterviewStatsController = async (req, res) => {
   const cacheKey = `stats:${req.user.id}`;
 
   const defaultStats = {
@@ -155,7 +204,6 @@ export const getInterviewStatsController = asyncHandler(async (req, res) => {
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to retrieve stats from cache');
   }
-
 
   const stats = await InterviewReportModel.aggregate([
     { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
@@ -178,7 +226,7 @@ export const getInterviewStatsController = asyncHandler(async (req, res) => {
     : defaultStats;
 
   try {
-    await redisClient.set(cacheKey, JSON.stringify(statsResult), { EX: 60 * 15 });
+    await redisClient.set(cacheKey, JSON.stringify(statsResult)); // no ttl needed
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to cache stats');
   }
@@ -187,7 +235,7 @@ export const getInterviewStatsController = asyncHandler(async (req, res) => {
     message: 'Stats retrieved successfully',
     stats: statsResult,
   });
-});
+}
 
 
 /**
@@ -199,7 +247,7 @@ export const getInterviewStatsController = asyncHandler(async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const deleteInterviewReportController = asyncHandler(async (req, res) => {
+export const deleteInterviewReportController = async (req, res) => {
   const { interviewId } = req.params;
   const deletedReport = await InterviewReportModel.findOneAndDelete({
     _id: interviewId,
@@ -220,46 +268,4 @@ export const deleteInterviewReportController = asyncHandler(async (req, res) => 
     message: 'Interview report deleted successfully',
     deletedReport,
   });
-});
-
-/**
- * Validates whether an active interview report already exists with the same parameters.
- * 
- * @route POST /api/interview/checkDuplicate
- * @access Private
- */
-export const checkDuplicateInterviewPlanController = asyncHandler(async (req, res) => {
-  const { resumeHash, jobDescriptionUrl, daysLimit } = req.body;
-
-  if (!resumeHash || !jobDescriptionUrl) {
-    throw new BadRequestError('resumeHash and jobDescriptionUrl are required.');
-  }
-
-  let calculatedDaysLimit = 7;
-  if (daysLimit) {
-    const parsed = parseInt(daysLimit, 10);
-    if ([3, 5, 7].includes(parsed)) {
-      calculatedDaysLimit = parsed;
-    }
-  }
-
-  const existingReport = await InterviewReportModel.findOne({
-    userId: req.user.id,
-    resumeHash,
-    jobDescriptionUrl: jobDescriptionUrl.trim(),
-    daysLimit: calculatedDaysLimit
-  }).lean();
-
-  if (existingReport) {
-    return res.status(200).json({
-      exists: true,
-      reportId: existingReport._id,
-      interviewReport: existingReport
-    });
-  }
-
-  res.status(200).json({ exists: false });
-});
-
-
-
+}

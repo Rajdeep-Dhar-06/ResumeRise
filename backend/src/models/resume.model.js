@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import UserModel from './user.model.js';
 
 /**
  * Mongoose schema representing parsed candidate resume data.

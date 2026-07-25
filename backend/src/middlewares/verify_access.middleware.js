@@ -1,8 +1,7 @@
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.js';
 import { redisClient } from '../config/redis.js';
-import { UnauthorizedError, ForbiddenError } from '../utils/error_handler.js';
-import { asyncHandler } from '../utils/async_handler.js';
+import { UnauthorizedError } from '../utils/error_handler.js';
 
 /**
  * Authentication middleware to verify incoming JWT access tokens.
@@ -19,7 +18,7 @@ import { asyncHandler } from '../utils/async_handler.js';
  * @throws {UnauthorizedError} If the Authorization header is missing/malformed or the token is blacklisted.
  * @throws {ForbiddenError} If the token signature verification fails or it is expired.
  */
-const verifyAccess = asyncHandler(async (req, res, next) => {
+const verifyAccess = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
         throw new UnauthorizedError('Access token is missing or invalid');
@@ -47,6 +46,6 @@ const verifyAccess = asyncHandler(async (req, res, next) => {
 
     req.user = decoded;
     next();
-});
+};
 
 export default verifyAccess;

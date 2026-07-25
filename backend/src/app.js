@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import authRouter from './routes/authentication.route.js';
 import interviewRouter from './routes/interview_report.route.js';
-import errorMiddleware from './middlewares/error.middleware.js';
+import { errorMiddleware } from './middlewares/error.middleware.js';
 import { httpLogger } from './utils/logger.js';
 
 const app = express();

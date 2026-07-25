@@ -1,8 +1,7 @@
 import userModel from '../models/user.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { asyncHandler } from '../utils/async_handler.js';
-import { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, ForbiddenError } from '../utils/error_handler.js';
+import { BadRequestError, UnauthorizedError, NotFoundError, ForbiddenError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';
 import { redisClient } from '../config/redis.js';
 
@@ -29,25 +28,11 @@ const CLEAR_COOKIE_OPTIONS = {
  * @route POST /api/auth/register
  * @access Public
  */
-export const registerUserController = asyncHandler(async (req, res) => {
+export const registerUserController = async (req, res) => {
   const { username, email, password } = req.body;
-
-  if (!username || !email || !password) {
-    throw new BadRequestError('All fields are required');
-  }
 
   const normalizedUsername = username.trim();
   const normalizedEmail = email.trim().toLowerCase();
-
-  const doesUsernameExist = await userModel.findOne({ username: normalizedUsername }).lean();
-  if (doesUsernameExist) {
-    throw new ConflictError('Username is already taken');
-  }
-
-  const doesEmailExist = await userModel.findOne({ email: normalizedEmail }).lean();
-  if (doesEmailExist) {
-    throw new ConflictError('An account with this email already exists');
-  }
 
   const hash = await bcrypt.hash(password, 10);
   const newUser = await userModel.create({ username: normalizedUsername, email: normalizedEmail, password: hash });
@@ -86,7 +71,7 @@ export const registerUserController = asyncHandler(async (req, res) => {
       email: newUser.email,
     },
   });
-});
+};
 
 /**
  * Authenticates user credentials and logs them in.
@@ -94,12 +79,8 @@ export const registerUserController = asyncHandler(async (req, res) => {
  * @route POST /api/auth/login
  * @access Public
  */
-export const loginUserController = asyncHandler(async (req, res) => {
+export const loginUserController = async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw new BadRequestError('All fields are required');
-  }
 
   const normalizedEmail = email.trim().toLowerCase();
   const user = await userModel.findOne({ email: normalizedEmail }).select('+password');
@@ -147,7 +128,7 @@ export const loginUserController = asyncHandler(async (req, res) => {
       email: user.email,
     },
   });
-});
+}
 
 /**
  * Logs out the current user.
@@ -159,7 +140,7 @@ export const loginUserController = asyncHandler(async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const logoutUserController = asyncHandler(async (req, res) => {
+export const logoutUserController = async (req, res) => {
   const authHeader = req.headers.authorization;
   const refreshToken = req.cookies.refreshToken;
 
@@ -171,7 +152,7 @@ export const logoutUserController = asyncHandler(async (req, res) => {
         const decodedAccessToken = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
         const ttl = decodedAccessToken.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
-          await redisClient.set(`blacklist:${accessToken}`, 1, { EX: ttl });
+          await redisClient.set(`blacklist:${accessToken}`, 1, 'EX', ttl);
         }
       } catch (err) {
         logger.warn({ err: err.message }, 'Failed to add access token to blacklist during user logout');
@@ -190,7 +171,7 @@ export const logoutUserController = asyncHandler(async (req, res) => {
 
   res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
   res.status(200).json({ message: 'User logged out successfully' });
-});
+}
 
 /**
  * Retrieves the current logged-in user profile info.
@@ -201,7 +182,7 @@ export const logoutUserController = asyncHandler(async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const getMeController = asyncHandler(async (req, res) => {
+export const getMeController = async (req, res) => {
   const cacheKey = `user:${req.user.id}`;
 
   try {
@@ -229,7 +210,7 @@ export const getMeController = asyncHandler(async (req, res) => {
   }
 
   try {
-    await redisClient.set(cacheKey, JSON.stringify(userProfile), { EX: 60 * 15 });
+    await redisClient.set(cacheKey, JSON.stringify(userProfile), 'EX', 60 * 15);
   } catch (error) {
     logger.warn({ err: error }, 'Failed to set user in cache');
   }
@@ -238,7 +219,7 @@ export const getMeController = asyncHandler(async (req, res) => {
     message: 'User retrieved successfully',
     user: userProfile,
   });
-});
+};
 
 /**
  * Refreshes the JWT access token using the refresh token cookie.
@@ -246,7 +227,7 @@ export const getMeController = asyncHandler(async (req, res) => {
  * @route POST /api/auth/refresh
  * @access Public
  */
-export const refreshAccessController = asyncHandler(async (req, res) => {
+export const refreshAccessController = async (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.refreshToken) {
     throw new UnauthorizedError('Refresh token is missing');
@@ -279,4 +260,4 @@ export const refreshAccessController = asyncHandler(async (req, res) => {
     if (err instanceof ForbiddenError) throw err;
     throw new ForbiddenError('Refresh token is expired or invalid');
   }
-});
+}

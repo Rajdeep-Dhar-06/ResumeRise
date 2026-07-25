@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import {
   registerUserController,
   loginUserController,
@@ -7,23 +8,40 @@ import {
   refreshAccessController,
 } from '../controllers/authentication.controller.js';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
+import { validate } from '../middlewares/schema_validation.middleware.js';
 import { loginLimiter, registerLimiter } from '../middlewares/rate_limiter.middleware.js';
 
 const authRouter = express.Router();
+
+// Validation schemas
+const registerSchema = {
+  body: z.object({
+    username: z.string({ required_error: 'Username is required' }).trim().min(1, 'Username is required'),
+    email: z.string({ required_error: 'Email is required' }).trim().toLowerCase().email('Invalid email format'),
+    password: z.string({ required_error: 'Password is required' }).min(6, 'Password must be at least 6 characters'),
+  }),
+};
+
+const loginSchema = {
+  body: z.object({
+    email: z.string({ required_error: 'Email is required' }).trim().toLowerCase().email('Invalid email format'),
+    password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
+  }),
+};
 
 /**
  * @route POST /api/auth/register
  * @desc Register a new user
  * @access Public
  */
-authRouter.post('/register', registerLimiter, registerUserController);
+authRouter.post('/register', registerLimiter, validate(registerSchema), registerUserController);
 
 /**
  * @route POST /api/auth/login
  * @desc Login a user
  * @access Public
  */
-authRouter.post('/login', loginLimiter, loginUserController);
+authRouter.post('/login', loginLimiter, validate(loginSchema), loginUserController);
 
 /**
  * @route POST /api/auth/refresh

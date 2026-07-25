@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, SEVERITY_LEVELS } from '../utils/enums.js';
 import { questionSchema } from './question.model.js';
 import { resourceItemSchema } from './resource_item.model.js';
+import JobDescriptionModel from './job_description.model.js';
+import resumeModel from './resume.model.js';
+import UserModel from './user.model.js';
 
 const preparationGapSchema = new mongoose.Schema(
   {

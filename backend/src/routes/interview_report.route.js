@@ -2,44 +2,27 @@ import express from 'express';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
 import {
   generateInterviewReportController,
+  getJobStatusController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
   getInterviewStatsController,
-  deleteInterviewReportController,
-  checkDuplicateInterviewPlanController
+  deleteInterviewReportController
 } from '../controllers/interview_report.controller.js';
 import upload from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
-import { parseLimiter, reportLimiter } from '../middlewares/rate_limiter.middleware.js';
+import { reportLimiter } from '../middlewares/rate_limiter.middleware.js';
 
 const interviewRouter = express.Router();
 
-const optionalUrlSchema = z
-  .string()
-  .trim()
-  .transform((val) => (!val ? val : /^https?:\/\//i.test(val) ? val : `https://${val}`))
-  .pipe(z.string().url('Invalid URL format.'))
-  .optional();
-
-const requiredUrlSchema = z
-  .string({ required_error: 'jobDescriptionUrl is required.' })
-  .trim()
-  .transform((val) => (/^https?:\/\//i.test(val) ? val : `https://${val}`))
-  .pipe(z.string().url('Invalid URL format.'));
+const jobDescriptionUrlSchema = z
+  .url({ error: 'Invalid URL format.'})
+  .trim();
 
 // Validation schemas
 const generateReportSchema = {
   body: z.object({
-    resumeId: z
-      .string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid resume ID format.')
-      .optional(),
-    jobDescriptionId: z
-      .string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid job description ID format.')
-      .optional(),
-    jobDescriptionUrl: optionalUrlSchema,
+    jobDescriptionUrl: jobDescriptionUrlSchema,
     daysLimit: z.union([z.string(), z.number()]).optional(),
   }),
 };
@@ -52,11 +35,12 @@ const interviewIdParamsSchema = {
   }),
 };
 
-const checkDuplicateSchema = {
-  body: z.object({
-    resumeHash: z.string({ required_error: 'resumeHash is required.' }),
-    jobDescriptionUrl: requiredUrlSchema,
-    daysLimit: z.union([z.string(), z.number()]).optional(),
+const jobIdParamsSchema = {
+  params: z.object({
+    jobId: z
+      .string({ required_error: 'Job ID is required' })
+      .trim()
+      .min(1, 'Job ID is required'),
   }),
 };
 
@@ -75,15 +59,15 @@ interviewRouter.post(
 );
 
 /**
- * @route POST /api/interview/checkDuplicate
- * @description Check if an interview plan already exists for this resume and job details combination
+ * @route GET /api/interview/status/:jobId
+ * @description Check report generation job status
  * @access private
  */
-interviewRouter.post(
-  '/checkDuplicate',
+interviewRouter.get(
+  '/status/:jobId',
   verifyAccess,
-  validate(checkDuplicateSchema),
-  checkDuplicateInterviewPlanController
+  validate(jobIdParamsSchema),
+  getJobStatusController
 );
 
 /**
