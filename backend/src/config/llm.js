@@ -18,8 +18,6 @@ export const creativeModel = new ChatGoogle({
  * Suitable for analytical, deterministic tasks like requirement auditing and scoring.
  * 
  * @function getStructuredModel
- * @param {object} schema - The Zod schema defining the expected structured JSON output format.
- * @returns {import('@langchain/core/runnables').Runnable} A runnable model chain with fallbacks configured.
  */
 export function getStructuredModel(schema) {
     return model.withStructuredOutput(schema).withFallbacks([
@@ -34,8 +32,6 @@ export function getStructuredModel(schema) {
  * Suitable for narrative/generative tasks like question generation and study planning.
  * 
  * @function getCreativeStructuredModel
- * @param {object} schema - The Zod schema defining the expected structured JSON output format.
- * @returns {import('@langchain/core/runnables').Runnable} A runnable model chain with fallbacks configured.
  */
 export function getCreativeStructuredModel(schema) {
     return creativeModel.withStructuredOutput(schema).withFallbacks([
