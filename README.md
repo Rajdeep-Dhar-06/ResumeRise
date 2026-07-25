@@ -177,11 +177,11 @@ When multiple users request analysis for the same popular job URL or identical s
 ### 3. Priority-Weighted & Complexity-Scaled Match Algorithm
 Rather than relying on basic fuzzy keyword counts or non-deterministic LLM score guesses, candidate match scoring uses a deterministic mathematical algorithm (`src/utils/score_calculator.js`):
 
-$$\text{WeightedScore} = \sum \left( \text{TermScore}_i \times \text{PriorityWeight}_i \right)$$
+$$\text{Weighted Score} = \frac{\sum (\text{Term Score}_i \times \text{Priority Weight}_i)}{\text{Total Weight}}$$
 
 - **Priority Weights**: `REQUIRED` (1.0), `PREFERRED` (0.65), `NICE_TO_HAVE` (0.35).
 - **Complexity Multipliers**: `PRODUCTION` (1.0), `ADVANCED` (0.98), `INTERMEDIATE` (0.90), `BASIC` (0.80), `TRIVIAL` (0.65).
-- **Sparse Description Smoothing**: Introduces minimum weight padding ($\text{MIN\_JD\_WEIGHT} = 8.0$) to avoid score distortion on short job descriptions.
+- **Sparse Description Smoothing**: Introduces minimum weight padding (`MIN_JD_WEIGHT = 8.0`) to avoid score distortion on short job descriptions.
 - **Critical Skill Penalty Caps**: If a candidate lacks essential `REQUIRED` competencies, the final score is hard-capped (e.g., capped at 80% if $\ge 1$ required skill is missing; capped at 70% if $\ge 3$ are missing).
 
 ### 4. Zero-Disk Privacy-First PII Redaction
