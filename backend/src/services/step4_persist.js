@@ -5,18 +5,22 @@ import InterviewReportModel from '../models/interview_report.model.js';
  * Step 4: Persist the generated interview report document to MongoDB.
  */
 export async function persistReportStep(assembledData) {
-  const { auditData, scoreRes, pathRes, techRes, nonTechRes } = assembledData;
   const {
     userId,
     jobDoc,
     resumeDoc,
     jobDescriptionUrl,
     daysLimit,
-    jobDescriptionCompany,
-    jobDescriptionRole,
     evaluatedTechnicalRequirements,
-    evaluatedNonTechnicalRequirements
-  } = auditData;
+    evaluatedNonTechnicalRequirements,
+    reportTitle,
+    matchScore,
+    technicalQuestions,
+    nonTechnicalQuestions,
+    preparationGaps,
+    preparationPlan,
+    learningResources,
+  } = assembledData;
 
   logger.info({ userId }, 'Persisting report to database');
 
@@ -27,17 +31,15 @@ export async function persistReportStep(assembledData) {
     resumeHash: resumeDoc.contentHash,
     jobDescriptionUrl,
     daysLimit,
-    companyName: jobDescriptionCompany,
-    role: jobDescriptionRole,
-    evaluatedTechnicalRequirements,
-    evaluatedNonTechnicalRequirements,
-    reportTitle: scoreRes.reportTitle || 'My Interview Plan',
-    matchScore: scoreRes.matchScore || 0,
-    technicalQuestions: techRes.technicalQuestions || [],
-    nonTechnicalQuestions: nonTechRes.nonTechnicalQuestions || [],
-    preparationGaps: pathRes.preparationGaps || [],
-    preparationPlan: pathRes.preparationPlan || [],
-    learningResources: pathRes.learningResources || [],
+    companyName: jobDoc.companyName,
+    role: jobDoc.role,
+    reportTitle,
+    matchScore,
+    technicalQuestions,
+    nonTechnicalQuestions,
+    preparationGaps,
+    preparationPlan,
+    learningResources,
   });
 
   logger.info({ reportId: savedReport._id, userId }, 'Report generated successfully');

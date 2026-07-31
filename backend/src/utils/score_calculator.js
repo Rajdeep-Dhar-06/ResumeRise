@@ -1,23 +1,22 @@
 const PRIORITY_WEIGHT = {
     REQUIRED: 1.0,
-    PREFERRED: 0.65,
-    NICE_TO_HAVE: 0.35,
+    PREFERRED: 0.60,
+    NICE_TO_HAVE: 0.30,
 };
 
 const COMPLEXITY_MULTIPLIER = {
     PRODUCTION: 1.0,
-    ADVANCED: 0.98,
+    ADVANCED: 0.95,
     INTERMEDIATE: 0.90,
     BASIC: 0.80,
     TRIVIAL: 0.65,
     'N/A': 1.0,
 };
 
-const MIN_JD_WEIGHT = 8.0; 
 
 /**
  * Computes a weighted overall match score (0-100) between a candidate's resume and job description requirements.
- * Applies priority weights, complexity multipliers, density padding, and critical required requirement match caps.
+ * Applies priority weights, complexity multipliers, and critical required requirement match caps.
  * 
  * @function computeMatchScore
  * @param {Array<object>} evaluatedTechnicalRequirements - Array of evaluated tech terms with status, strength, complexity and priority.
@@ -41,18 +40,11 @@ export function computeMatchScore(evaluatedTechnicalRequirements, evaluatedNonTe
             const complexityMult = COMPLEXITY_MULTIPLIER[term.complexityLevel] ?? 1.0;
             termScore = 1.0 * complexityMult;
         } else if (term.matchStatus === 'WEAK_MATCH') {
-            termScore = term.matchStrength ?? 0.50;
+            termScore = Math.min(50, term.matchStrength ?? 50) / 100.0;
         }
 
         weightedScore += termScore * priorityWeight;
         totalWeight += priorityWeight;
-    }
-
-    // 2. Adjust for Job Description density to avoid skewing scores
-    if (totalWeight < MIN_JD_WEIGHT) {
-        const padding = MIN_JD_WEIGHT - totalWeight;
-        weightedScore += padding; 
-        totalWeight += padding;
     }
 
     let score = Math.round((weightedScore / totalWeight) * 100);

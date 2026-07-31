@@ -77,7 +77,7 @@ flowchart TD
     subgraph Client ["Client (React 19 + Vite)"]
         UI["User Interface"]
         Hash["SHA-256 Resume Hash"]
-        Poll["Polling Service (/api/interview/status/:jobId)"]
+        Poll["Polling Service (/api/interview/reports/status/:jobId)"]
     end
 
     subgraph API Gateway ["Express.js v5 Server"]
@@ -107,7 +107,7 @@ flowchart TD
     end
 
     UI -->|"1. Upload Resume PDF & Job URL"| Hash
-    Hash -->|"2. POST /generateReport"| Auth
+    Hash -->|"2. POST /api/interview/reports/generate-report"| Auth
     Auth --> Limiter
     Limiter --> Controller
     Controller -->|"3. Query exact match"| Dedup
@@ -136,7 +136,7 @@ flowchart TD
    - **Step 2 (Audit)**: Maps anonymized technical and non-technical candidate experience against job requirements using Google Gemini with Zod structured output. Results are cached in Redis under SHA-256 payload hashes (`cache:llm:*`).
    - **Step 3 (Assemble)**: Executes parallel component generators to calculate match scores, build a multi-day study plan, craft technical/behavioral interview questions, and query Tavily for curated documentation links.
    - **Step 4 (Persist)**: Writes the structured `InterviewReport` document to MongoDB Atlas and invalidates the user's dashboard statistics cache key in Redis (`stats:<userId>`).
-3. **Client Polling**: The client polls `GET /api/interview/status/:jobId`. Once BullMQ reports state `completed`, the client redirects the user to the generated report view (`/interview/:id`).
+3. **Client Polling**: The client polls `GET /api/interview/reports/status/:jobId`. Once BullMQ reports state `completed`, the client redirects the user to the generated report view (`/interview/:id`).
 
 ---
 
@@ -255,12 +255,12 @@ ResumeRise/
 
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `POST` | `/api/interview/generateReport` | Private | Submit resume PDF & Job URL; enqueues job and returns `jobId` (Rate limited: 10 req/min) |
-| `GET` | `/api/interview/status/:jobId` | Private | Query BullMQ job state (`processing`, `completed`, `failed`) |
-| `GET` | `/api/interview/report/:interviewId` | Private | Fetch complete structured interview report by ID |
-| `GET` | `/api/interview/` | Private | List user's reports with pagination (`page`, `limit`), search query, and minimum score filters |
-| `GET` | `/api/interview/stats` | Private | Retrieve user dashboard stats (Redis-cached aggregation) |
-| `DELETE` | `/api/interview/report/:interviewId` | Private | Delete interview report and invalidate user stats cache |
+| `POST` | `/api/interview/reports/generate-report` | Private | Submit resume PDF & Job URL; enqueues job and returns `jobId` (Rate limited: 10 req/min) |
+| `GET` | `/api/interview/reports/status/:jobId` | Private | Query BullMQ job state (`processing`, `completed`, `failed`) |
+| `GET` | `/api/interview/reports/:interviewId` | Private | Fetch complete structured interview report by ID |
+| `GET` | `/api/interview/reports` | Private | List user's reports with pagination (`page`, `limit`), search query, and minimum score filters |
+| `GET` | `/api/interview/reports/stats` | Private | Retrieve user dashboard stats (Redis-cached aggregation) |
+| `DELETE` | `/api/interview/reports/:interviewId` | Private | Delete interview report and invalidate user stats cache |
 
 ---
 

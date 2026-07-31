@@ -1,96 +1,9 @@
 import mongoose from 'mongoose';
-import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, SEVERITY_LEVELS } from '../utils/enums.js';
+import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, DAYS_LIMITS } from '../utils/enums.js';
 import { questionSchema } from './question.model.js';
-import { resourceItemSchema } from './resource_item.model.js';
-import JobDescriptionModel from './job_description.model.js';
-import resumeModel from './resume.model.js';
-import UserModel from './user.model.js';
-
-const preparationGapSchema = new mongoose.Schema(
-  {
-    requirementName: {
-      type: String,
-      required: true,
-    },
-    gapSeverity: {
-      type: String,
-      enum: SEVERITY_LEVELS,
-      required: true,
-    },
-  },
-  { _id: false }
-);
-
-const preparationPlanSchema = new mongoose.Schema(
-  {
-    dayNumber: {
-      type: Number,
-      required: true,
-    },
-    dailyFocus: {
-      type: String,
-      required: true,
-    },
-    dailyTasks: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
-  },
-  { _id: false }
-);
-
-const evaluatedRequirementMongooseSchema = new mongoose.Schema(
-  {
-    requirementName: {
-      type: String,
-      required: true,
-    },
-    matchStatus: {
-      type: String,
-      enum: MATCH_STATUS,
-      required: true,
-    },
-    resumeEvidence: {
-      type: String,
-      default: '',
-    },
-    depthAssessment: {
-      type: String,
-      default: '',
-    },
-    complexityLevel: {
-      type: String,
-      enum: COMPLEXITY_LEVELS,
-      default: 'N/A',
-    },
-    priority: {
-      type: String,
-      enum: PRIORITY_LEVELS,
-      default: 'REQUIRED',
-    },
-    matchStrength: {
-      type: Number,
-      min: 0,
-      max: 1,
-    },
-  },
-  { _id: false }
-);
-
-
-
-const learningResourceMongooseSchema = new mongoose.Schema(
-  {
-    requirementName: {
-      type: String,
-      required: true,
-    },
-    resources: [resourceItemSchema],
-  },
-  { _id: false }
-);
+import { learningResourceMongooseSchema } from './learning_resource.model.js';
+import { preparationGapSchema } from './preparation_gap.model.js';
+import { preparationPlanSchema } from './preparation_plan.model.js';
 
 /**
  * Mongoose schema representing the final generated Interview/Preparation Report.
@@ -104,11 +17,13 @@ const interviewReportSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+
     jobDescriptionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JobDescription',
       required: true,
     },
+
     resumeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Resume'
@@ -117,6 +32,7 @@ const interviewReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     jobDescriptionUrl: {
       type: String,
       required: true,
@@ -131,15 +47,12 @@ const interviewReportSchema = new mongoose.Schema(
       default: 'Role',
       required: true,
     },
+    
     daysLimit: {
       type: Number,
-      enum: [3, 5, 7],
-      default: 7,
+      enum: DAYS_LIMITS,
       required: true,
     },
-
-    evaluatedTechnicalRequirements: [evaluatedRequirementMongooseSchema],
-    evaluatedNonTechnicalRequirements: [evaluatedRequirementMongooseSchema],
 
     reportTitle: {
       type: String,

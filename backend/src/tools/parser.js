@@ -13,7 +13,9 @@ import logger from '../utils/logger.js';
  */
 export async function parseAndSaveResume(userId, resumeBuffer) {
     const contentHash = createHash('sha256').update(resumeBuffer).digest('hex');
+
     let doc = await resumeModel.findOne({ user: userId, contentHash }).lean();
+
     if (!doc) {
         logger.info({ userId }, '[Agent] Parsing candidate resume PDF');
         let parsedText = '';
@@ -28,13 +30,25 @@ export async function parseAndSaveResume(userId, resumeBuffer) {
 
         const anonymizedText = anonymizeResume(parsedText);
         logger.info({ userId }, '[Agent] Segmenting resume via Gemini');
-        const segments = await segmentResume(anonymizedText);
+        const {
+            academicInfo,
+            technicalAchievements,
+            extracurricularAchievements,
+            experiences,
+            technicalProjects,
+        } = await segmentResume(anonymizedText);
 
-        doc = await resumeModel.create({
+        const newDoc = await resumeModel.create({
             user: userId,
             contentHash,
-            ...segments,
+            academicInfo,
+            technicalAchievements,
+            extracurricularAchievements,
+            experiences,
+            technicalProjects,
         });
+
+        doc = newDoc.toObject(); //convert to plain JS object
     }
     return doc;
 }

@@ -29,6 +29,7 @@ export async function ingestDocumentsStep(inputContext) {
 
   const nonTechResumeText = [
     resumeDoc.academicInfo,
+    resumeDoc.technicalAchievements,
     resumeDoc.extracurricularAchievements,
     resumeDoc.experiences
   ].filter(Boolean).join('\n\n');

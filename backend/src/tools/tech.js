@@ -15,17 +15,17 @@ export async function generateTechnicalQuestions(state) {
     logger.info({ userId }, '[Agent] Generating customized technical assessment questions');
 
     const {
-        evaluatedTechnicalRequirements = [],
-        jobDescriptionText = '',
+        evaluatedTechnicalRequirements,
+        jobDescriptionText,
     } = state;
 
     const matchedRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MATCHED");
     const missingRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
     const weakRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
 
-    const missingTermsFormatted = formatTerms(missingRequirements, 'None');
-    const weakTermsFormatted = formatTerms(weakRequirements, 'None');
-    const matchedTermsFormatted = formatTerms(matchedRequirements, 'None');
+    const missingTermsFormatted = formatTerms(missingRequirements);
+    const weakTermsFormatted = formatTerms(weakRequirements);
+    const matchedTermsFormatted = formatTerms(matchedRequirements);
 
     const prompt = getTechQuestionsPrompt({
         missingTermsFormatted,
@@ -42,6 +42,6 @@ export async function generateTechnicalQuestions(state) {
     );
 
     return {
-        technicalQuestions: response.technicalQuestions || []
+        technicalQuestions: response.technicalQuestions
     };
 }

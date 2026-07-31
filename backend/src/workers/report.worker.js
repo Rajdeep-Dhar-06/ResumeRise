@@ -12,8 +12,8 @@ export async function processReportJob(job) {
   const { resumeBufferBase64, ...restData } = job.data;
   const resumeBuffer = Buffer.from(resumeBufferBase64, 'base64');
 
-  // Run the LangChain report pipeline
-  const graphState = await runInterviewReportPipeline({
+  // Run the report pipeline
+  const state = await runInterviewReportPipeline({
     ...restData,
     resumeBuffer,
   });
@@ -26,7 +26,7 @@ export async function processReportJob(job) {
   }
 
   // Return the final report ID so the polling endpoint can fetch it
-  return { reportId: graphState.savedReport._id };
+  return { reportId: state.savedReport._id };
 }
 
 export const reportWorker = new Worker(

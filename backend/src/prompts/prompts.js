@@ -215,7 +215,7 @@ FIELD CONVENTIONS:
 - "complexityLevel": rate the depth of the evidencing project honestly on the TRIVIAL-through-PRODUCTION scale.
   A later step decides whether to write a question exposing the gap between a trivial project and real
   production use based on this rating alone — an inflated rating here means that question never gets asked.
-- "matchStrength" is optional — include it only for MATCHED or WEAK_MATCH items, as your confidence (0-1)
+- "matchStrength" is optional — include it only for MATCHED or WEAK_MATCH items, as a raw integer score from 0 to 100. Do NOT include a % sign.
   that the evidence genuinely supports the status you gave it. Omit it entirely for MISSING items.
 
 <candidate_resume>
@@ -306,7 +306,7 @@ FIELD CONVENTIONS:
   domain familiarity) — use "N/A" for these by default. Only rate an actual TRIVIAL-through-PRODUCTION
   complexity level when the requirement itself describes a technical/architectural capability (e.g.
   "experience with microservices architecture"), in which case rate it exactly as you would a skill.
-- "matchStrength" is optional — include it only for MATCHED or WEAK_MATCH items, as your confidence (0-1)
+- "matchStrength" is optional — include it only for MATCHED or WEAK_MATCH items, as a raw integer score from 0 to 100. Do NOT include a % sign.
   in that status. Omit it entirely for MISSING items.
 
 <candidate_resume>

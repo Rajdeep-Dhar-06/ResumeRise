@@ -15,10 +15,10 @@ export async function generateNonTechnicalQuestions(state) {
     logger.info({ userId }, '[Agent] Generating customized non-technical assessment questions');
 
     const {
-        evaluatedTechnicalRequirements = [],
-        evaluatedNonTechnicalRequirements = [],
-        nonTechResumeText = '',
-        jobDescriptionText = '',
+        evaluatedTechnicalRequirements,
+        evaluatedNonTechnicalRequirements,
+        nonTechResumeText,
+        jobDescriptionText,
     } = state;
 
     const missingRequirements = [
@@ -48,6 +48,6 @@ export async function generateNonTechnicalQuestions(state) {
     );
 
     return {
-        nonTechnicalQuestions: response.nonTechnicalQuestions || []
+        nonTechnicalQuestions: response.nonTechnicalQuestions
     };
 }

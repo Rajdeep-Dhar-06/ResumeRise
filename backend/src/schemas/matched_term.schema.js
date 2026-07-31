@@ -1,26 +1,30 @@
 import { z } from 'zod';
-import { MATCH_STATUS, COMPLEXITY_LEVELS } from '../utils/enums.js';
+import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS } from '../utils/enums.js';
 
 export const evaluatedRequirementSchema = z.object({
-  requirementName: z.string().describe("The skill or requirement being evaluated"),
+  requirementName: z.string().catch('').transform(s => s.trim()).describe("The skill or requirement being evaluated"),
 
-  matchStatus: z.enum(MATCH_STATUS).describe(
+  priority: z.enum(PRIORITY_LEVELS).catch('REQUIRED').describe(
+    "The exact priority of this requirement as provided in the input job description. Do not modify or hallucinate this."
+  ),
+
+  matchStatus: z.enum(MATCH_STATUS).catch('MISSING').describe(
     "MATCHED: skill is directly evidenced in real work/project experience with context. " +
     "WEAK_MATCH: skill appears only in a skills/tools list with zero supporting project or work evidence, " +
     "OR the only evidence is a trivial/tutorial-level project. " +
     "MISSING: not mentioned, or only vaguely implied through synonyms or generic language."
   ),
 
-  resumeEvidence: z.string().describe(
+  resumeEvidence: z.string().catch('None found').transform(s => s.trim() || 'None found').describe(
     "The exact resume line or project that supports this status. If MISSING, write 'None found'."
   ),
 
-  depthAssessment: z.string().describe(
-    "A blunt 1–2 sentence assessment. Do not soften language. " +
+  depthAssessment: z.string().catch('None').transform(s => s.trim() || 'None').describe(
+    "A blunt 1 or 2 sentence assessment. Do not soften language. " +
     "Call out if the evidence is a tutorial clone, a toy project, boilerplate, or surface-level usage."
   ),
 
-  complexityLevel: z.enum(COMPLEXITY_LEVELS).describe(
+  complexityLevel: z.enum(COMPLEXITY_LEVELS).catch('N/A').describe(
     "Rate the complexity of the evidence project/experience. " +
     "TRIVIAL: todo app, weather app, portfolio site, YouTube tutorial clone. " +
     "BASIC: standard CRUD app, simple REST API, no meaningful scale or architecture decisions. " +
@@ -34,13 +38,15 @@ export const evaluatedRequirementSchema = z.object({
     "N/A: not a project context."
   ),
 
-  matchStrength: z.number().min(0).max(1).optional()
+  matchStrength: z.coerce.number().min(0).max(100).optional().describe(
+    "A raw integer from 0 to 100 representing confidence in the match. Do NOT include a % sign."
+  )
 });
 
 export const techRequirementsMatchSchema = z.object({
-  evaluatedTechnicalRequirements: z.array(evaluatedRequirementSchema).describe("Evaluation of each skill from the JD")
+  evaluatedTechnicalRequirements: z.array(evaluatedRequirementSchema).catch([]).describe("Evaluation of each skill from the JD")
 });
 
 export const nonTechRequirementsMatchSchema = z.object({
-  evaluatedNonTechnicalRequirements: z.array(evaluatedRequirementSchema).describe("Evaluation of each requirement from the JD")
+  evaluatedNonTechnicalRequirements: z.array(evaluatedRequirementSchema).catch([]).describe("Evaluation of each requirement from the JD")
 });

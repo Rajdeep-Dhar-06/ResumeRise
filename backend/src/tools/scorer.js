@@ -11,13 +11,12 @@ export function generateScoreAndTitle(state) {
     logger.info({ userId }, '[Agent] Generating match score and report title');
 
     const {
-        jobDescriptionCompany = 'Company',
-        jobDescriptionRole = 'Role',
-        evaluatedTechnicalRequirements = [],
-        evaluatedNonTechnicalRequirements = []
+        jobDoc,
+        evaluatedTechnicalRequirements,
+        evaluatedNonTechnicalRequirements
     } = state;
 
-    const title = `${jobDescriptionCompany} | ${jobDescriptionRole}`;
+    const title = `${jobDoc.companyName} | ${jobDoc.role}`;
     const matchScore = computeMatchScore(evaluatedTechnicalRequirements, evaluatedNonTechnicalRequirements);
 
     return {

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { PRIORITY_LEVELS } from "../utils/enums.js";
 
 const jdTermSchema = new mongoose.Schema(
     {
@@ -8,8 +9,7 @@ const jdTermSchema = new mongoose.Schema(
         },
         priority: {
             type: String,
-            enum: ["REQUIRED", "PREFERRED", "NICE_TO_HAVE"],
-            default: "REQUIRED",
+            enum: PRIORITY_LEVELS,
         },
         sourceContext: {
             type: String,

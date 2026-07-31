@@ -11,36 +11,18 @@ export async function assembleReportComponentsStep(auditData) {
   const { userId } = auditData;
   logger.info({ userId }, 'Assembling final report components');
 
-  const stateContext = {
-    userId: auditData.userId,
-    resumeBuffer: auditData.resumeBuffer,
-    jobDescriptionUrl: auditData.jobDescriptionUrl,
-    daysLimit: auditData.daysLimit,
-    resumeId: auditData.resumeDoc._id,
-    resumeHash: auditData.resumeDoc.contentHash,
-    techResumeText: auditData.techResumeText,
-    nonTechResumeText: auditData.nonTechResumeText,
-    jobDescriptionId: auditData.jobDoc._id,
-    jobDescriptionCompany: auditData.jobDescriptionCompany,
-    jobDescriptionRole: auditData.jobDescriptionRole,
-    jobDescriptionTechnicalRequirements: auditData.jobDescriptionTechnicalRequirements,
-    jobDescriptionNonTechnicalRequirements: auditData.jobDescriptionNonTechnicalRequirements,
-    evaluatedTechnicalRequirements: auditData.evaluatedTechnicalRequirements,
-    evaluatedNonTechnicalRequirements: auditData.evaluatedNonTechnicalRequirements,
-  };
-
   const [scoreRes, pathRes, techRes, nonTechRes] = await Promise.all([
-    generateScoreAndTitle(stateContext),
-    processLearningPath(stateContext),
-    generateTechnicalQuestions(stateContext),
-    generateNonTechnicalQuestions(stateContext)
+    generateScoreAndTitle(auditData),
+    processLearningPath(auditData),
+    generateTechnicalQuestions(auditData),
+    generateNonTechnicalQuestions(auditData)
   ]);
 
   return {
-    auditData,
-    scoreRes,
-    pathRes,
-    techRes,
-    nonTechRes
+    ...auditData,
+    ...scoreRes,
+    ...pathRes,
+    ...techRes,
+    ...nonTechRes
   };
 }

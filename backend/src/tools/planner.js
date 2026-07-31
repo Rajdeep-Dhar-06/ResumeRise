@@ -16,7 +16,7 @@ export async function processLearningPath(state) {
     const { userId } = state;
     logger.info({ userId }, '[Agent] Identifying educational tutorials for identified skill gaps');
 
-    const { evaluatedTechnicalRequirements = [], daysLimit = 7 } = state;
+    const { evaluatedTechnicalRequirements, daysLimit = 7 } = state;
 
     // We only process technical skills for the learning path, skipping abstract requirements
     const missingTechnicalRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
@@ -57,8 +57,8 @@ export async function processLearningPath(state) {
     }
 
     return {
-        preparationGaps: response.preparationGaps || [],
-        preparationPlan: response.preparationPlan || [],
-        learningResources: response.learningResources || [],
+        preparationGaps: response.preparationGaps,
+        preparationPlan: response.preparationPlan,
+        learningResources: response.learningResources,
     };
 }

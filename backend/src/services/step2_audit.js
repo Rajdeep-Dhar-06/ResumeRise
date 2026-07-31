@@ -19,8 +19,10 @@ export async function auditRequirementsStep(ingestData) {
 
   logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, 'Auditing candidate resume against job requirements');
 
-  const jobDescriptionTechnicalRequirements = jobDoc.technicalRequirements || [];
-  const jobDescriptionNonTechnicalRequirements = jobDoc.nonTechnicalRequirements || [];
+  const {
+    technicalRequirements: jobDescriptionTechnicalRequirements,
+    nonTechnicalRequirements: jobDescriptionNonTechnicalRequirements,
+  } = jobDoc;
 
   const techRequirementsLlm = getStructuredModel(techRequirementsMatchSchema);
   const nonTechRequirementsLlm = getStructuredModel(nonTechRequirementsMatchSchema);
@@ -42,28 +44,12 @@ export async function auditRequirementsStep(ingestData) {
     )
   ]);
 
-  let evaluatedTechnicalRequirements = techRequirementsResult.evaluatedTechnicalRequirements || [];
-  let evaluatedNonTechnicalRequirements = nonTechRequirementsResult.evaluatedNonTechnicalRequirements || [];
-
-  const techPriorityMap = Object.fromEntries(jobDescriptionTechnicalRequirements.map(s => [s.requirementName, s.priority || 'REQUIRED']));
-  const nonTechPriorityMap = Object.fromEntries(jobDescriptionNonTechnicalRequirements.map(r => [r.requirementName, r.priority || 'REQUIRED']));
-
-  evaluatedTechnicalRequirements = evaluatedTechnicalRequirements.map(s => ({
-    ...s,
-    priority: techPriorityMap[s.requirementName] || 'REQUIRED',
-  }));
-  evaluatedNonTechnicalRequirements = evaluatedNonTechnicalRequirements.map(r => ({
-    ...r,
-    priority: nonTechPriorityMap[r.requirementName] || 'REQUIRED',
-  }));
+  const evaluatedTechnicalRequirements = techRequirementsResult.evaluatedTechnicalRequirements;
+  const evaluatedNonTechnicalRequirements = nonTechRequirementsResult.evaluatedNonTechnicalRequirements;
 
   return {
     ...ingestData,
-    jobDescriptionCompany: jobDoc.companyName || 'Company',
-    jobDescriptionRole: jobDoc.role || 'Role',
-    jobDescriptionTechnicalRequirements,
-    jobDescriptionNonTechnicalRequirements,
     evaluatedTechnicalRequirements,
-    evaluatedNonTechnicalRequirements
+    evaluatedNonTechnicalRequirements,
   };
 }

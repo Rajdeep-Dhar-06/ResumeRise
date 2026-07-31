@@ -10,13 +10,13 @@ import { resumeSegmentSchema } from '../schemas/resume_segment.schema.js';
 export async function segmentResume(rawText) {
   const prompt = segmentResumePrompt({ rawText });
   const model = getStructuredModel(resumeSegmentSchema);
-  const result = await model.invoke(prompt);
+  const response = await model.invoke(prompt);
 
   return {
-    academicInfo: result.academicInfo || '',
-    technicalAchievements: result.technicalAchievements || '',
-    extracurricularAchievements: result.extracurricularAchievements || '',
-    experiences: result.experiences || '',
-    technicalProjects: result.technicalProjects || '',
+    academicInfo: response.academicInfo,
+    technicalAchievements: response.technicalAchievements,
+    extracurricularAchievements: response.extracurricularAchievements,
+    experiences: response.experiences,
+    technicalProjects: response.technicalProjects,
   };
 }

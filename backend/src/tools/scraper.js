@@ -1,10 +1,12 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import JobDescriptionModel from '../models/job_description.model.js';
 import logger from '../utils/logger.js';
 import { getStructuredModel } from '../config/llm.js';
 import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
 import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
 import { redisClient } from '../config/redis.js';
+import { acquireLock, releaseLock, delayWithJitter } from '../utils/lock.js';
 
 /**
  * Scrapes and extracts requirements from a job posting.
@@ -15,35 +17,34 @@ import { redisClient } from '../config/redis.js';
  * @param url - The job posting URL
  * @param staleDoc - Stale MongoDB document if invalidating cache
  */
-async function scrapeJobDescription(url, staleDoc) {
-    if (staleDoc) {
-        logger.info({ url }, '[Agent] Cached job description expired; invalidating stale cache');
-        await JobDescriptionModel.deleteOne({ _id: staleDoc._id });
-    }
-
+async function scrapeJobDescription(url) {
     logger.info({ url }, '[Agent] Fetching job webpage contents via Jina Reader');
     const headers = process.env.JINA_API_KEY ? { Authorization: `Bearer ${process.env.JINA_API_KEY}` } : {};
     const { data } = await axios.get(`https://r.jina.ai/${url}`, { headers, timeout: 20000 });
-    const rawText = data || '';
+    const rawText = typeof data === 'string' ? data : '';
 
     if (rawText.length < 50) {
         throw new Error('No sufficient text content could be extracted from this URL.');
     }
 
     const prompt = getScrapeJobDescriptionPrompt({ rawText });
-    const details = await getStructuredModel(jobDescriptionSchema).invoke(prompt);
+    const { companyName, role, technicalRequirements, nonTechnicalRequirements } = await getStructuredModel(jobDescriptionSchema).invoke(prompt);
 
-    if (!details.technicalRequirements?.length && !details.nonTechnicalRequirements?.length) {
+    if (!technicalRequirements?.length && !nonTechnicalRequirements?.length) {
         throw new Error('Could not extract any skills or requirements from this job description URL.');
     }
 
-    return JobDescriptionModel.create({
-        url,
-        companyName: details.companyName || 'Company',
-        role: details.role || 'Job Description',
-        technicalRequirements: details.technicalRequirements,
-        nonTechnicalRequirements: details.nonTechnicalRequirements
-    });
+    return await JobDescriptionModel.findOneAndUpdate(
+        { url },
+        {
+            url,
+            companyName,
+            role,
+            technicalRequirements,
+            nonTechnicalRequirements,
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
 }
 
 /**
@@ -59,6 +60,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
     const url = jobDescriptionUrl.trim();
     const redisKey = `jd:${url}`;
     const lockKey = `lock:jd:${url}`;
+    const lockValue = crypto.randomUUID();
     const lockTtl = 60;
     const cacheTtl = 24 * 60 * 60;
 
@@ -71,17 +73,11 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
         logger.warn({ err: err.message }, 'Failed to read job description from Redis cache');
     }
 
-    let lockAcquired = false;
-    try {
-        lockAcquired = await redisClient.set(lockKey, '1', 'EX', lockTtl, 'NX');
-    } catch (err) {
-        logger.warn({ err: err.message }, 'Failed to acquire scraper lock from Redis');
-    }
-
+    const lockAcquired = await acquireLock(lockKey, lockValue, lockTtl);
 
     if (!lockAcquired) {
-        for (let attempt = 1; attempt <= 30; attempt++) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        for (let attempt = 1; attempt <= 15; attempt++) {
+            await delayWithJitter(attempt);
 
             try {
                 const cachedJd = await redisClient.get(redisKey);
@@ -90,6 +86,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
                 }
             } catch (err) {
                 logger.warn({ err: err.message }, 'Failed to read from Redis during polling');
+                throw err;
             }
         }
     }
@@ -100,8 +97,9 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
         return doc;
     }
 
+
     try {
-        const result = await scrapeJobDescription(url, doc);
+        const result = await scrapeJobDescription(url);
 
         try {
             await redisClient.set(redisKey, JSON.stringify(result), 'EX', cacheTtl);
@@ -115,7 +113,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
         throw err;
     } finally {
         if (lockAcquired) {
-            await redisClient.del(lockKey).catch(() => { });
+            await releaseLock(lockKey, lockValue);
         }
     }
 }

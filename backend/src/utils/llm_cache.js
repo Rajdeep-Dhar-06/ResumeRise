@@ -6,9 +6,7 @@ import logger from './logger.js';
  * Generates a SHA-256 cache key for an input payload.
  */
 export function generateCacheKey(toolName, inputPayload) {
-  const payloadString = typeof inputPayload === 'string'
-    ? inputPayload
-    : JSON.stringify(inputPayload);
+  const payloadString = JSON.stringify(inputPayload);
   const hash = crypto.createHash('sha256').update(payloadString).digest('hex');
   return `cache:llm:${toolName}:${hash}`;
 }
@@ -16,17 +14,17 @@ export function generateCacheKey(toolName, inputPayload) {
 /**
  * Wraps an LLM invocation with deterministic input-hashed Redis caching.
  */
-export async function withLlmCache(toolName, inputPayload, fetchLlmResponseFn, ttlSeconds = 86400) {
+export async function withLlmCache(toolName, inputPayload, fetchLlmResponseFn, ttlSeconds = 60 * 60) {
   const cacheKey = generateCacheKey(toolName, inputPayload);
 
   try {
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
-      logger.debug({ toolName }, '[LLM Cache] Hit');
+      logger.debug({ toolName }, 'Cache Hit');
       return JSON.parse(cachedData);
     }
   } catch (err) {
-    logger.warn({ toolName, err: err.message }, '[LLM Cache] Redis read error');
+    logger.warn({ toolName, err: err.message }, 'Redis read error');
   }
 
   const result = await fetchLlmResponseFn();
@@ -34,7 +32,7 @@ export async function withLlmCache(toolName, inputPayload, fetchLlmResponseFn, t
   try {
     await redisClient.set(cacheKey, JSON.stringify(result), 'EX', ttlSeconds);
   } catch (err) {
-    logger.warn({ toolName, err: err.message }, '[LLM Cache] Redis write error');
+    logger.warn({ toolName, err: err.message }, 'Redis write error');
   }
 
   return result;

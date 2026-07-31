@@ -30,7 +30,7 @@ const Dashboard = () => {
     const [search, setSearch] = useState("");
     const [minScore, setMinScore] = useState(0);
     const [paginationInfo, setPaginationInfo] = useState({ currentPage: 1, totalPages: 1, totalCount: 0 });
-    
+
     // State: Data and loading indicators
     const [stats, setStats] = useState({ totalPlans: 0, averageMatch: 0, bestMatch: 0 });
     const [initialLoading, setInitialLoading] = useState(true);

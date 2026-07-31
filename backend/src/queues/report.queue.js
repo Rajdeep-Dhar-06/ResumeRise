@@ -5,7 +5,7 @@ import { redisClient } from '../config/redis.js';
 export const reportQueue = new Queue('report-generation', { 
   connection: redisClient,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 1,
     backoff: {
       type: 'exponential',
       delay: 5000,

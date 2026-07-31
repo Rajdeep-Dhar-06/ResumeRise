@@ -23,14 +23,7 @@ export const generateInterviewReportController = async (req, res) => {
     throw new BadRequestError('Resume PDF file is required.');
   }
 
-  // Calculate daysLimit based on user selection or default to 7 days
-  let calculatedDaysLimit = 7; // Default fallback is 7 days
-  if (daysLimit) {
-    const parsed = parseInt(daysLimit, 10);
-    if ([3, 5, 7].includes(parsed)) {
-      calculatedDaysLimit = parsed;
-    }
-  }
+  const days = parseInt(daysLimit, 10);
 
   // Generate hash and check for duplicates
   const resumeHash = crypto.createHash('sha256').update(resumeFile.buffer).digest('hex');
@@ -38,7 +31,7 @@ export const generateInterviewReportController = async (req, res) => {
     userId: req.user.id,
     resumeHash,
     jobDescriptionUrl: jobDescriptionUrl.trim(),
-    daysLimit: calculatedDaysLimit
+    daysLimit: days,
   }).populate('jobDescriptionId').lean();
 
   if (existingReport) {
@@ -49,12 +42,35 @@ export const generateInterviewReportController = async (req, res) => {
     });
   }
 
+  const resumeBase64 = resumeFile.buffer.toString('base64');
+  const requestHash = crypto
+    .createHash('sha256')
+    .update(req.user.id + jobDescriptionUrl.trim() + resumeBase64)
+    .digest('hex');
+
+  const existingJob = await reportQueue.getJob(requestHash);
+
+  if (existingJob) {
+    const state = await existingJob.getState();
+    if (state === "active" || state === "waiting" || state === "delayed") {
+      return res.status(409).json({
+        message: 'This report is currently being generated.',
+        isDuplicate: true,
+      });
+    }
+    else if (state === "completed" || state === "failed") {
+      await existingJob.remove();
+    }
+  }
+
   // Add job to BullMQ queue
   const job = await reportQueue.add('generate', {
     userId: req.user.id,
-    resumeBufferBase64: resumeFile.buffer.toString('base64'),
+    resumeBufferBase64: resumeBase64,
     jobDescriptionUrl: jobDescriptionUrl.trim(),
-    daysLimit: calculatedDaysLimit,
+    daysLimit: days,
+  }, {
+    jobId: requestHash
   });
 
   res.status(202).json({
@@ -66,7 +82,7 @@ export const generateInterviewReportController = async (req, res) => {
 /**
  * Checks the status of a BullMQ report generation job.
  * 
- * @route GET /api/interview/status/:jobId
+ * @route GET /api/interview/reports/status/:jobId
  * @access Private
  */
 export const getJobStatusController = async (req, res) => {
@@ -107,7 +123,7 @@ export const getJobStatusController = async (req, res) => {
 /**
  * Retrieves a single interview report by its unique ID.
  * 
- * @route GET /api/interview/report/:interviewId
+ * @route GET /api/interview/reports/:interviewId
  * @access Private
  */
 export const getInterviewReportByIdController = async (req, res) => {
@@ -130,7 +146,7 @@ export const getInterviewReportByIdController = async (req, res) => {
 /**
  * Retrieves all interview reports belonging to the current user.
  * 
- * @route GET /api/interview/
+ * @route GET /api/interview/reports
  * @access Private
  */
 export const getAllInterviewReportsController = async (req, res) => {
@@ -226,7 +242,7 @@ export const getInterviewStatsController = async (req, res) => {
     : defaultStats;
 
   try {
-    await redisClient.set(cacheKey, JSON.stringify(statsResult)); // no ttl needed
+    await redisClient.set(cacheKey, JSON.stringify(statsResult), 'EX', 3600); // 1 hour safety TTL for eventual consistency
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to cache stats');
   }

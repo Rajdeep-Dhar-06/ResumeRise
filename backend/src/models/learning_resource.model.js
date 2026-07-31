@@ -1,21 +1,36 @@
-import mongoose from 'mongoose';
-import { resourceItemSchema } from './resource_item.model.js';
+import mongoose from "mongoose";
 
 /**
- * Mongoose schema representing cached web search learning resources for skill gaps.
- * Uses a unique index on lowercase requirementName for cache lookup.
+ * Reusable schema for learning/tutorial resources and documentation links.
  */
-const learningResourceSchema = new mongoose.Schema({
-  requirementName: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true,
+export const resourceItemSchema = new mongoose.Schema(
+  {
+    resourceTitle: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    resourceUrl: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    resourceSnippet: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
-  resources: [resourceItemSchema],
-});
+  { _id: false }
+);
 
-learningResourceSchema.index({ requirementName: 1 }, { unique: true });
-const LearningResourceModel = mongoose.model('LearningResource', learningResourceSchema);
-
-export default LearningResourceModel;
+export const learningResourceMongooseSchema = new mongoose.Schema(
+  {
+    requirementName: {
+      type: String,
+      required: true,
+    },
+    resources: [resourceItemSchema],
+  },
+  { _id: false }
+);

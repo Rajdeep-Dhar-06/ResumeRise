@@ -1,11 +1,9 @@
 import rateLimit from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../config/redis.js';
 
 /**
  * Reusable utility to create an Express rate-limiter middleware.
  * 
- * - Uses a Redis store backend for distributed counting.
+ * - Uses the default in-memory store (suitable for single-process deployments).
  * - Returns a configured rate-limit request handler.
  * 
  * @param windowMinutes - Time window duration in minutes
@@ -14,10 +12,6 @@ import { redisClient } from '../config/redis.js';
  */
 const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
     return rateLimit({
-        store: new RedisStore({
-            sendCommand: (...args) => redisClient.call(...args),
-            prefix: 'rl:',
-        }),
         windowMs: windowMinutes * 60 * 1000,
         max: maxRequests,
         standardHeaders: true,

@@ -92,7 +92,13 @@ const Home = () => {
       navigate(`/interview/${data.interviewReport._id}`);
     } catch (error) {
       setGenerating(false);
-      const errMsg = error?.response?.data?.error || error.message || "Failed to generate report. Please try again.";
+
+      if (error?.response?.status === 409) {
+        toast.info("This report is already generating! Please wait a moment.");
+        return;
+      }
+
+      const errMsg = error?.response?.data?.error || error?.response?.data?.message || error.message || "Failed to generate report. Please try again.";
       toast.error(errMsg);
     }
   };
