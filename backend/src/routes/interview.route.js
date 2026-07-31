@@ -2,7 +2,6 @@ import express from 'express';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
 import {
   generateInterviewReportController,
-  getJobStatusController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
   getInterviewStatsController,
@@ -29,12 +28,6 @@ const interviewIdSchema = {
   }),
 };
 
-const jobStatusSchema = {
-  params: z.object({
-    jobId: z.string({ required_error: 'Job ID is required' }).trim().min(1, 'Job ID is required'),
-  }),
-};
-
 /**
  * @route POST /api/interview/reports/generate-report
  * @description Generate an interview report from pre-parsed resume and job description
@@ -47,18 +40,6 @@ interviewRouter.post(
   upload.single('resume'),
   validate(generateReportSchema),
   generateInterviewReportController
-);
-
-/**
- * @route GET /api/interview/reports/status/:jobId
- * @description Check report generation job status
- * @access private
- */
-interviewRouter.get(
-  '/reports/status/:jobId',
-  verifyAccess,
-  validate(jobStatusSchema),
-  getJobStatusController
 );
 
 /**

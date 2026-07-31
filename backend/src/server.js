@@ -6,7 +6,6 @@ import logger from './utils/logger.js';
 
 import mongoose from 'mongoose';
 import { redisClient } from './config/redis.js';
-import './workers/report.worker.js';
 
 const PORT = process.env.PORT || 8000;
 

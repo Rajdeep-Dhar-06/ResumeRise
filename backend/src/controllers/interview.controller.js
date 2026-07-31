@@ -1,16 +1,16 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import InterviewReportModel from '../models/interview_report.model.js';
-import { reportQueue } from '../queues/report.queue.js';
+import { runInterviewReportPipeline } from '../pipeline.js/report_pipeline.js';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/error_handler.js';
 import { redisClient } from '../config/redis.js';
 import logger from '../utils/logger.js';
 
 /**
- * Enqueues a report generation job to BullMQ.
+ * Generates an interview report synchronously using the pipeline.
  * 
  * - Checks for existing duplicate report.
- * - Adds job to BullMQ queue and returns jobId immediately with 202 status.
+ * - Runs report generation pipeline directly and returns completed report.
  * 
  * @param req - Express request object
  * @param res - Express response object
@@ -42,81 +42,24 @@ export const generateInterviewReportController = async (req, res) => {
     });
   }
 
-  const resumeBase64 = resumeFile.buffer.toString('base64');
-  const requestHash = crypto
-    .createHash('sha256')
-    .update(req.user.id + jobDescriptionUrl.trim() + resumeBase64)
-    .digest('hex');
-
-  const existingJob = await reportQueue.getJob(requestHash);
-
-  if (existingJob) {
-    const state = await existingJob.getState();
-    if (state === "active" || state === "waiting" || state === "delayed") {
-      return res.status(409).json({
-        message: 'This report is currently being generated.',
-        isDuplicate: true,
-      });
-    }
-    else if (state === "completed" || state === "failed") {
-      await existingJob.remove();
-    }
-  }
-
-  // Add job to BullMQ queue
-  const job = await reportQueue.add('generate', {
+  // Run pipeline directly
+  const state = await runInterviewReportPipeline({
     userId: req.user.id,
-    resumeBufferBase64: resumeBase64,
+    resumeBuffer: resumeFile.buffer,
     jobDescriptionUrl: jobDescriptionUrl.trim(),
     daysLimit: days,
-  }, {
-    jobId: requestHash
   });
 
-  res.status(202).json({
-    message: 'Report generation started successfully',
-    jobId: job.id,
-  });
-};
-
-/**
- * Checks the status of a BullMQ report generation job.
- * 
- * @route GET /api/interview/reports/status/:jobId
- * @access Private
- */
-export const getJobStatusController = async (req, res) => {
-  const { jobId } = req.params;
-  const job = await reportQueue.getJob(jobId);
-
-  if (!job) {
-    throw new NotFoundError('Report generation job not found');
+  // Invalidate stats cache
+  try {
+    await redisClient.del(`stats:${req.user.id}`);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to invalidate stats cache after report generation');
   }
 
-  // Ensure user owns this job
-  if (job.data.userId !== req.user.id) {
-    throw new UnauthorizedError('Unauthorized access to this job');
-  }
-
-  const state = await job.getState();
-
-  if (state === 'completed') {
-    return res.status(200).json({
-      status: 'completed',
-      reportId: job.returnvalue?.reportId,
-    });
-  }
-
-  if (state === 'failed') {
-    return res.status(200).json({
-      status: 'failed',
-      failedReason: job.failedReason || 'Report generation failed',
-    });
-  }
-
-  return res.status(200).json({
-    status: 'processing',
-    state,
+  res.status(200).json({
+    message: 'Report generation completed successfully',
+    interviewReport: state.savedReport,
   });
 };
 
