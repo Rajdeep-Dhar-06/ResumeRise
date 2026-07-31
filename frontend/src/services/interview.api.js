@@ -27,15 +27,7 @@ export const generateInterviewReport = async ({
   return response.data;
 };
 
-/**
- * @description Poll status of a background report generation job.
- */
-export const pollJobStatus = async (jobId, options = {}) => {
-  const response = await api.get(`/api/interview/reports/status/${jobId}`, {
-    signal: options.signal,
-  });
-  return response.data;
-};
+
 
 
 /**

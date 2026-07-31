@@ -1,7 +1,6 @@
 import { useContext, useEffect } from "react";
 import {
   generateInterviewReport,
-  pollJobStatus,
   getInterviewReportById,
   getAllInterviewReports,
   deleteInterviewReport,
@@ -23,53 +22,26 @@ export const useInterview = () => {
     resumeFile,
     jobDescriptionUrl,
     daysLimit,
-  }, options = {}) => {
+  }) => {
     setIsLoading(true);
-    let response = null;
     try {
-      response = await generateInterviewReport({
+      const response = await generateInterviewReport({
         resumeFile,
         jobDescriptionUrl,
         daysLimit,
       });
 
-      // Handle duplicate report returned immediately
-      if (response?.isDuplicate && response?.interviewReport) {
+      if (response?.interviewReport) {
         setReport(response.interviewReport);
         return response;
       }
-
-      // Handle async queued job
-      if (response?.jobId) {
-        const jobId = response.jobId;
-        let isDone = false;
-
-        while (!isDone) {
-          if (options.signal?.aborted) return;
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          if (options.signal?.aborted) return;
-
-          const pollRes = await pollJobStatus(jobId, options);
-
-          if (pollRes.status === "completed") {
-            isDone = true;
-            const finalReportRes = await getInterviewReportById(pollRes.reportId, options);
-            setReport(finalReportRes.interviewReport);
-            return finalReportRes;
-          }
-
-          if (pollRes.status === "failed") {
-            throw new Error(pollRes.failedReason || "Report generation failed");
-          }
-        }
-      }
+      return response;
     } catch (error) {
-        console.error("Error generating report:", error);
+      console.error("Error generating report:", error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-    return response;
   };
 
   /** @description Fetch a single interview report by ID and store it in context. */
