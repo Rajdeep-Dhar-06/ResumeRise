@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 /**
  * Reusable utility to create an Express rate-limiter middleware.
  * 
- * - Uses the default in-memory store (suitable for single-process deployments).
+ * - Uses the default in-memory store
  * - Returns a configured rate-limit request handler.
  * 
  * @param windowMinutes - Time window duration in minutes
@@ -26,7 +26,7 @@ const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
 
 export const reportLimiter = createRateLimiter(
     1,
-    10,
+    20,
     "Report generation limit reached. Please wait 60 seconds"
 )
 

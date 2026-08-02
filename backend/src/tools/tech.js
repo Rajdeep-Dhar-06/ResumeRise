@@ -16,8 +16,10 @@ export async function generateTechnicalQuestions(state) {
 
     const {
         evaluatedTechnicalRequirements,
-        jobDescriptionText,
+        jobDoc,
     } = state;
+
+    const jobDescriptionText = `${jobDoc.role} at ${jobDoc.companyName}`;
 
     const matchedRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MATCHED");
     const missingRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
+
 import authRouter from './routes/auth.route.js';
 import interviewRouter from './routes/interview.route.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
@@ -10,8 +10,6 @@ import { httpLogger } from './utils/logger.js';
 const app = express();
 
 app.set('trust proxy', 1);
-
-app.use(helmet());
 app.use(httpLogger);
 
 app.use(express.json());

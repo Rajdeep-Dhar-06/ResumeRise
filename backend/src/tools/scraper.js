@@ -7,6 +7,7 @@ import { jobDescriptionSchema } from '../schemas/job_description.schema.js';
 import { getScrapeJobDescriptionPrompt } from '../prompts/prompts.js';
 import { redisClient } from '../config/redis.js';
 import { acquireLock, releaseLock, delayWithJitter } from '../utils/lock.js';
+import { BadRequestError } from '../utils/error_handler.js';
 
 /**
  * Scrapes and extracts requirements from a job posting.
@@ -24,14 +25,14 @@ async function scrapeJobDescription(url) {
     const rawText = typeof data === 'string' ? data : '';
 
     if (rawText.length < 50) {
-        throw new Error('No sufficient text content could be extracted from this URL.');
+        throw new BadRequestError('No sufficient text content could be extracted from this URL.');
     }
 
     const prompt = getScrapeJobDescriptionPrompt({ rawText });
     const { companyName, role, technicalRequirements, nonTechnicalRequirements } = await getStructuredModel(jobDescriptionSchema).invoke(prompt);
 
     if (!technicalRequirements?.length && !nonTechnicalRequirements?.length) {
-        throw new Error('Could not extract any skills or requirements from this job description URL.');
+        throw new BadRequestError('Could not extract any skills or requirements from this job description URL.');
     }
 
     return await JobDescriptionModel.findOneAndUpdate(
@@ -44,7 +45,7 @@ async function scrapeJobDescription(url) {
             nonTechnicalRequirements,
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).lean();
+    );
 }
 
 /**
@@ -91,7 +92,7 @@ export async function scrapeAndSaveJobDescription(jobDescriptionUrl) {
         }
     }
 
-    const doc = await JobDescriptionModel.findOne({ url }).lean();
+    const doc = await JobDescriptionModel.findOne({ url });
     if (doc && Date.now() - new Date(doc.createdAt).getTime() < cacheTtl * 1000) {
         await redisClient.set(redisKey, JSON.stringify(doc), 'EX', cacheTtl).catch(() => { });
         return doc;

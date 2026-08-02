@@ -11,8 +11,6 @@ export async function persistReportStep(assembledData) {
     resumeDoc,
     jobDescriptionUrl,
     daysLimit,
-    evaluatedTechnicalRequirements,
-    evaluatedNonTechnicalRequirements,
     reportTitle,
     matchScore,
     technicalQuestions,

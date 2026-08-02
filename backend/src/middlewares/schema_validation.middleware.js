@@ -1,5 +1,5 @@
 /**
- * Reusable Express middleware to validate request data against a Zod schema.
+ * Reusable Express middleware to validate request data against a Zod schema and return parsed data.
  * Supports validating req.body, req.query, or req.params.
  *
  * @param {object} schemas - An object containing Zod schemas (body, query, params)

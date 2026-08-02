@@ -27,6 +27,7 @@ const verifyAccess = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     let isTokenBlacklisted = false;
+    
     try {
         isTokenBlacklisted = await redisClient.exists(`blacklist:${token}`);
     } catch (err) {

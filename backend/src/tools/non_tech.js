@@ -18,8 +18,10 @@ export async function generateNonTechnicalQuestions(state) {
         evaluatedTechnicalRequirements,
         evaluatedNonTechnicalRequirements,
         nonTechResumeText,
-        jobDescriptionText,
+        jobDoc,
     } = state;
+
+    const jobDescriptionText = `${jobDoc.role} at ${jobDoc.companyName}`;
 
     const missingRequirements = [
         ...evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING"),

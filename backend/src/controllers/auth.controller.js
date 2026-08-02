@@ -197,7 +197,7 @@ export const getMeController = async (req, res) => {
     logger.warn({ err: error }, 'Failed to retrieve user from cache');
   }
 
-  const user = await userModel.findById(req.user.id).lean();
+  const user = await userModel.findById(req.user.id);
 
   if (!user) {
     throw new NotFoundError('User not found');
@@ -237,7 +237,7 @@ export const refreshAccessController = async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await userModel.findById(decoded.id).select('+refreshToken').lean();
+    const user = await userModel.findById(decoded.id).select('+refreshToken');
     if (!user || !user.refreshToken) {
       throw new ForbiddenError('Session has expired or you have logged out');
     }

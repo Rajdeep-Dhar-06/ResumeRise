@@ -4,6 +4,7 @@ import resumeModel from '../models/resume.model.js';
 import { anonymizeResume } from '../utils/anonymizer.js';
 import { segmentResume } from './segmenter.js';
 import logger from '../utils/logger.js';
+import { BadRequestError } from '../utils/error_handler.js';
 
 /**
  * Helper to parse, anonymize, segment and save a candidate's resume PDF
@@ -14,7 +15,7 @@ import logger from '../utils/logger.js';
 export async function parseAndSaveResume(userId, resumeBuffer) {
     const contentHash = createHash('sha256').update(resumeBuffer).digest('hex');
 
-    let doc = await resumeModel.findOne({ user: userId, contentHash }).lean();
+    let doc = await resumeModel.findOne({ user: userId, contentHash });
 
     if (!doc) {
         logger.info({ userId }, '[Agent] Parsing candidate resume PDF');
@@ -25,7 +26,7 @@ export async function parseAndSaveResume(userId, resumeBuffer) {
         parsedText = docs.map((doc) => doc.pageContent).join('\n');
 
         if (!parsedText.trim()) {
-            throw new Error('The uploaded resume PDF does not contain any extractable text.');
+            throw new BadRequestError('The uploaded resume PDF does not contain any extractable text.');
         }
 
         const anonymizedText = anonymizeResume(parsedText);

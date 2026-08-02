@@ -23,7 +23,8 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Login failed:", error);
-      toast.error("Invalid email or password. Please try again.");
+      const errMsg = error?.response?.data?.error || "Invalid email or password. Please try again.";
+      toast.error(errMsg);
       return false;
     } finally {
       setIsLoggingIn(false);
@@ -40,7 +41,8 @@ export const useAuth = () => {
       return true;
     } catch (error) {
       console.error("Registration failed:", error);
-      toast.error("Failed to create account. Please try again.");
+      const errMsg = error?.response?.data?.error || "Failed to create account. Please try again.";
+      toast.error(errMsg);
       return false;
     } finally {
       setIsRegistering(false);

@@ -21,11 +21,11 @@ const Home = () => {
   const [fileName, setFileName] = useState("");
   const resumeInputRef = useRef();
   const [resumeFile, setResumeFile] = useState(null);
-  
+
   // State: Form inputs
   const [jobDescriptionUrl, setJobDescriptionUrl] = useState("");
   const [daysLimit, setDaysLimit] = useState(7);
-  
+
   // State: UI toggles
   const [generating, setGenerating] = useState(false);
 

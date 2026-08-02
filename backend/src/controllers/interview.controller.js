@@ -32,7 +32,7 @@ export const generateInterviewReportController = async (req, res) => {
     resumeHash,
     jobDescriptionUrl: jobDescriptionUrl.trim(),
     daysLimit: days,
-  }).populate('jobDescriptionId').lean();
+  }).populate('jobDescriptionId');
 
   if (existingReport) {
     return res.status(200).json({
@@ -57,7 +57,7 @@ export const generateInterviewReportController = async (req, res) => {
     logger.warn({ err: err.message }, 'Failed to invalidate stats cache after report generation');
   }
 
-  res.status(200).json({
+  res.status(201).json({
     message: 'Report generation completed successfully',
     interviewReport: state.savedReport,
   });
@@ -74,7 +74,7 @@ export const getInterviewReportByIdController = async (req, res) => {
   const interviewReport = await InterviewReportModel.findOne({
     _id: interviewId,
     userId: req.user.id,
-  }).populate('jobDescriptionId').lean();
+  }).populate('jobDescriptionId');
 
   if (!interviewReport) {
     throw new NotFoundError('Interview report not found');
@@ -118,8 +118,7 @@ export const getAllInterviewReportsController = async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select('reportTitle matchScore createdAt companyName role jobDescriptionUrl')
-    .lean();
+    .select('reportTitle matchScore createdAt companyName role jobDescriptionUrl');
 
   res.status(200).json({
     message: 'Interview reports fetched successfully',

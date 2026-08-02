@@ -67,6 +67,7 @@ export function CreatePlan({
                     onChange={(e) => setJobDescriptionUrl(e.target.value)}
                     placeholder="Paste job posting URL (e.g. LinkedIn, Indeed, Lever)..."
                     disabled={loading}
+                    autoComplete="off"
                     className="h-10 pr-10"
                   />
                   {jobDescriptionUrl && !loading && (

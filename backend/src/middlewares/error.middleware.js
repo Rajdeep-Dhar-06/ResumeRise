@@ -22,12 +22,18 @@ const normalizeError = (err) => {
 export const errorMiddleware = (err, req, res, next) => {
   const error = err instanceof BaseError ? err : (normalizeError(err) || Object.assign(err, { statusCode: 500, isOperational: false }));
 
+  let clientErrorMessage = error.message;
+
+  if (!error.isOperational) {
+    clientErrorMessage = 'An unexpected error occurred. Please try again later.';
+  }
+
   const response = {
-    error: error.message || 'Internal Server Error',
+    error: clientErrorMessage || 'Internal Server Error',
     ...(error.details && { details: error.details }),
   };
 
-  if (process.env.NODE_ENV !== 'production') response.stack = error.stack;
+  // Stack traces intentionally omitted to prevent leakage of backend implementation details
 
   if (error.isOperational) {
     logger.warn({ statusCode: error.statusCode, name: error.name }, `Operational error handled: ${error.message}`);

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS } from '../utils/enums.js';
 
 export const evaluatedRequirementSchema = z.object({
-  requirementName: z.string().catch('').transform(s => s.trim()).describe("The skill or requirement being evaluated"),
+  requirementName: z.string().trim().catch('').describe("The skill or requirement being evaluated"),
 
   priority: z.enum(PRIORITY_LEVELS).catch('REQUIRED').describe(
     "The exact priority of this requirement as provided in the input job description. Do not modify or hallucinate this."
@@ -15,11 +15,11 @@ export const evaluatedRequirementSchema = z.object({
     "MISSING: not mentioned, or only vaguely implied through synonyms or generic language."
   ),
 
-  resumeEvidence: z.string().catch('None found').transform(s => s.trim() || 'None found').describe(
+  resumeEvidence: z.string().trim().catch('None found').describe(
     "The exact resume line or project that supports this status. If MISSING, write 'None found'."
   ),
 
-  depthAssessment: z.string().catch('None').transform(s => s.trim() || 'None').describe(
+  depthAssessment: z.string().trim().catch('None').describe(
     "A blunt 1 or 2 sentence assessment. Do not soften language. " +
     "Call out if the evidence is a tutorial clone, a toy project, boilerplate, or surface-level usage."
   ),
@@ -38,7 +38,7 @@ export const evaluatedRequirementSchema = z.object({
     "N/A: not a project context."
   ),
 
-  matchStrength: z.coerce.number().min(0).max(100).optional().describe(
+  matchStrength: z.coerce.number().int().min(0).max(100).optional().describe(
     "A raw integer from 0 to 100 representing confidence in the match. Do NOT include a % sign."
   )
 });

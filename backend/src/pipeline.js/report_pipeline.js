@@ -4,6 +4,7 @@ import { assembleReportComponentsStep } from '../services/step3_assemble.js';
 import { persistReportStep } from '../services/step4_persist.js';
 import { acquireLock, releaseLock } from '../utils/lock.js';
 import crypto from 'crypto';
+import { ConflictError } from '../utils/error_handler.js';
 
 /**
  * Executes the end-to-end interview report generation pipeline using modular step functions.
@@ -15,9 +16,9 @@ export async function runInterviewReportPipeline(inputContext) {
   const lockKey = `lock:pipeline:${inputContext.userId}`;
   const lockValue = crypto.randomUUID();
 
-  const acquired = await acquireLock(lockKey, lockValue, 300);
+  const acquired = await acquireLock(lockKey, lockValue, 60);
   if (!acquired) {
-    throw new Error('Report generation is already in progress for your account. Please wait or try again if it fails.');
+    throw new ConflictError('Report generation is already in progress.');
   }
 
   try {

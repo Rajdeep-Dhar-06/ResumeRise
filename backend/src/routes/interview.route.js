@@ -17,7 +17,7 @@ const interviewRouter = express.Router();
 // Validation schemas
 const generateReportSchema = {
   body: z.object({
-    jobDescriptionUrl: z.url({ error: 'Invalid URL format.' }).trim(),
+    jobDescriptionUrl: z.string().url(),
     daysLimit: z.enum(["3", "5", "7"]).default("7"),
   }),
 };
@@ -43,6 +43,28 @@ interviewRouter.post(
 );
 
 /**
+ * @route GET /api/interview/reports/stats
+ * @description Get interview reports stats for a user
+ * @access private
+ */
+interviewRouter.get(
+  '/reports/stats',
+  verifyAccess,
+  getInterviewStatsController
+);
+
+/**
+ * @route GET /api/interview/reports
+ * @description Get all interview reports for a user
+ * @access private
+ */
+interviewRouter.get(
+  '/reports',
+  verifyAccess,
+  getAllInterviewReportsController
+);
+
+/**
  * @route GET /api/interview/reports/:interviewId
  * @description Get interview report by ID
  * @access private
@@ -55,17 +77,6 @@ interviewRouter.get(
 );
 
 /**
- * @route GET /api/interview/reports/stats
- * @description Get interview reports stats for a user
- * @access private
- */
-interviewRouter.get(
-  '/reports/stats',
-  verifyAccess,
-  getInterviewStatsController
-);
-
-/**
  * @route DELETE /api/interview/reports/:interviewId
  * @description Delete interview report by ID
  * @access private
@@ -75,17 +86,6 @@ interviewRouter.delete(
   verifyAccess,
   validate(interviewIdSchema),
   deleteInterviewReportController
-);
-
-/**
- * @route GET /api/interview/reports
- * @description Get all interview reports for a user
- * @access private
- */
-interviewRouter.get(
-  '/reports',
-  verifyAccess,
-  getAllInterviewReportsController
 );
 
 export default interviewRouter;
