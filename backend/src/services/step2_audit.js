@@ -1,51 +1,77 @@
 import logger from '../utils/logger.js';
 import { getStructuredModel } from '../config/llm.js';
-import { techRequirementsMatchSchema, nonTechRequirementsMatchSchema } from '../schemas/matched_term.schema.js';
+import { evaluatedRequirementSchema } from '../schemas/matched_term.schema.js';
 import { getTechRequirementsPrompt, getNonTechRequirementsPrompt } from '../prompts/prompts.js';
 import { withLlmCache } from '../utils/llm_cache.js';
+import { createResumeVectorStore, retrieveTopKChunks } from '../utils/embeddings.js';
 
 /**
- * Step 2: Audit candidate resume against scraped job technical and non-technical requirements.
- * Uses input-hashed Redis caching to prevent duplicate LLM calls.
+ * Step 2: Audit candidate resume against job requirements using RAG similarity search & Gemini.
  */
 export async function auditRequirementsStep(ingestData) {
   const {
     userId,
     resumeDoc,
     jobDoc,
-    techResumeText,
-    nonTechResumeText
   } = ingestData;
 
-  logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, 'Auditing candidate resume against job requirements');
+  logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, 'RAG Auditing candidate resume against job requirements');
 
   const {
-    technicalRequirements: jobDescriptionTechnicalRequirements,
-    nonTechnicalRequirements: jobDescriptionNonTechnicalRequirements,
+    technicalRequirements: techReqs = [],
+    nonTechnicalRequirements: nonTechReqs = [],
   } = jobDoc;
 
-  const techRequirementsLlm = getStructuredModel(techRequirementsMatchSchema);
-  const nonTechRequirementsLlm = getStructuredModel(nonTechRequirementsMatchSchema);
+  // 1. Build MemoryVectorStore from resume raw text
+  const vectorStore = await createResumeVectorStore(resumeDoc.rawText || '');
 
-  const [techRequirementsResult, nonTechRequirementsResult] = await Promise.all([
-    withLlmCache(
-      'audit_tech_requirements',
-      { techResumeText, jobDescriptionTechnicalRequirements },
-      () => techRequirementsLlm.invoke(
-        getTechRequirementsPrompt({ resumeText: techResumeText, jobDescriptionTechnicalRequirements })
-      )
-    ),
-    withLlmCache(
-      'audit_non_tech_requirements',
-      { nonTechResumeText, jobDescriptionNonTechnicalRequirements },
-      () => nonTechRequirementsLlm.invoke(
-        getNonTechRequirementsPrompt({ resumeText: nonTechResumeText, jobDescriptionNonTechnicalRequirements })
-      )
-    )
-  ]);
+  const singleAuditLlm = getStructuredModel(evaluatedRequirementSchema);
 
-  const evaluatedTechnicalRequirements = techRequirementsResult.evaluatedTechnicalRequirements;
-  const evaluatedNonTechnicalRequirements = nonTechRequirementsResult.evaluatedNonTechnicalRequirements;
+  // 2. Concurrently audit technical requirements with RAG vector retrieval
+  const evaluatedTechnicalRequirements = await Promise.all(
+    techReqs.map(async (req) => {
+      const query = `${req.canonicalName || req.requirementName} ${req.sourceContext || ''}`.trim();
+      const retrievedChunks = await retrieveTopKChunks(vectorStore, query, 3);
+
+      return withLlmCache(
+        'audit_tech_requirement',
+        { req, retrievedChunks },
+        async () => {
+          const result = await singleAuditLlm.invoke(
+            getTechRequirementsPrompt({ requirement: req, retrievedChunks })
+          );
+          return {
+            ...result,
+            requirementName: req.requirementName,
+            priority: req.priority,
+          };
+        }
+      );
+    })
+  );
+
+  // 3. Concurrently audit non-technical requirements with RAG vector retrieval
+  const evaluatedNonTechnicalRequirements = await Promise.all(
+    nonTechReqs.map(async (req) => {
+      const query = `${req.canonicalName || req.requirementName} ${req.sourceContext || ''}`.trim();
+      const retrievedChunks = await retrieveTopKChunks(vectorStore, query, 3);
+
+      return withLlmCache(
+        'audit_non_tech_requirement',
+        { req, retrievedChunks },
+        async () => {
+          const result = await singleAuditLlm.invoke(
+            getNonTechRequirementsPrompt({ requirement: req, retrievedChunks })
+          );
+          return {
+            ...result,
+            requirementName: req.requirementName,
+            priority: req.priority,
+          };
+        }
+      );
+    })
+  );
 
   return {
     ...ingestData,

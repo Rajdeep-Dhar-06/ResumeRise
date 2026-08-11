@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { runInterviewReportPipeline } from './src/pipeline.js/report_pipeline.js';
+import { runInterviewReportPipeline } from './src/pipeline/report_pipeline.js';
 
 async function run() {
   try {

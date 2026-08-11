@@ -3,7 +3,8 @@ import { PRIORITY_LEVELS } from '../utils/enums.js';
 
 export const jdTermSchema = z.object({
   requirementName: z.string().trim().default('').describe("The name of the requirement/skill, exactly as it appears or is implied in the JD"),
-  priority: z.enum(PRIORITY_LEVELS).catch('REQUIRED').describe("REQUIRED = mandatory/must-have, PREFERRED = nice-to-have/bonus, NICE_TO_HAVE = implied or vague mention only"),
+  canonicalName: z.string().trim().catch('').describe("The standardized, clean technology or topic name used for vector embeddings and search (e.g. React for ReactJS)"),
+  priority: z.enum(PRIORITY_LEVELS).catch('REQUIRED').describe("REQUIRED = mandatory/must-have, PREFERRED = optional/nice-to-have"),
   sourceContext: z.string().trim().default('').describe("A short sentence explaining how this requirement/skill is applied in the job description responsibilities or qualifications")
 });
 

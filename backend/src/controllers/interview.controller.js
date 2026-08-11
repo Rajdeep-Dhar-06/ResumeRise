@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import InterviewReportModel from '../models/interview_report.model.js';
-import { runInterviewReportPipeline } from '../pipeline.js/report_pipeline.js';
+import { runInterviewReportPipeline } from '../pipeline/report_pipeline.js';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/error_handler.js';
 import { redisClient } from '../config/redis.js';
 import logger from '../utils/logger.js';

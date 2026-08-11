@@ -1,13 +1,17 @@
 import { ChatGoogle } from '@langchain/google';
 
 export const model = new ChatGoogle({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-2.0-flash",
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.2
 });
 
+export function getModel() {
+    return model;
+}
+
 export const creativeModel = new ChatGoogle({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-2.0-flash",
     apiKey: process.env.GEMINI_API_KEY,
     temperature: 0.6
 });
@@ -21,8 +25,8 @@ export const creativeModel = new ChatGoogle({
  */
 export function getStructuredModel(schema) {
     return model.withStructuredOutput(schema).withFallbacks([
-        new ChatGoogle({ model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.2 }).withStructuredOutput(schema),
-        new ChatGoogle({ model: "gemini-2.5-flash-lite", apiKey: process.env.GEMINI_API_KEY, temperature: 0.2 }).withStructuredOutput(schema),
+        new ChatGoogle({ model: "gemini-2.0-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.2 }).withStructuredOutput(schema),
+        new ChatGoogle({ model: "gemini-2.0-flash-lite", apiKey: process.env.GEMINI_API_KEY, temperature: 0.2 }).withStructuredOutput(schema),
     ]);
 }
 
@@ -35,7 +39,7 @@ export function getStructuredModel(schema) {
  */
 export function getCreativeStructuredModel(schema) {
     return creativeModel.withStructuredOutput(schema).withFallbacks([
-        new ChatGoogle({ model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.6 }).withStructuredOutput(schema),
-        new ChatGoogle({ model: "gemini-2.5-flash-lite", apiKey: process.env.GEMINI_API_KEY, temperature: 0.6 }).withStructuredOutput(schema),
+        new ChatGoogle({ model: "gemini-2.0-flash", apiKey: process.env.GEMINI_API_KEY, temperature: 0.6 }).withStructuredOutput(schema),
+        new ChatGoogle({ model: "gemini-2.0-flash-lite", apiKey: process.env.GEMINI_API_KEY, temperature: 0.6 }).withStructuredOutput(schema),
     ]);
 }

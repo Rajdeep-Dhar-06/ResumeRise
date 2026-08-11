@@ -5,6 +5,19 @@ import { learningResourceMongooseSchema } from './learning_resource.model.js';
 import { preparationGapSchema } from './preparation_gap.model.js';
 import { preparationPlanSchema } from './preparation_plan.model.js';
 
+const evaluatedRequirementSchema = new mongoose.Schema(
+  {
+    requirementName: { type: String, default: '' },
+    priority: { type: String, enum: PRIORITY_LEVELS, default: 'REQUIRED' },
+    matchStatus: { type: String, enum: MATCH_STATUS, default: 'MISSING' },
+    retrievedEvidence: [{ type: String }],
+    depthAssessment: { type: String, default: 'None' },
+    complexityLevel: { type: String, enum: COMPLEXITY_LEVELS, default: 'N/A' },
+    matchStrength: { type: Number },
+  },
+  { _id: false }
+);
+
 /**
  * Mongoose schema representing the final generated Interview/Preparation Report.
  * Contains user/document references, aggregated match metrics, generated evaluation requirements (technical/non-technical),
@@ -63,6 +76,8 @@ const interviewReportSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+    evaluatedTechnicalRequirements: [evaluatedRequirementSchema],
+    evaluatedNonTechnicalRequirements: [evaluatedRequirementSchema],
     technicalQuestions: [questionSchema],
     nonTechnicalQuestions: [questionSchema],
     preparationGaps: [preparationGapSchema],

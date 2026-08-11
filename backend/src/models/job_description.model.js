@@ -7,6 +7,9 @@ const jdTermSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        canonicalName: {
+            type: String,
+        },
         priority: {
             type: String,
             enum: PRIORITY_LEVELS,

@@ -20,19 +20,7 @@ export async function ingestDocumentsStep(inputContext) {
     scrapeAndSaveJobDescription(jobDescriptionUrl)
   ]);
 
-  const techResumeText = [
-    resumeDoc.academicInfo,
-    resumeDoc.technicalAchievements,
-    resumeDoc.experiences,
-    resumeDoc.technicalProjects
-  ].filter(Boolean).join('\n\n');
-
-  const nonTechResumeText = [
-    resumeDoc.academicInfo,
-    resumeDoc.technicalAchievements,
-    resumeDoc.extracurricularAchievements,
-    resumeDoc.experiences
-  ].filter(Boolean).join('\n\n');
+  const rawText = resumeDoc.rawText || '';
 
   return {
     userId,
@@ -41,7 +29,8 @@ export async function ingestDocumentsStep(inputContext) {
     daysLimit,
     resumeDoc,
     jobDoc,
-    techResumeText,
-    nonTechResumeText
+    techResumeText: rawText,
+    nonTechResumeText: rawText
   };
 }
+

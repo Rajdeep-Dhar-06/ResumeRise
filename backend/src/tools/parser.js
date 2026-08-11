@@ -2,12 +2,11 @@ import { createHash } from 'crypto';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import resumeModel from '../models/resume.model.js';
 import { anonymizeResume } from '../utils/anonymizer.js';
-import { segmentResume } from './segmenter.js';
 import logger from '../utils/logger.js';
 import { BadRequestError } from '../utils/error_handler.js';
 
 /**
- * Helper to parse, anonymize, segment and save a candidate's resume PDF
+ * Helper to parse, anonymize and save a candidate's resume PDF
  * @param {string} userId - ID of the candidate
  * @param {Buffer} resumeBuffer - Raw PDF file buffer
  * @returns {Promise<Object>} - Saved Resume Mongoose document
@@ -30,26 +29,17 @@ export async function parseAndSaveResume(userId, resumeBuffer) {
         }
 
         const anonymizedText = anonymizeResume(parsedText);
-        logger.info({ userId }, '[Agent] Segmenting resume via Gemini');
-        const {
-            academicInfo,
-            technicalAchievements,
-            extracurricularAchievements,
-            experiences,
-            technicalProjects,
-        } = await segmentResume(anonymizedText);
 
         const newDoc = await resumeModel.create({
             user: userId,
             contentHash,
-            academicInfo,
-            technicalAchievements,
-            extracurricularAchievements,
-            experiences,
-            technicalProjects,
+            rawText: anonymizedText,
         });
 
         doc = newDoc.toObject(); //convert to plain JS object
+    } else {
+        doc = doc.toObject ? doc.toObject() : doc;
     }
     return doc;
 }
+

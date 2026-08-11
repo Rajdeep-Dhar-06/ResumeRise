@@ -5,7 +5,7 @@ export const evaluatedRequirementSchema = z.object({
   requirementName: z.string().trim().catch('').describe("The skill or requirement being evaluated"),
 
   priority: z.enum(PRIORITY_LEVELS).catch('REQUIRED').describe(
-    "The exact priority of this requirement as provided in the input job description. Do not modify or hallucinate this."
+    "The exact priority of this requirement as provided in the input job description."
   ),
 
   matchStatus: z.enum(MATCH_STATUS).catch('MISSING').describe(
@@ -15,26 +15,19 @@ export const evaluatedRequirementSchema = z.object({
     "MISSING: not mentioned, or only vaguely implied through synonyms or generic language."
   ),
 
-  resumeEvidence: z.string().trim().catch('None found').describe(
-    "The exact resume line or project that supports this status. If MISSING, write 'None found'."
+  retrievedEvidence: z.array(z.string().trim()).catch([]).describe(
+    "The array of top retrieved resume bullet chunks supporting this status. If MISSING, return an empty array."
   ),
 
   depthAssessment: z.string().trim().catch('None').describe(
-    "A blunt 1 or 2 sentence assessment. Do not soften language. " +
-    "Call out if the evidence is a tutorial clone, a toy project, boilerplate, or surface-level usage."
+    "A blunt 1 or 2 sentence assessment. Do not soften language."
   ),
 
   complexityLevel: z.enum(COMPLEXITY_LEVELS).catch('N/A').describe(
-    "Rate the complexity of the evidence project/experience. " +
-    "TRIVIAL: todo app, weather app, portfolio site, YouTube tutorial clone. " +
-    "BASIC: standard CRUD app, simple REST API, no meaningful scale or architecture decisions. " +
-    "INTERMEDIATE: multi-service architecture, auth flows, real deployment, some design decisions. " +
-    "ADVANCED: non-trivial independent or internship project with genuine engineering depth — " +
-    "custom concurrency, caching layers, protocol implementations, performance-aware design decisions, " +
-    "or competitive programming at a rated/ranked level. Exceeds tutorials but lacks verifiable " +
-    "real-world scale or confirmed professional deployment. " +
-    "PRODUCTION: open-source contributions with traction, demonstrated scale (users/load), " +
-    "complex algorithmic work, or professional work experience. " +
+    "Rate the complexity of the evidence project/experience: " +
+    "BASIC: todo app, tutorial clone, or skills-list mention. " +
+    "INTERMEDIATE: real personal/academic project with multi-service or deployed architecture. " +
+    "PRODUCTION: professional work experience, high-scale engineering, or major open-source. " +
     "N/A: not a project context."
   ),
 

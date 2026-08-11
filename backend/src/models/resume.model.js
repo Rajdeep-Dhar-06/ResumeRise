@@ -17,23 +17,7 @@ const resumeSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        academicInfo: {
-            type: String,
-            default: "",
-        },
-        technicalAchievements: {
-            type: String,
-            default: "",
-        },
-        extracurricularAchievements: {
-            type: String,
-            default: "",
-        },
-        experiences: {
-            type: String,
-            default: "",
-        },
-        technicalProjects: {
+        rawText: {
             type: String,
             default: "",
         },
