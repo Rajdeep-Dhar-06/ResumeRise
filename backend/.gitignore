@@ -1,7 +1,8 @@
-# Environment variables
+# Environment Variables
 .env
 .env.*
 *.env
+!.env.example
 
 # Dependencies & Build Outputs
 node_modules/
@@ -12,13 +13,27 @@ dist/
 *.log
 logs/
 
-# System Files
-.DS_Store
-Thumbs.db
-
-# Test Files & Dump Outputs
+# Tests, Scratch Scripts, & Dumps
+test*.*
+test_*.*
+verify*.*
+scratch*.*
+*.test.*
+*.spec.*
+__tests__/
+test/
+tests/
+coverage/
+*.pdf
 cookies.txt
 login.json
-test_resume.pdf
-test-redis.js
-test*.js
+
+# Markdown Constraints
+*.md
+!README.md
+
+# System & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

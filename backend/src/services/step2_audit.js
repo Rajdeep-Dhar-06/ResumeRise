@@ -2,18 +2,17 @@ import logger from '../utils/logger.js';
 import { getStructuredModel } from '../config/llm.js';
 import { evaluatedRequirementSchema } from '../schemas/matched_term.schema.js';
 import { getTechRequirementsPrompt, getNonTechRequirementsPrompt } from '../prompts/prompts.js';
-import { withLlmCache } from '../utils/llm_cache.js';
 import { createResumeVectorStore, retrieveTopKChunks } from '../utils/embeddings.js';
 
 /**
  * Step 2: Audit candidate resume against job requirements using RAG similarity search & Gemini.
  */
-export async function auditRequirementsStep(ingestData) {
+export async function auditRequirements(pipelineState) {
   const {
     userId,
     resumeDoc,
     jobDoc,
-  } = ingestData;
+  } = pipelineState;
 
   logger.info({ userId, resumeId: resumeDoc._id, jobDescriptionId: jobDoc._id }, 'RAG Auditing candidate resume against job requirements');
 
@@ -33,20 +32,14 @@ export async function auditRequirementsStep(ingestData) {
       const query = `${req.canonicalName || req.requirementName} ${req.sourceContext || ''}`.trim();
       const retrievedChunks = await retrieveTopKChunks(vectorStore, query, 3);
 
-      return withLlmCache(
-        'audit_tech_requirement',
-        { req, retrievedChunks },
-        async () => {
-          const result = await singleAuditLlm.invoke(
-            getTechRequirementsPrompt({ requirement: req, retrievedChunks })
-          );
-          return {
-            ...result,
-            requirementName: req.requirementName,
-            priority: req.priority,
-          };
-        }
+      const result = await singleAuditLlm.invoke(
+        getTechRequirementsPrompt({ requirement: req, retrievedChunks })
       );
+      return {
+        ...result,
+        requirementName: req.requirementName,
+        priority: req.priority,
+      };
     })
   );
 
@@ -56,25 +49,19 @@ export async function auditRequirementsStep(ingestData) {
       const query = `${req.canonicalName || req.requirementName} ${req.sourceContext || ''}`.trim();
       const retrievedChunks = await retrieveTopKChunks(vectorStore, query, 3);
 
-      return withLlmCache(
-        'audit_non_tech_requirement',
-        { req, retrievedChunks },
-        async () => {
-          const result = await singleAuditLlm.invoke(
-            getNonTechRequirementsPrompt({ requirement: req, retrievedChunks })
-          );
-          return {
-            ...result,
-            requirementName: req.requirementName,
-            priority: req.priority,
-          };
-        }
+      const result = await singleAuditLlm.invoke(
+        getNonTechRequirementsPrompt({ requirement: req, retrievedChunks })
       );
+      return {
+        ...result,
+        requirementName: req.requirementName,
+        priority: req.priority,
+      };
     })
   );
 
   return {
-    ...ingestData,
+    ...pipelineState,
     evaluatedTechnicalRequirements,
     evaluatedNonTechnicalRequirements,
   };

@@ -5,7 +5,7 @@ import multer from 'multer';
  * Configures transient memory storage and limits uploaded files to a maximum of 3 MB.
  * Suitable for parsing resume PDF documents in-memory.
  */
-const upload = multer({
+const uploadPdfMiddleware = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 3 * 1024 * 1024, // 3 MB limit
@@ -19,4 +19,4 @@ const upload = multer({
     },
 });
 
-export default upload;
+export default uploadPdfMiddleware;

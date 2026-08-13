@@ -1,13 +1,13 @@
 import express from 'express';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
 import {
-  generateInterviewReportController,
-  getInterviewReportByIdController,
-  getAllInterviewReportsController,
-  getInterviewStatsController,
-  deleteInterviewReportController
+  generateReport,
+  getReportById,
+  getAllReports,
+  getStats,
+  deleteReport
 } from '../controllers/interview.controller.js';
-import upload from '../middlewares/resume_upload.middleware.js';
+import uploadPdfMiddleware from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
 import { reportLimiter } from '../middlewares/rate_limiter.middleware.js';
@@ -37,9 +37,9 @@ interviewRouter.post(
   '/reports/generate-report',
   verifyAccess,
   reportLimiter,
-  upload.single('resume'),
+  uploadPdfMiddleware.single('resume'),
   validate(generateReportSchema),
-  generateInterviewReportController
+  generateReport
 );
 
 /**
@@ -50,7 +50,7 @@ interviewRouter.post(
 interviewRouter.get(
   '/reports/stats',
   verifyAccess,
-  getInterviewStatsController
+  getStats
 );
 
 /**
@@ -61,7 +61,7 @@ interviewRouter.get(
 interviewRouter.get(
   '/reports',
   verifyAccess,
-  getAllInterviewReportsController
+  getAllReports
 );
 
 /**
@@ -73,7 +73,7 @@ interviewRouter.get(
   '/reports/:interviewId',
   verifyAccess,
   validate(interviewIdSchema),
-  getInterviewReportByIdController
+  getReportById
 );
 
 /**
@@ -85,7 +85,7 @@ interviewRouter.delete(
   '/reports/:interviewId',
   verifyAccess,
   validate(interviewIdSchema),
-  deleteInterviewReportController
+  deleteReport
 );
 
 export default interviewRouter;

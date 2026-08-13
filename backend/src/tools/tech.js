@@ -2,22 +2,21 @@ import logger from '../utils/logger.js';
 import { getCreativeStructuredModel } from '../config/llm.js';
 import { reportTechQuestionsSchema } from '../schemas/interview_report.schema.js';
 import { getTechQuestionsPrompt } from '../prompts/prompts.js';
-import { formatTerms } from '../utils/format.js';
-import { withLlmCache } from '../utils/llm_cache.js';
+import { formatRequirementsForPrompt } from '../utils/format.js';
 
 /**
  * Helper to generate customized technical questions
- * @param {Object} state - Graph state
+ * @param {Object} pipelineState - Graph state
  * @returns {Promise<Object>} - Generated technical questions array
  */
-export async function generateTechnicalQuestions(state) {
-    const { userId } = state;
+export async function generateTechnicalQuestions(pipelineState) {
+    const { userId } = pipelineState;
     logger.info({ userId }, '[Agent] Generating customized technical assessment questions');
 
     const {
         evaluatedTechnicalRequirements,
         jobDoc,
-    } = state;
+    } = pipelineState;
 
     const jobDescriptionText = `${jobDoc.role} at ${jobDoc.companyName}`;
 
@@ -25,9 +24,9 @@ export async function generateTechnicalQuestions(state) {
     const missingRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "MISSING");
     const weakRequirements = evaluatedTechnicalRequirements.filter(s => s.matchStatus === "WEAK_MATCH");
 
-    const missingTermsFormatted = formatTerms(missingRequirements);
-    const weakTermsFormatted = formatTerms(weakRequirements);
-    const matchedTermsFormatted = formatTerms(matchedRequirements);
+    const missingTermsFormatted = formatRequirementsForPrompt(missingRequirements);
+    const weakTermsFormatted = formatRequirementsForPrompt(weakRequirements);
+    const matchedTermsFormatted = formatRequirementsForPrompt(matchedRequirements);
 
     const prompt = getTechQuestionsPrompt({
         missingTermsFormatted,
@@ -37,11 +36,7 @@ export async function generateTechnicalQuestions(state) {
     });
 
     const structuredLlm = getCreativeStructuredModel(reportTechQuestionsSchema);
-    const response = await withLlmCache(
-        'tech_questions',
-        { missingTermsFormatted, weakTermsFormatted, matchedTermsFormatted, jobDescriptionText },
-        () => structuredLlm.invoke(prompt)
-    );
+    const response = await structuredLlm.invoke(prompt);
 
     return {
         technicalQuestions: response.technicalQuestions

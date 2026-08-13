@@ -4,8 +4,7 @@ import { model, getStructuredModel } from '../config/llm.js';
 import { reportGapsAndPlanSchema } from '../schemas/interview_report.schema.js';
 import { getGapsAndPlanPrompt } from '../prompts/prompts.js';
 import { searchTool } from './search.js';
-import { formatTerms } from '../utils/format.js';
-import { withLlmCache } from '../utils/llm_cache.js';
+import { formatRequirementsForPrompt } from '../utils/format.js';
 
 const SEARCH_TOOL_NAME = 'tavily_web_search';
 const MAX_AGENT_STEPS = 3;
@@ -60,48 +59,42 @@ async function findLearningResources({ missingTermsFormatted, weakTermsFormatted
  * the job requirements, searches for supporting learning resources, then asks
  * the model to turn that into a day-by-day plan.
  *
- * @param {Object} state - Current pipeline audit state
+ * @param {Object} pipelineState - Current pipeline audit state
  * @returns {Promise<Object>} { preparationGaps, preparationPlan, learningResources }
  */
-export async function processLearningPath(state) {
-    const { userId, evaluatedTechnicalRequirements = [], daysLimit = 7 } = state;
+export async function generateLearningPlan(pipelineState) {
+    const { userId, evaluatedTechnicalRequirements = [], daysLimit = 7 } = pipelineState;
     logger.info({ userId }, '[Agentic Planner] Starting learning path generation');
 
     const missingTechnicalRequirements = evaluatedTechnicalRequirements.filter((s) => s.matchStatus === 'MISSING');
     const weakTechnicalRequirements = evaluatedTechnicalRequirements.filter((s) => s.matchStatus === 'WEAK_MATCH');
 
-    const missingTermsFormatted = formatTerms(missingTechnicalRequirements);
-    const weakTermsFormatted = formatTerms(weakTechnicalRequirements);
+    const missingTermsFormatted = formatRequirementsForPrompt(missingTechnicalRequirements);
+    const weakTermsFormatted = formatRequirementsForPrompt(weakTechnicalRequirements);
 
     const searchTerms = [...missingTechnicalRequirements, ...weakTechnicalRequirements].map((t) => t.requirementName);
 
-    return withLlmCache(
-        'planner_learning_path_agentic',
-        { missingTermsFormatted, weakTermsFormatted, daysLimit, searchTerms },
-        async () => {
-            const searchResultsText = searchTerms.length > 0
-                ? await findLearningResources({ missingTermsFormatted, weakTermsFormatted, userId })
-                : NO_RESULTS_FALLBACK;
+    const searchResultsText = searchTerms.length > 0
+        ? await findLearningResources({ missingTermsFormatted, weakTermsFormatted, userId })
+        : NO_RESULTS_FALLBACK;
 
-            const finalPrompt = getGapsAndPlanPrompt({
-                missingTermsFormatted,
-                weakTermsFormatted,
-                searchResultsText,
-                daysLimit,
-            });
+    const finalPrompt = getGapsAndPlanPrompt({
+        missingTermsFormatted,
+        weakTermsFormatted,
+        searchResultsText,
+        daysLimit,
+    });
 
-            const structuredLlm = getStructuredModel(reportGapsAndPlanSchema);
-            const response = await structuredLlm.invoke(finalPrompt);
+    const structuredLlm = getStructuredModel(reportGapsAndPlanSchema);
+    const response = await structuredLlm.invoke(finalPrompt);
 
-            if (process.env.NODE_ENV !== 'production') {
-                logger.debug({ userId, response }, '[Agentic Planner] Finished learning path generation');
-            }
+    if (process.env.NODE_ENV !== 'production') {
+        logger.debug({ userId, response }, '[Agentic Planner] Finished learning path generation');
+    }
 
-            return {
-                preparationGaps: response.preparationGaps,
-                preparationPlan: response.preparationPlan,
-                learningResources: response.learningResources,
-            };
-        }
-    );
+    return {
+        preparationGaps: response.preparationGaps,
+        preparationPlan: response.preparationPlan,
+        learningResources: response.learningResources,
+    };
 }

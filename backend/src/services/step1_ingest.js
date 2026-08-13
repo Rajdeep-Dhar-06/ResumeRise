@@ -5,13 +5,13 @@ import { scrapeAndSaveJobDescription } from '../tools/scraper.js';
 /**
  * Step 1: Ingest and extract structured text from candidate resume and job description URL.
  */
-export async function ingestDocumentsStep(inputContext) {
+export async function ingestDocuments(pipelineState) {
   const {
     userId,
     resumeBuffer,
     jobDescriptionUrl,
     daysLimit = 7
-  } = inputContext;
+  } = pipelineState;
 
   logger.info({ userId }, 'Ingesting resume and job description');
   
@@ -29,8 +29,7 @@ export async function ingestDocumentsStep(inputContext) {
     daysLimit,
     resumeDoc,
     jobDoc,
-    techResumeText: rawText,
-    nonTechResumeText: rawText
+    resumeText: rawText
   };
 }
 

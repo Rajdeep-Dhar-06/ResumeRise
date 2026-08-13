@@ -4,7 +4,7 @@ import InterviewReportModel from '../models/interview_report.model.js';
 /**
  * Step 4: Persist the generated interview report document to MongoDB.
  */
-export async function persistReportStep(assembledData) {
+export async function saveReport(pipelineState) {
   const {
     userId,
     jobDoc,
@@ -18,7 +18,7 @@ export async function persistReportStep(assembledData) {
     preparationGaps,
     preparationPlan,
     learningResources,
-  } = assembledData;
+  } = pipelineState;
 
   logger.info({ userId }, 'Persisting report to database');
 

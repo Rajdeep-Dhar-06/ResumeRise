@@ -1,7 +1,8 @@
-# Environment variables
+# Environment Variables
 .env
 .env.*
 *.env
+!.env.example
 
 # Dependencies & Build Outputs
 node_modules/
@@ -14,6 +15,19 @@ dist-ssr/
 logs/
 npm-debug.log*
 yarn-debug.log*
+
+# Tests & Scratch Scripts
+test*.*
+test_*.*
+verify*.*
+scratch*.*
+*.test.*
+*.spec.*
+__tests__/
+
+# Markdown Constraints
+*.md
+!README.md
 
 # System & Editor Files
 .DS_Store

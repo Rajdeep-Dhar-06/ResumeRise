@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import InterviewReportModel from '../models/interview_report.model.js';
 import { runInterviewReportPipeline } from '../pipeline/report_pipeline.js';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/error_handler.js';
-import { redisClient } from '../config/redis.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -15,7 +14,7 @@ import logger from '../utils/logger.js';
  * @param req - Express request object
  * @param res - Express response object
  */
-export const generateInterviewReportController = async (req, res) => {
+export const generateReport = async (req, res) => {
   const { jobDescriptionUrl, daysLimit } = req.body;
   const resumeFile = req.file;
 
@@ -50,13 +49,6 @@ export const generateInterviewReportController = async (req, res) => {
     daysLimit: days,
   });
 
-  // Invalidate stats cache
-  try {
-    await redisClient.del(`stats:${req.user.id}`);
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to invalidate stats cache after report generation');
-  }
-
   res.status(201).json({
     message: 'Report generation completed successfully',
     interviewReport: state.savedReport,
@@ -69,7 +61,7 @@ export const generateInterviewReportController = async (req, res) => {
  * @route GET /api/interview/reports/:interviewId
  * @access Private
  */
-export const getInterviewReportByIdController = async (req, res) => {
+export const getReportById = async (req, res) => {
   const { interviewId } = req.params;
   const interviewReport = await InterviewReportModel.findOne({
     _id: interviewId,
@@ -92,7 +84,7 @@ export const getInterviewReportByIdController = async (req, res) => {
  * @route GET /api/interview/reports
  * @access Private
  */
-export const getAllInterviewReportsController = async (req, res) => {
+export const getAllReports = async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = Math.min(parseInt(req.query.limit, 10) || 9, 50);
   const search = req.query.search ? req.query.search.trim() : "";
@@ -142,27 +134,7 @@ export const getAllInterviewReportsController = async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const getInterviewStatsController = async (req, res) => {
-  const cacheKey = `stats:${req.user.id}`;
-
-  const defaultStats = {
-    totalPlans: 0,
-    averageMatch: 0,
-    bestMatch: 0,
-  };
-
-  try {
-    const cachedStats = await redisClient.get(cacheKey);
-    if (cachedStats) {
-      return res.status(200).json({
-        message: 'Stats retrieved successfully',
-        stats: JSON.parse(cachedStats),
-      });
-    }
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to retrieve stats from cache');
-  }
-
+export const getStats = async (req, res) => {
   const stats = await InterviewReportModel.aggregate([
     { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
     {
@@ -181,13 +153,11 @@ export const getInterviewStatsController = async (req, res) => {
       averageMatch: Math.round(stats[0].averageMatch),
       bestMatch: stats[0].bestMatch,
     }
-    : defaultStats;
-
-  try {
-    await redisClient.set(cacheKey, JSON.stringify(statsResult), 'EX', 3600); // 1 hour safety TTL for eventual consistency
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to cache stats');
-  }
+    : {
+      totalPlans: 0,
+      averageMatch: 0,
+      bestMatch: 0,
+    };
 
   res.status(200).json({
     message: 'Stats retrieved successfully',
@@ -205,7 +175,7 @@ export const getInterviewStatsController = async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const deleteInterviewReportController = async (req, res) => {
+export const deleteReport = async (req, res) => {
   const { interviewId } = req.params;
   const deletedReport = await InterviewReportModel.findOneAndDelete({
     _id: interviewId,
@@ -214,12 +184,6 @@ export const deleteInterviewReportController = async (req, res) => {
 
   if (!deletedReport) {
     throw new NotFoundError('Interview report not found');
-  }
-
-  try {
-    await redisClient.del(`stats:${req.user.id}`);
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to invalidate stats cache after report deletion');
   }
 
   res.status(200).json({

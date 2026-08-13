@@ -1,11 +1,11 @@
 import express from 'express';
 import { z } from 'zod';
 import {
-  registerUserController,
-  loginUserController,
-  logoutUserController,
-  getMeController,
-  refreshAccessController,
+  register,
+  login,
+  logout,
+  getCurrentUser,
+  refreshSession,
 } from '../controllers/auth.controller.js';
 import verifyAccess from '../middlewares/verify_access.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
@@ -34,34 +34,34 @@ const loginSchema = {
  * @desc Register a new user
  * @access Public
  */
-authRouter.post('/register', registerLimiter, validate(registerSchema), registerUserController);
+authRouter.post('/register', registerLimiter, validate(registerSchema), register);
 
 /**
  * @route POST /api/auth/login
  * @desc Login a user
  * @access Public
  */
-authRouter.post('/login', loginLimiter, validate(loginSchema), loginUserController);
+authRouter.post('/login', loginLimiter, validate(loginSchema), login);
 
 /**
  * @route POST /api/auth/refresh
  * @desc Mint a new access token using a refresh token cookie
  * @access Public
  */
-authRouter.post('/refresh', refreshAccessController);
+authRouter.post('/refresh', refreshSession);
 
 /**
  * @route POST /api/auth/logout
  * @desc Clear token from cookie and add in blacklist
  * @access Private
  */
-authRouter.post('/logout', verifyAccess, logoutUserController);
+authRouter.post('/logout', verifyAccess, logout);
 
 /**
  * @route GET /api/auth/get-me
  * @desc Get current user information
  * @access Private
  */
-authRouter.get('/get-me', verifyAccess, getMeController);
+authRouter.get('/get-me', verifyAccess, getCurrentUser);
 
 export default authRouter;

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { BadRequestError, UnauthorizedError, NotFoundError, ForbiddenError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';
 import { redisClient } from '../config/redis.js';
+import { AUTH } from '../config/constants.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -12,7 +13,7 @@ const COOKIE_OPTIONS = {
   secure: isProduction,
   sameSite: isProduction ? 'None' : 'Lax',
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: AUTH.COOKIE_MAX_AGE_MS,
 };
 
 const CLEAR_COOKIE_OPTIONS = {
@@ -28,14 +29,14 @@ const CLEAR_COOKIE_OPTIONS = {
  * @route POST /api/auth/register
  * @access Public
  */
-export const registerUserController = async (req, res) => {
+export const register = async (req, res) => {
   const { username, email, password } = req.body;
 
   const normalizedUsername = username.trim();
   const normalizedEmail = email.trim().toLowerCase();
 
-  const hash = await bcrypt.hash(password, 10);
-  const newUser = await userModel.create({ username: normalizedUsername, email: normalizedEmail, password: hash });
+  const hashedPassword = await bcrypt.hash(password, AUTH.SALT_ROUNDS);
+  const newUser = await userModel.create({ username: normalizedUsername, email: normalizedEmail, password: hashedPassword });
   const accessToken = jwt.sign(
     {
       id: newUser._id,
@@ -43,7 +44,7 @@ export const registerUserController = async (req, res) => {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: '15m',
+      expiresIn: AUTH.ACCESS_TOKEN_EXPIRES_IN,
     }
   );
   const refreshToken = jwt.sign(
@@ -53,13 +54,13 @@ export const registerUserController = async (req, res) => {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: '7d',
+      expiresIn: AUTH.REFRESH_TOKEN_EXPIRES_IN,
     }
   );
 
   res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
-  newUser.refreshToken = await bcrypt.hash(refreshToken, 10);
+  newUser.refreshToken = await bcrypt.hash(refreshToken, AUTH.SALT_ROUNDS);
   await newUser.save();
 
   res.status(201).json({
@@ -79,7 +80,7 @@ export const registerUserController = async (req, res) => {
  * @route POST /api/auth/login
  * @access Public
  */
-export const loginUserController = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -88,8 +89,8 @@ export const loginUserController = async (req, res) => {
     throw new UnauthorizedError('Invalid email or password');
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
+  const isValidPassword = await bcrypt.compare(password, user.password);
+  if (!isValidPassword) {
     throw new UnauthorizedError('Invalid email or password');
   }
 
@@ -100,7 +101,7 @@ export const loginUserController = async (req, res) => {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: '15m',
+      expiresIn: AUTH.ACCESS_TOKEN_EXPIRES_IN,
     }
   );
   const refreshToken = jwt.sign(
@@ -110,13 +111,13 @@ export const loginUserController = async (req, res) => {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: '7d',
+      expiresIn: AUTH.REFRESH_TOKEN_EXPIRES_IN,
     }
   );
 
   res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
-  user.refreshToken = await bcrypt.hash(refreshToken, 10);
+  user.refreshToken = await bcrypt.hash(refreshToken, AUTH.SALT_ROUNDS);
   await user.save();
 
   res.status(200).json({
@@ -140,7 +141,7 @@ export const loginUserController = async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const logoutUserController = async (req, res) => {
+export const logout = async (req, res) => {
   const authHeader = req.headers.authorization;
   const refreshToken = req.cookies.refreshToken;
 
@@ -162,7 +163,6 @@ export const logoutUserController = async (req, res) => {
 
   if (req.user?.id) {
     try {
-      await redisClient.del(`user:${req.user.id}`);
       await userModel.findByIdAndUpdate(req.user.id, { refreshToken: '' });
     } catch (err) {
       logger.warn({ err: err.message }, 'Failed to clear user session during logout');
@@ -182,42 +182,20 @@ export const logoutUserController = async (req, res) => {
  * @param req - Express request object
  * @param res - Express response object
  */
-export const getMeController = async (req, res) => {
-  const cacheKey = `user:${req.user.id}`;
-
-  try {
-    const cachedUser = await redisClient.get(cacheKey);
-    if (cachedUser) {
-      return res.status(200).json({
-        message: 'User retrieved successfully',
-        user: JSON.parse(cachedUser),
-      });
-    }
-  } catch (error) {
-    logger.warn({ err: error }, 'Failed to retrieve user from cache');
-  }
-
+export const getCurrentUser = async (req, res) => {
   const user = await userModel.findById(req.user.id);
 
   if (!user) {
     throw new NotFoundError('User not found');
   }
 
-  const userProfile = {
-    id: user._id.toString(),
-    username: user.username,
-    email: user.email,
-  }
-
-  try {
-    await redisClient.set(cacheKey, JSON.stringify(userProfile), 'EX', 60 * 15);
-  } catch (error) {
-    logger.warn({ err: error }, 'Failed to set user in cache');
-  }
-
   res.status(200).json({
     message: 'User retrieved successfully',
-    user: userProfile,
+    user: {
+      id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+    },
   });
 };
 
@@ -227,7 +205,7 @@ export const getMeController = async (req, res) => {
  * @route POST /api/auth/refresh
  * @access Public
  */
-export const refreshAccessController = async (req, res) => {
+export const refreshSession = async (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.refreshToken) {
     throw new UnauthorizedError('Refresh token is missing');
@@ -236,25 +214,29 @@ export const refreshAccessController = async (req, res) => {
   const refreshToken = cookies.refreshToken;
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await userModel.findById(decoded.id).select('+refreshToken');
+    const decodedToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await userModel.findById(decodedToken.id).select('+refreshToken');
+
     if (!user || !user.refreshToken) {
       throw new ForbiddenError('Session has expired or you have logged out');
     }
+
     const isTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!isTokenValid) {
       throw new ForbiddenError('Session has expired or you have logged out');
     }
+
     const accessToken = jwt.sign(
       {
-        id: decoded.id,
-        username: decoded.username
+        id: decodedToken.id,
+        username: decodedToken.username
       },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: '15m'
+        expiresIn: AUTH.ACCESS_TOKEN_EXPIRES_IN
       }
     );
+    
     res.status(200).json({ accessToken });
   } catch (err) {
     if (err instanceof ForbiddenError) throw err;

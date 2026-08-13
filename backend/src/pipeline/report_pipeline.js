@@ -1,7 +1,7 @@
-import { ingestDocumentsStep } from '../services/step1_ingest.js';
-import { auditRequirementsStep } from '../services/step2_audit.js';
-import { assembleReportComponentsStep } from '../services/step3_assemble.js';
-import { persistReportStep } from '../services/step4_persist.js';
+import { ingestDocuments } from '../services/step1_ingest.js';
+import { auditRequirements } from '../services/step2_audit.js';
+import { assembleReport } from '../services/step3_assemble.js';
+import { saveReport } from '../services/step4_persist.js';
 import { acquireLock, releaseLock } from '../utils/lock.js';
 import crypto from 'crypto';
 import { ConflictError } from '../utils/error_handler.js';
@@ -12,8 +12,8 @@ import { ConflictError } from '../utils/error_handler.js';
  * @param {Object} inputContext - Initial payload containing userId, resumeBuffer, jobDescriptionUrl, etc.
  * @returns {Promise<Object>} - Resolved object containing `{ savedReport }`
  */
-export async function runInterviewReportPipeline(inputContext) {
-  const lockKey = `lock:pipeline:${inputContext.userId}`;
+export async function runInterviewReportPipeline(initialState) {
+  const lockKey = `lock:pipeline:${initialState.userId}`;
   const lockValue = crypto.randomUUID();
 
   const acquired = await acquireLock(lockKey, lockValue, 60);
@@ -22,12 +22,13 @@ export async function runInterviewReportPipeline(inputContext) {
   }
 
   try {
-    const ingestData = await ingestDocumentsStep(inputContext);
-    const auditData = await auditRequirementsStep(ingestData);
-    const assembledData = await assembleReportComponentsStep(auditData);
-    const result = await persistReportStep(assembledData);
+    let pipelineState = initialState;
+    pipelineState = await ingestDocuments(pipelineState);
+    pipelineState = await auditRequirements(pipelineState);
+    pipelineState = await assembleReport(pipelineState);
+    pipelineState = await saveReport(pipelineState);
 
-    return result;
+    return pipelineState;
   } finally {
     await releaseLock(lockKey, lockValue);
   }
