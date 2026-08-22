@@ -45,6 +45,8 @@ dist/
 dist-ssr/
 .next/
 .cache/
+.venv/
+
 
 # 7. Logs & Run Outputs
 *.log
