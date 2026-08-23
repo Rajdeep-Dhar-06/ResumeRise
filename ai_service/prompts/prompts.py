@@ -48,10 +48,6 @@ SCRAPE_JD_PROMPT = ChatPromptTemplate.from_messages([
     ("human", """<scraped_page>\n{raw_text}\n</scraped_page>\n\nExtract companyName, role, technicalRequirements, and nonTechnicalRequirements.""")
 ])
 
-def get_scrape_job_description_prompt(raw_text: str) -> str:
-    """Backward-compatible string prompt generator."""
-    return f"{_SCRAPE_JD_SYSTEM}\n\n<scraped_page>\n{raw_text}\n</scraped_page>\n\nExtract companyName, role, technicalRequirements, and nonTechnicalRequirements."
-
 
 # ==============================================================================
 # 2. RESUME / REQUIREMENT EVALUATION PROMPT
@@ -176,6 +172,7 @@ RULES:
 **Situation/Task**: They should set the context, explaining the technical initiative and identifying the specific stakeholder who resisted (e.g., QA lead who feared the new deployment process would bypass their checks). 
 **Action**: They should focus on active listening and education. They might explain how they set up a 1-on-1 to understand the root fear, then collaborated on a proof-of-concept that integrated the QA checks directly into the new CI/CD pipeline, turning a blocker into a champion. 
 **Result**: The answer should conclude with a quantifiable positive outcome (e.g., adoption increased by 40%, deployment time halved) and a reflection on how this approach builds long-term trust across silos."
+"""
     ),
     (
         "human",
