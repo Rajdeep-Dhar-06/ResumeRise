@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
  */
 export const questionSchema = new mongoose.Schema(
   {
-    questionText: {
+    question: {
       type: String,
       required: true,
       trim: true,

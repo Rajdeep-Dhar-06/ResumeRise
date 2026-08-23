@@ -17,46 +17,12 @@ const Home = () => {
   const { user, handleLogout, isLoggingOut } = useAuth();
   const navigate = useNavigate();
 
-  // State: File upload handling
-  const [fileName, setFileName] = useState("");
-  const resumeInputRef = useRef();
-  const [resumeFile, setResumeFile] = useState(null);
-
-  // State: Form inputs
+  const [candidateProfile, setCandidateProfile] = useState("");
   const [jobDescriptionUrl, setJobDescriptionUrl] = useState("");
   const [daysLimit, setDaysLimit] = useState(7);
 
   // State: UI toggles
-  const [generating, setGenerating] = useState(false);
-
-  // Handle Resume Selection
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      toast.error("Only PDF files are allowed.");
-      return;
-    }
-
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error("PDF size must be less than 3MB");
-      return;
-    }
-
-    setFileName(file.name);
-    setResumeFile(file);
-  };
-
-  // Clear Selected File
-  const handleClearFile = () => {
-    setFileName("");
-    setResumeFile(null);
-    if (resumeInputRef.current) {
-      resumeInputRef.current.value = "";
-    }
-  };
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Trigger Report Generation
   const handleGenerateReport = async () => {
@@ -64,38 +30,36 @@ const Home = () => {
       toast.error("Please enter a job posting URL.");
       return;
     }
-    if (!resumeFile) {
-      toast.error("Please upload your resume PDF.");
+    if (!candidateProfile.trim() || candidateProfile.length < 50) {
+      toast.error("Please provide a descriptive candidate profile (at least 50 chars).");
       return;
     }
 
-    setGenerating(true);
+    setIsGenerating(true);
 
     try {
       const data = await generateReport({
-        resumeFile,
+        candidateProfile: candidateProfile.trim(),
         jobDescriptionUrl: jobDescriptionUrl.trim(),
         daysLimit,
       });
 
-      if (data && data.isDuplicate) {
-        toast.success("Existing preparation plan loaded!");
-        navigate(`/interview/${data.interviewReport._id}`);
-        return;
-      }
-
-      if (!data || !data.interviewReport?._id) {
+      if (!data || !data.reportId) {
         throw new Error("Unable to generate interview report.");
       }
 
       toast.success("Interview strategy generated successfully!");
-      navigate(`/interview/${data.interviewReport._id}`);
+      navigate(`/interview/${data.reportId}`);
     } catch (error) {
-      setGenerating(false);
+      setIsGenerating(false);
 
       if (error?.response?.status === 409) {
-        toast.info("This report is already generating! Please wait a moment.");
-        return;
+        const existingId = error.response?.data?.details?.reportId;
+        if (existingId) {
+          toast.info("Existing plan found! Loading your report...");
+          navigate(`/interview/${existingId}`);
+          return;
+        }
       }
 
       const errMsg = error?.response?.data?.error || error?.response?.data?.message || error.message || "Failed to generate report. Please try again.";
@@ -107,7 +71,7 @@ const Home = () => {
     <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
       {/* ================= LOADING SCREEN ================= */}
       <LoadingScreen
-        active={generating}
+        active={isGenerating}
         minDelay={2500}
         quotes={MOTIVATIONAL_QUOTES}
         message="Generating your custom interview strategy..."
@@ -150,7 +114,7 @@ const Home = () => {
             Create Your Custom <span className="text-primary">Interview Plan</span>
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Analyze job descriptions, upload your resume, and generate dynamic custom preparation roadmaps.
+            Analyze job descriptions, paste your career transcript, and generate dynamic custom preparation roadmaps.
           </p>
         </div>
 
@@ -158,16 +122,12 @@ const Home = () => {
           <CreatePlan
             jobDescriptionUrl={jobDescriptionUrl}
             setJobDescriptionUrl={setJobDescriptionUrl}
-            fileName={fileName}
-            setFileName={setFileName}
-            resumeInputRef={resumeInputRef}
-            handleFileChange={handleFileChange}
+            candidateProfile={candidateProfile}
+            setCandidateProfile={setCandidateProfile}
             handleGenerateReport={handleGenerateReport}
-            loading={isLoading || generating}
-            handleClearFile={handleClearFile}
+            loading={isLoading || isGenerating}
             daysLimit={daysLimit}
             setDaysLimit={setDaysLimit}
-            hasFile={!!resumeFile}
           />
         </div>
       </main>

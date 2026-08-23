@@ -7,7 +7,9 @@ import logger from './utils/logger.js';
 import mongoose from 'mongoose';
 import { redisClient } from './config/redis.js';
 
-const PORT = process.env.PORT || 8000;
+import { interviewWorker } from './queues/worker.js';
+
+const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
@@ -18,6 +20,7 @@ connectDB()
     const shutdown = async (signal) => {
       server.close(async () => {
         try {
+          await interviewWorker.close();
           await redisClient.quit();
           await mongoose.connection.close();
           process.exit(0);

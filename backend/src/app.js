@@ -6,6 +6,7 @@ import authRouter from './routes/auth.route.js';
 import interviewRouter from './routes/interview.route.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import { httpLogger } from './utils/logger.js';
+import { NotFoundError } from './utils/error_handler.js';
 
 const app = express();
 
@@ -25,8 +26,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/interview', interviewRouter);
 
 // fallback
-app.use((req, res) => {
-  res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
+app.use((req, res, next) => {
+  next(new NotFoundError(`Route ${req.method} ${req.originalUrl} not found`));
 });
 
 // centralized error handling

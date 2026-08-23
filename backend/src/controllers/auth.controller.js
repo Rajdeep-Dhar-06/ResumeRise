@@ -135,7 +135,6 @@ export const login = async (req, res) => {
  * Logs out the current user.
  * 
  * - Blacklists the access token in Redis.
- * - Deletes the cached user session key.
  * - Clears cookies and invalidates MongoDB session.
  * 
  * @param req - Express request object
@@ -175,9 +174,6 @@ export const logout = async (req, res) => {
 
 /**
  * Retrieves the current logged-in user profile info.
- * 
- * - Checks the Redis user session cache first.
- * - Queries MongoDB and warms Redis cache on miss.
  * 
  * @param req - Express request object
  * @param res - Express response object

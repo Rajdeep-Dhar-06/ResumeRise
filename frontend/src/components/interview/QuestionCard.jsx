@@ -13,7 +13,7 @@ export const QuestionCard = ({ item, index }) => {
           {index + 1}
         </span>
         <p className="flex-grow text-base font-medium text-foreground leading-snug">
-          {item.questionText}
+          {item.question}
         </p>
         <span
           className={`flex-shrink-0 text-slate-500 mt-1 transition-transform ${open ? "rotate-180 text-primary" : ""}`}

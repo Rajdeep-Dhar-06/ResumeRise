@@ -13,15 +13,9 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@langchain/community": "^1.1.29",
-    "@langchain/core": "^1.2.1",
-    "@langchain/google": "^0.2.1",
-    "@langchain/google-genai": "^2.2.0",
-    "@langchain/tavily": "^1.2.0",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
-    "compromise": "^14.14.0",
-    "concurrently": "^10.0.4",
+    "bullmq": "^6.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -30,12 +24,9 @@
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.0",
-    "multer": "^2.1.1",
-    "pdf-parse": "^2.4.5",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
-    "zod": "^4.3.6",
-    "zod-to-json-schema": "^3.25.2"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",

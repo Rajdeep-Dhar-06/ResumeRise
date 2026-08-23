@@ -8,7 +8,7 @@
 [![Vite](https://img.shields.io/badge/Vite-v8-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 [![Redis](https://img.shields.io/badge/Redis-v5-DC382D?style=flat-square&logo=redis)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-v9-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_/_Flash-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.1_Flash_Lite-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 
 ---
@@ -241,11 +241,12 @@ ResumeRise/
 
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `POST` | `/api/interview/reports/generate-report` | Private | Submit resume PDF & Job URL; executes pipeline and returns completed report (Rate limited: 10 req/min) |
-| `GET` | `/api/interview/reports/:interviewId` | Private | Fetch complete structured interview report by ID |
+| `POST` | `/api/interview/reports` | Private | Submit candidate profile & Job URL; queues generation job and returns `202 Accepted` + `{ jobId }` |
+| `GET` | `/api/interview/reports/job/:jobId` | Private | Poll status of a queued report generation job. Returns `{ status, reportId, error }` |
+| `GET` | `/api/interview/reports/:reportId` | Private | Fetch complete structured interview report by ID |
 | `GET` | `/api/interview/reports` | Private | List user's reports with pagination (`page`, `limit`), search query, and minimum score filters |
-| `GET` | `/api/interview/reports/stats` | Private | Retrieve user dashboard stats (Redis-cached aggregation) |
-| `DELETE` | `/api/interview/reports/:interviewId` | Private | Delete interview report and invalidate user stats cache |
+| `GET` | `/api/interview/reports/stats` | Private | Retrieve user dashboard stats |
+| `DELETE` | `/api/interview/reports/:reportId` | Private | Delete interview report and invalidate user stats cache |
 
 ---
 

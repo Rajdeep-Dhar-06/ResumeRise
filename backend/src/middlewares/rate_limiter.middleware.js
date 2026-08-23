@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { TooManyRequestsError } from '../utils/error_handler.js';
 
 /**
  * Reusable utility to create an Express rate-limiter middleware.
@@ -16,10 +17,8 @@ const createRateLimiter = (windowMinutes, maxRequests, errorMessage) => {
         max: maxRequests,
         standardHeaders: true,
         legacyHeaders: true,
-        handler: (req, res) => {
-            res.status(429).json({
-                error: errorMessage || 'Too many requests, please try again later'
-            })
+        handler: (req, res, next) => {
+            next(new TooManyRequestsError(errorMessage || 'Too many requests, please try again later'));
         }
     })
 }

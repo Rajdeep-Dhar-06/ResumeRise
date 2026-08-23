@@ -5,10 +5,7 @@ export const AUTH = {
   SALT_ROUNDS: 10,
 };
 
-export const SCRAPER = {
-  CACHE_TTL_MS: 24 * 60 * 60 * 1000, // 24 hours in ms
-  JINA_TIMEOUT_MS: 20000,
-};
+
 
 export const PAGINATION = {
   DEFAULT_LIMIT: 9,

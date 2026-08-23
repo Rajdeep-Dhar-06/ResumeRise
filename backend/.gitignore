@@ -12,25 +12,17 @@ dist/
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
 # Tests, Scratch Scripts, & Dumps
-test*.*
-test_*.*
 verify*.*
 scratch*.*
-*.test.*
-*.spec.*
-__tests__/
-test/
-tests/
 coverage/
 *.pdf
 cookies.txt
 login.json
-
-# Markdown Constraints
-*.md
-!README.md
 
 # System & Editor Files
 .DS_Store

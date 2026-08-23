@@ -1,4 +1,4 @@
-from config import llm
+from config import llm, creative_llm
 from schemas.evaluation import RequirementEvaluation
 from schemas.report import MatchTier
 from schemas.final_report import (
@@ -29,7 +29,7 @@ async def generate_tech_questions(
         if e.match_tier in (MatchTier.EXPERT_MATCH, MatchTier.STRONG_MATCH, MatchTier.BASIC_MATCH)
     ]
 
-    chain = TECH_QUESTIONS_PROMPT | llm.with_structured_output(TechQuestionsResult)
+    chain = TECH_QUESTIONS_PROMPT | creative_llm.with_structured_output(TechQuestionsResult)
     result: TechQuestionsResult = await chain.ainvoke({  # type: ignore
         "role": role,
         "missing_skills": ", ".join(missing) if missing else "None",
@@ -55,7 +55,7 @@ async def generate_non_tech_questions(
         if e.match_tier in (MatchTier.EXPERT_MATCH, MatchTier.STRONG_MATCH, MatchTier.BASIC_MATCH)
     ]
 
-    chain = NON_TECH_QUESTIONS_PROMPT | llm.with_structured_output(NonTechQuestionsResult)
+    chain = NON_TECH_QUESTIONS_PROMPT | creative_llm.with_structured_output(NonTechQuestionsResult)
     result: NonTechQuestionsResult = await chain.ainvoke({  # type: ignore
         "role": role,
         "missing_quals": ", ".join(missing) if missing else "None",

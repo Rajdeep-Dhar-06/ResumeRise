@@ -4,7 +4,60 @@
 *.env
 !.env.example
 
-# 2. AI Agents, Customizations, & IDE Tooling
+# 2. Dependencies & Virtual Environments
+node_modules/
+dist/
+dist-ssr/
+.cache/
+.venv/
+env/
+venv/
+ENV/
+
+# 3. Python Cache & Build Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+eggs/
+.eggs/
+parts/
+var/
+sdist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 4. Tests, Coverage, Formatting & Scratch Files
+verify*.*
+scratch*.*
+coverage/
+.coverage
+.coverage.*
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+htmlcov/
+
+# 5. Temporary & Dump Files
+*.pdf
+cookies.txt
+login.json
+*.tmp
+*.temp
+
+# 6. Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# 7. AI Agents, Tooling & Customizations
 .agents/
 .gemini/
 .agent/
@@ -14,46 +67,6 @@
 .v0-trash/
 .vercel/
 __v0_*
-
-# 3. Legacy State Graph & Node Experiments
-graph/
-nodes/
-
-# 4. Tests, Scratch Scripts, & Dumps
-test*.*
-test_*.*
-verify*.*
-scratch*.*
-*.test.*
-*.spec.*
-__tests__/
-test/
-tests/
-coverage/
-*.pdf
-cookies.txt
-login.json
-
-# 5. Markdown Constraints (Only allow README.md)
-*.md
-!README.md
-!readme.md
-
-# 6. Dependencies & Build Artifacts
-node_modules/
-dist/
-dist-ssr/
-.next/
-.cache/
-.venv/
-
-
-# 7. Logs & Run Outputs
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
 
 # 8. OS & IDE Metadata
 .DS_Store

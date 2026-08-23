@@ -23,34 +23,34 @@ class GapSeverity(str, Enum):
 class JobRequirement(BaseSchema):
     requirement_name: str = Field(
         default="",
-        description="The name of the requirement/skill, exactly as it appears or is implied in the JD",
+        description="The atomic, precise name of the requirement/skill (e.g. 'React', 'Kubernetes', 'B2B Sales'). Do not group them.",
     )
     canonical_name: str = Field(
         default="",
-        description="The standardized, clean technology or topic name used for vector embeddings and search (e.g. React for ReactJS)",
+        description="The standardized, universally recognized technology or topic name used for high-accuracy vector embeddings and semantic search (e.g. 'React' for ReactJS).",
     )
     priority: PriorityLevel = Field(
         default=PriorityLevel.REQUIRED,
-        description="REQUIRED = mandatory/must-have, PREFERRED = optional/nice-to-have",
+        description="Categorize strictness based on phrasing: REQUIRED ('Must have', 'Required', 'At least'), PREFERRED ('Preferred', 'Bonus points'), NICE_TO_HAVE ('Familiarity with').",
     )
     source_context: str = Field(
         default="",
-        description="A short sentence explaining how this requirement/skill is applied in the job description responsibilities or qualifications",
+        description="A detailed, robust sentence extracting exactly how the JD expects this skill to be applied. e.g., 'Architect and maintain high-throughput microservices using Go.'",
     )
 
 class JobDescription(BaseSchema):
     company_name: str = Field(
         default="Target Company",
-        description="The name of the hiring company or organization, exactly as it appears or is implied in the JD",
+        description="The full, official name of the hiring organization.",
     )
     role: str = Field(
         default="Target Role",
-        description="The official job title/role name, exactly as it appears or is implied in the JD",
+        description="The exact Job Title or Role from the posting header.",
     )
     technical_requirements: List[JobRequirement] = Field(
-        default_factory=list, description="Required technical skills, languages, tools, frameworks"
+        default_factory=list, description="A comprehensive, atomic list of hard technical requirements (languages, frameworks, cloud providers, CI/CD tools, databases)."
     )
     non_technical_requirements: List[JobRequirement] = Field(
         default_factory=list,
-        description="Explicit qualifications, years of experience, responsibilities",
+        description="A comprehensive list of measurable non-technical criteria: degrees (BS/MS in CS), precise years of experience, domain expertise, leadership scope, etc.",
     )

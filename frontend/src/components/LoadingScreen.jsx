@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 
 const LoadingScreen = ({
   active = false,
-  message = "Analyzing job posting and resume...",
+  message = "Analyzing job posting and candidate profile...",
   quotes = [],
   minDelay = 0
 }) => {

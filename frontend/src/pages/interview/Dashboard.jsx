@@ -19,7 +19,14 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import MuiPagination from "@mui/material/Pagination";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const Dashboard = () => {
     const { reports, getReports, deleteReport } = useInterview();
@@ -202,7 +209,7 @@ const Dashboard = () => {
                             </div>
                             <h3 className="text-lg font-bold">No strategies generated yet</h3>
                             <p className="text-sm text-muted-foreground max-w-sm text-balance">
-                                Upload your resume and drop in a job description link to get your first custom interview playbook.
+                                Paste your career profile and drop in a job description link to get your first custom interview playbook.
                             </p>
                             <Button
                                 variant="default"
@@ -224,32 +231,40 @@ const Dashboard = () => {
                             {/* Pagination Controls */}
                             {paginationInfo.totalPages > 1 && (
                                 <div className="flex justify-center pt-6">
-                                    <MuiPagination
-                                        count={paginationInfo.totalPages}
-                                        page={page}
-                                        onChange={(event, value) => setPage(value)}
-                                        variant="outlined"
-                                        shape="rounded"
-                                        sx={{
-                                            '& .MuiPaginationItem-root': {
-                                                color: 'hsl(var(--muted-foreground))',
-                                                borderColor: 'hsl(var(--border))',
-                                                fontFamily: 'inherit',
-                                                '&:hover': {
-                                                    backgroundColor: 'hsl(var(--accent))',
-                                                    color: 'hsl(var(--accent-foreground))',
-                                                },
-                                                '&.Mui-selected': {
-                                                    backgroundColor: 'hsl(var(--primary))',
-                                                    color: 'hsl(var(--primary-foreground))',
-                                                    borderColor: 'hsl(var(--primary))',
-                                                    '&:hover': {
-                                                        backgroundColor: 'hsl(var(--primary) / 0.8)',
-                                                    },
-                                                },
-                                            },
-                                        }}
-                                    />
+                                    <Pagination>
+                                        <PaginationContent>
+                                            <PaginationItem>
+                                                <PaginationPrevious 
+                                                    onClick={() => setPage(p => Math.max(1, p - 1))} 
+                                                    disabled={page === 1}
+                                                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                />
+                                            </PaginationItem>
+                                            
+                                            {Array.from({ length: paginationInfo.totalPages }).map((_, i) => {
+                                                const pageNum = i + 1;
+                                                return (
+                                                    <PaginationItem key={pageNum}>
+                                                        <PaginationLink 
+                                                            isActive={page === pageNum} 
+                                                            onClick={() => setPage(pageNum)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            {pageNum}
+                                                        </PaginationLink>
+                                                    </PaginationItem>
+                                                );
+                                            })}
+                                            
+                                            <PaginationItem>
+                                                <PaginationNext 
+                                                    onClick={() => setPage(p => Math.min(paginationInfo.totalPages, p + 1))} 
+                                                    disabled={page === paginationInfo.totalPages}
+                                                    className={page === paginationInfo.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                />
+                                            </PaginationItem>
+                                        </PaginationContent>
+                                    </Pagination>
                                 </div>
                             )}
                         </>

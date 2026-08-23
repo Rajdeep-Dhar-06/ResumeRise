@@ -38,4 +38,11 @@ export class ConflictError extends BaseError {
         super('ConflictError', 409, true, description, details);
     }
 }
+
+export class TooManyRequestsError extends BaseError {
+    constructor(description = 'Too Many Requests', details = null) {
+        super('TooManyRequestsError', 429, true, description, details);
+    }
+}
+
 export default BaseError;

@@ -5,9 +5,9 @@ import {
   getReportById,
   getAllReports,
   getStats,
-  deleteReport
+  deleteReport,
+  getJobStatus
 } from '../controllers/interview.controller.js';
-import uploadPdfMiddleware from '../middlewares/resume_upload.middleware.js';
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
 import { reportLimiter } from '../middlewares/rate_limiter.middleware.js';
@@ -17,29 +17,40 @@ const interviewRouter = express.Router();
 // Validation schemas
 const generateReportSchema = {
   body: z.object({
+    candidateProfile: z.string().min(50, 'Please provide a more descriptive profile'),
     jobDescriptionUrl: z.string().url(),
-    daysLimit: z.enum(["3", "5", "7"]).default("7"),
+    daysLimit: z.union([z.literal(3), z.literal(5), z.literal(7)]).default(7),
   }),
 };
 
-const interviewIdSchema = {
+const reportIdSchema = {
   params: z.object({
-    interviewId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid interview ID format'),
+    reportId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid report ID format'),
   }),
 };
 
 /**
- * @route POST /api/interview/reports/generate-report
- * @description Generate an interview report from pre-parsed resume and job description
+ * @route POST /api/interview/reports
+ * @description Generate an interview report from raw candidate text profile
  * @access private
  */
 interviewRouter.post(
-  '/reports/generate-report',
+  '/reports',
   verifyAccess,
   reportLimiter,
-  uploadPdfMiddleware.single('resume'),
   validate(generateReportSchema),
   generateReport
+);
+
+/**
+ * @route GET /api/interview/reports/job/:jobId
+ * @description Get the status of an interview report generation job
+ * @access private
+ */
+interviewRouter.get(
+  '/reports/job/:jobId',
+  verifyAccess,
+  getJobStatus
 );
 
 /**
@@ -65,26 +76,26 @@ interviewRouter.get(
 );
 
 /**
- * @route GET /api/interview/reports/:interviewId
+ * @route GET /api/interview/reports/:reportId
  * @description Get interview report by ID
  * @access private
  */
 interviewRouter.get(
-  '/reports/:interviewId',
+  '/reports/:reportId',
   verifyAccess,
-  validate(interviewIdSchema),
+  validate(reportIdSchema),
   getReportById
 );
 
 /**
- * @route DELETE /api/interview/reports/:interviewId
+ * @route DELETE /api/interview/reports/:reportId
  * @description Delete interview report by ID
  * @access private
  */
 interviewRouter.delete(
-  '/reports/:interviewId',
+  '/reports/:reportId',
   verifyAccess,
-  validate(interviewIdSchema),
+  validate(reportIdSchema),
   deleteReport
 );
 

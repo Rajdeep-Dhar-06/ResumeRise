@@ -22,7 +22,9 @@ async def analyze_candidate_endpoint(request: AnalyzeRequest) -> FinalReport:
     except ValueError as val_err:
         raise HTTPException(status_code=422, detail=str(val_err))
     except Exception as err:
+        import traceback
+        print(f"ERROR in analyze_candidate: {str(err)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
-            detail=f"Candidate analysis pipeline failed: {str(err)}"
+            detail="AI analysis failed. Please try again later."
         )

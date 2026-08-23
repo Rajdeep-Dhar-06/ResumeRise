@@ -4,6 +4,7 @@ import {
   getInterviewReportById,
   getAllInterviewReports,
   deleteInterviewReport,
+  getInterviewJobStatus,
 } from "../services/interview.api.js";
 import { InterviewContext } from "../context/InterviewContext.jsx";
 import { useAuth } from "./useAuth.js";
@@ -14,33 +15,66 @@ export const useInterview = () => {
   const context = useContext(InterviewContext);
   const { isLoading, setIsLoading, report, setReport, reports, setReports } = context;
   const { user } = useAuth();
-  const { interviewId } = useParams();
+  const { reportId } = useParams();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  /** @description Generate a new interview report from a resume and job description. */
+  const [fetchError, setFetchError] = useState(null);
+
+  /** @description Generate a new interview report by enqueuing a job and polling for completion. */
   const generateReport = async ({
-    resumeFile,
+    candidateProfile,
     jobDescriptionUrl,
     daysLimit,
   }) => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       const response = await generateInterviewReport({
-        resumeFile,
+        candidateProfile,
         jobDescriptionUrl,
         daysLimit,
       });
 
-      if (response?.interviewReport) {
-        setReport(response.interviewReport);
-        return response;
+      if (!response?.jobId) {
+        throw new Error("Failed to queue interview report generation job.");
       }
-      return response;
+
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 40; // 40 * 3s = 120s timeout
+        
+        const interval = setInterval(async () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+            clearInterval(interval);
+            setIsLoading(false);
+            reject(new Error("Generation timed out."));
+            return;
+          }
+          
+          try {
+            const jobStatus = await getInterviewJobStatus(response.jobId);
+            if (jobStatus.status === 'completed') {
+              clearInterval(interval);
+              setIsLoading(false);
+              resolve({ reportId: jobStatus.reportId });
+            } else if (jobStatus.status === 'failed') {
+              clearInterval(interval);
+              setIsLoading(false);
+              reject(new Error(jobStatus.error || "Generation failed"));
+            }
+            // If waiting or active, continue polling on the next interval tick
+          } catch (err) {
+            clearInterval(interval);
+            setIsLoading(false);
+            reject(err);
+          }
+        }, 3000);
+      });
     } catch (error) {
       console.error("Error generating report:", error);
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
@@ -49,12 +83,14 @@ export const useInterview = () => {
     async (id, options = {}) => {
       if (!id) return;
       setIsLoading(true);
+      setFetchError(null);
       try {
         const response = await getInterviewReportById(id, options);
         setReport(response.interviewReport);
-        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching report:", error);
+        setFetchError(error.message || "Failed to load report");
+      } finally {
         setIsLoading(false);
       }
     },
@@ -102,20 +138,21 @@ export const useInterview = () => {
     const controller = new AbortController(); // abort previous requests
 
     // Clear the old report state as soon as the ID changes
-    if (interviewId && report?._id !== interviewId) {
+    if (reportId && report?._id !== reportId) {
       setReport(null);
-      getReportById(interviewId, { signal: controller.signal });
+      getReportById(reportId, { signal: controller.signal });
     }
     
     return () => {
       controller.abort();
     };
-  }, [interviewId, getReportById, report?._id, setReport, user]);
+  }, [reportId, getReportById, report?._id, setReport, user]);
 
   return {
     isLoading,
     report,
     reports,
+    fetchError,
     generateReport,
     getReports,
     deleteReport,

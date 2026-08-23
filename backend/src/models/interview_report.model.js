@@ -1,19 +1,16 @@
 import mongoose from 'mongoose';
-import { MATCH_STATUS, COMPLEXITY_LEVELS, PRIORITY_LEVELS, DAYS_LIMITS } from '../utils/enums.js';
+import { MATCH_STATUS, DAYS_LIMITS, GAP_SEVERITY } from '../utils/enums.js';
 import { questionSchema } from './question.model.js';
 import { learningResourceMongooseSchema } from './learning_resource.model.js';
-import { preparationGapSchema } from './preparation_gap.model.js';
+
 import { preparationPlanSchema } from './preparation_plan.model.js';
 
 const evaluatedRequirementSchema = new mongoose.Schema(
   {
     requirementName: { type: String, default: '' },
-    priority: { type: String, enum: PRIORITY_LEVELS, default: 'REQUIRED' },
-    matchStatus: { type: String, enum: MATCH_STATUS, default: 'MISSING' },
-    retrievedEvidence: [{ type: String }],
-    depthAssessment: { type: String, default: 'None' },
-    complexityLevel: { type: String, enum: COMPLEXITY_LEVELS, default: 'N/A' },
-    matchStrength: { type: Number },
+    matchTier: { type: String, enum: MATCH_STATUS, default: 'NO_MATCH' },
+    reasoning: { type: String, default: '' },
+    evidence: { type: String, default: '' },
   },
   { _id: false }
 );
@@ -31,21 +28,10 @@ const interviewReportSchema = new mongoose.Schema(
       required: true,
     },
 
-    jobDescriptionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'JobDescription',
-      required: true,
-    },
-
-    resumeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Resume'
-    },
-    resumeHash: {
+    profileHash: {
       type: String,
       required: true,
     },
-
     jobDescriptionUrl: {
       type: String,
       required: true,
@@ -60,13 +46,11 @@ const interviewReportSchema = new mongoose.Schema(
       default: 'Role',
       required: true,
     },
-    
     daysLimit: {
       type: Number,
       enum: DAYS_LIMITS,
       required: true,
     },
-
     reportTitle: {
       type: String,
       required: true,
@@ -75,20 +59,24 @@ const interviewReportSchema = new mongoose.Schema(
       type: Number,
       min: 0,
       max: 100,
+      required: true,
     },
-    evaluatedTechnicalRequirements: [evaluatedRequirementSchema],
-    evaluatedNonTechnicalRequirements: [evaluatedRequirementSchema],
+    technicalEvaluations: [evaluatedRequirementSchema],
+    nonTechnicalEvaluations: [evaluatedRequirementSchema],
     technicalQuestions: [questionSchema],
     nonTechnicalQuestions: [questionSchema],
-    preparationGaps: [preparationGapSchema],
     preparationPlan: [preparationPlanSchema],
     learningResources: [learningResourceMongooseSchema],
+    preparationGaps: [{
+      requirementName: String,
+      gapSeverity: { type: String, enum: GAP_SEVERITY }
+    }],
   },
   { timestamps: true }
 );
 
 interviewReportSchema.index({ userId: 1, createdAt: -1 });
-interviewReportSchema.index({ userId: 1, resumeHash: 1, jobDescriptionUrl: 1, daysLimit: 1 });
+interviewReportSchema.index({ userId: 1, profileHash: 1, jobDescriptionUrl: 1, daysLimit: 1 });
 
 const InterviewReportModel = mongoose.model('InterviewReport', interviewReportSchema);
 

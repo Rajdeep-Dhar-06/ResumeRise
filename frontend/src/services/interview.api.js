@@ -4,37 +4,31 @@ import api from "../lib/api.js";
  * @description Generate an interview report from a resume and job description.
  */
 export const generateInterviewReport = async ({
-  resumeFile,
+  candidateProfile,
   jobDescriptionUrl,
   daysLimit,
 }) => {
-  const formData = new FormData();
-  if (resumeFile) {
-    formData.append("resume", resumeFile);
-  }
-  if (jobDescriptionUrl) {
-    formData.append("jobDescriptionUrl", jobDescriptionUrl);
-  }
-  if (daysLimit) {
-    formData.append("daysLimit", daysLimit.toString());
-  }
-
-  const response = await api.post("/api/interview/reports/generate-report", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  const response = await api.post("/api/interview/reports", {
+    candidateProfile,
+    jobDescriptionUrl,
+    daysLimit,
   });
-  return response.data;
+  return response.data; // { jobId, status } or { reportId, status: 'completed' }
 };
 
-
-
+/**
+ * @description Get the status of an interview generation job.
+ */
+export const getInterviewJobStatus = async (jobId) => {
+  const response = await api.get(`/api/interview/reports/job/${jobId}`);
+  return response.data; // { jobId, status, reportId, error }
+};
 
 /**
  * @description Get an interview report by ID.
  */
-export const getInterviewReportById = async (interviewId, options = {}) => {
-  const response = await api.get(`/api/interview/reports/${interviewId}`, {
+export const getInterviewReportById = async (reportId, options = {}) => {
+  const response = await api.get(`/api/interview/reports/${reportId}`, {
     signal: options.signal,
   });
   return response.data;
@@ -57,8 +51,8 @@ export const getInterviewStats = async () => {
 /**
  * @description Delete an interview report by ID.
  */
-export const deleteInterviewReport = async (interviewId) => {
-  const response = await api.delete(`/api/interview/reports/${interviewId}`);
+export const deleteInterviewReport = async (reportId) => {
+  const response = await api.delete(`/api/interview/reports/${reportId}`);
   return response.data;
 };
 

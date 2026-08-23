@@ -1,7 +1,7 @@
 import asyncio
 from schemas.evaluation import RequirementEvaluation
-from schemas.report import JobDescription, MatchTier
-from schemas.final_report import FinalReport
+from schemas.report import JobDescription, MatchTier, GapSeverity
+from schemas.final_report import FinalReport, PreparationGap
 from services.parser import anonymize_text
 from services.vector_store import create_vector_store
 from services.scraper import get_job_description
@@ -34,15 +34,22 @@ async def analyze_candidate(
         get_job_description(jd_url)
     )
 
-    # Stage 2: Parallel Requirement Evaluation via FAISS + Gemini
-    tech_tasks = [evaluate_requirement(req, vector_store) for req in jd.technical_requirements]
-    non_tech_tasks = [evaluate_requirement(req, vector_store) for req in jd.non_technical_requirements]
+    # Stage 2: Parallel Requirement Evaluation via FAISS + Gemini (Throttled with Semaphore)
+    sem = asyncio.Semaphore(5)
+
+    async def sem_evaluate(req):
+        async with sem:
+            return await evaluate_requirement(req, vector_store)
+
+    tech_tasks = [sem_evaluate(req) for req in jd.technical_requirements]
+    non_tech_tasks = [sem_evaluate(req) for req in jd.non_technical_requirements]
     
-    all_evaluations: list[RequirementEvaluation] = await asyncio.gather(*tech_tasks, *non_tech_tasks)
+    all_eval_results = await asyncio.gather(*tech_tasks, *non_tech_tasks, return_exceptions=True)
 
     num_tech = len(jd.technical_requirements)
-    tech_evals = list(all_evaluations[:num_tech])
-    non_tech_evals = list(all_evaluations[num_tech:])
+    tech_evals = [e for e in all_eval_results[:num_tech] if not isinstance(e, Exception)]
+    non_tech_evals = [e for e in all_eval_results[num_tech:] if not isinstance(e, Exception)]
+    all_evaluations = tech_evals + non_tech_evals
 
     # Stage 3: Score & Identify Gaps
     score = calculate_final_score(tech_evals, non_tech_evals)
@@ -50,6 +57,14 @@ async def analyze_candidate(
     critical_gaps = [
         e for e in all_evaluations
         if e.match_tier in (MatchTier.WEAK_MATCH, MatchTier.NO_MATCH)
+    ]
+
+    preparation_gaps = [
+        PreparationGap(
+            requirement_name=gap.requirement_name,
+            gap_severity=GapSeverity.HIGH if gap.match_tier == MatchTier.NO_MATCH else GapSeverity.MEDIUM
+        )
+        for gap in critical_gaps
     ]
 
     # Stage 4: Parallel Augmentation (Search, Questions, and Study Plan)
@@ -73,5 +88,6 @@ async def analyze_candidate(
         technical_questions=tech_questions,
         non_technical_questions=non_tech_questions,
         learning_resources=resources,
-        preparation_plan=plan
+        preparation_plan=plan,
+        preparation_gaps=preparation_gaps
     )

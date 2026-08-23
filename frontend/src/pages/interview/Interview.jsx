@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useInterview } from "../../hooks/useInterview.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useParams, useNavigate } from "react-router";
@@ -42,11 +42,11 @@ const NAV_ITEMS = [
 // Main Interview Component
 const Interview = () => {
   // Custom Hooks & Context
-  const { report, isLoading, deleteReport, isDeleting } = useInterview();
+  const { report, isLoading, deleteReport, isDeleting, fetchError } = useInterview();
   const { handleLogout, isLoggingOut } = useAuth();
   
   // React Router
-  const { interviewId } = useParams();
+  const { reportId } = useParams();
   const navigate = useNavigate();
 
   // State: UI Navigation and Toggles
@@ -55,7 +55,7 @@ const Interview = () => {
 
   const handleDelete = async () => {
     try {
-      await deleteReport(interviewId);
+      await deleteReport(reportId);
       navigate("/");
     } catch (error) {
       console.error("Failed to delete interview report:", error);
@@ -63,6 +63,23 @@ const Interview = () => {
       setShowDeleteConfirm(false);
     }
   };
+
+  const groupedResources = useMemo(() => {
+    if (!report?.learningResources) return [];
+    return report.learningResources.reduce((acc, curr) => {
+      let group = acc.find(g => g.requirementName === curr.requirementName);
+      if (!group) {
+        group = { requirementName: curr.requirementName, resources: [] };
+        acc.push(group);
+      }
+      group.resources.push({
+        resourceTitle: curr.title,
+        resourceUrl: curr.url,
+        resourceSnippet: curr.description
+      });
+      return acc;
+    }, []);
+  }, [report?.learningResources]);
 
 
   // Score styling using the shared lib
@@ -77,11 +94,21 @@ const Interview = () => {
   else if (score >= 45) scoreMessage = "Fair match";
   else if (score >= 30) scoreMessage = "Weak match";
 
+  if (fetchError) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center p-4">
+        <h2 className="text-2xl font-bold text-red-500 mb-2">Failed to load report</h2>
+        <p className="text-muted-foreground mb-4">{fetchError}</p>
+        <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-background text-foreground flex flex-col items-center">
       {/* ================= LOADING SCREEN ================= */}
       <LoadingScreen
-        active={isLoading || !report}
+        active={isLoading || (!report && !fetchError)}
         minDelay={1500}
         quotes={MOTIVATIONAL_QUOTES}
         message="Loading your interview plan…"
@@ -249,9 +276,9 @@ const Interview = () => {
                   <h2 className="text-xl font-bold tracking-tight">Recommended Learning Resources</h2>
                   <Badge variant="secondary">{report?.learningResources?.length || 0} skills</Badge>
                 </div>
-                {report?.learningResources && report.learningResources.length > 0 ? (
+                {groupedResources && groupedResources.length > 0 ? (
                   <div className="grid gap-6">
-                    {report.learningResources.map((item, i) => (
+                    {groupedResources.map((item, i) => (
                       <ResourceCard key={i} item={item} />
                     ))}
                   </div>

@@ -1,24 +1,11 @@
 /**
- * Requirement urgency level extracted from job descriptions.
- */
-export const PRIORITY_LEVELS = ['REQUIRED', 'PREFERRED'];
-
-/**
  * Candidate skill match status evaluated against job requirements.
  */
-export const MATCH_STATUS = ['MATCHED', 'WEAK_MATCH', 'MISSING'];
+export const MATCH_STATUS = ['EXPERT_MATCH', 'STRONG_MATCH', 'BASIC_MATCH', 'WEAK_MATCH', 'NO_MATCH'];
 
-/**
- * Target project/task difficulty in generated technical preparation roadmaps.
- */
-export const COMPLEXITY_LEVELS = ['BASIC', 'INTERMEDIATE', 'PRODUCTION', 'N/A'];
-
-/**
- * Impact and risk severity of non-technical or behavioral skill gaps.
- */
-export const SEVERITY_LEVELS = ['LOW', 'MEDIUM', 'HIGH'];
-
-/**
- * Valid limits for preparation plan days.
- */
 export const DAYS_LIMITS = [3, 5, 7];
+
+/**
+ * Severity of skill gaps identified during evaluation.
+ */
+export const GAP_SEVERITY = ['HIGH', 'MEDIUM', 'LOW'];

@@ -28,6 +28,19 @@ HARD RULES:
    - NICE_TO_HAVE: Skills mentioned in passing.
 4. NO INVENTIONS:
    - Extract categorical requirements (e.g. "modern relational database") as written. Never hallucinate specific tools.
+
+### EXPECTED OUTPUT QUALITY (FEW-SHOT EXAMPLE)
+**Raw Text**: "Looking for a Sr. Backend Engineer at Stripe. You must have 5+ years of experience. Strong background in Go or Rust. Familiarity with AWS and Kubernetes is preferred."
+**Output**:
+- companyName: "Stripe"
+- role: "Sr. Backend Engineer"
+- technicalRequirements:
+  - "Go" (REQUIRED, "Strong background in Go")
+  - "Rust" (REQUIRED, "Strong background in Rust")
+  - "AWS" (PREFERRED, "Familiarity with AWS is preferred")
+  - "Kubernetes" (PREFERRED, "Familiarity with Kubernetes is preferred")
+- nonTechnicalRequirements:
+  - "5+ years experience" (REQUIRED, "Must have 5+ years of experience")
 """
 
 SCRAPE_JD_PROMPT = ChatPromptTemplate.from_messages([
@@ -71,7 +84,15 @@ MATCH TIER GUIDELINES:
 - WEAK_MATCH: No direct experience, but has experience in parallel/competing technologies.
 - NO_MATCH: Absolutely no evidence of this skill in the provided text.
 
-Be extremely strict. If it is not in the text, it is a NO_MATCH."""
+Be extremely strict. If it is not in the text, it is a NO_MATCH.
+
+### EXPECTED OUTPUT QUALITY (FEW-SHOT EXAMPLE)
+**Requirement Name**: "Redis"
+**Candidate Excerpts**: "...built a REST API using Node.js and MongoDB. Scaled the architecture using AWS EC2..."
+**Match Tier**: NO_MATCH
+**Reasoning**: "The candidate demonstrates strong backend experience with Node.js and MongoDB, and infrastructure scaling with AWS EC2. However, there is absolutely no mention of Redis or any distributed caching mechanism in the provided text."
+**Evidence**: "No evidence found in profile."
+"""
     ),
     (
         "human",
@@ -103,7 +124,14 @@ RULES:
   - Questions 4 and 5 should target MATCHED/STRONG_MATCH technical skills with deep scenario-based questions.
   - If there are fewer than 3 missing/weak skills, target MATCHED skills for deep scenario questions.
 - Every question must be scenario-based ("How would you design X given Y?", "What breaks when Z?"). No trivial definition or recall questions.
-- Ground questions strictly in the candidate's provided skills and role context. Do not hallucinate unmentioned frameworks."""
+- Ground questions strictly in the candidate's provided skills and role context. Do not hallucinate unmentioned frameworks.
+
+### EXPECTED OUTPUT QUALITY (FEW-SHOT EXAMPLE)
+**Question**: "You are migrating a monolithic Postgres database to a microservices architecture. How do you handle distributed transactions across services when a user checkout involves the inventory, payment, and shipping services, ensuring no dirty reads or stranded payments?"
+**Interviewer Intent**: "Probes the candidate's understanding of distributed data consistency, specifically avoiding the two-phase commit anti-pattern in microservices. We are looking for practical knowledge of the Saga pattern, idempotent APIs, and eventual consistency. A red flag is assuming standard ACID guarantees still apply across network boundaries."
+**Ideal Answer**: "A strong candidate will immediately identify that distributed ACID transactions (like Two-Phase Commit) create unacceptable latency and coupling. Instead, they should propose the **Saga Pattern** (either Orchestrated or Choreographed). 
+For the checkout flow, they would describe an Orchestrator service that initiates a local transaction (e.g., reserve inventory). If successful, it fires an event to the Payment service. If payment succeeds, it triggers Shipping. 
+Crucially, they must address failure states: if Payment fails, the Orchestrator must trigger a **Compensating Transaction** to release the reserved inventory. They should mention that all endpoints must be **idempotent** (using idempotency keys) so that network retries don't result in double-charging the user. Finally, they might discuss using an Outbox Pattern to reliably publish these domain events from the local database to the message broker (like Kafka) without dual-write inconsistencies."
     ),
     (
         "human",
@@ -139,7 +167,15 @@ RULES:
 - Each question must probe a specific gap, collaboration situation, leadership ownership, or teamwork scenario.
 - Ground the question in the candidate's actual work experience or gaps.
 - Only the 5th question can be a classic STAR-method behavioral prompt.
-- Ensure 5 distinct topics with no thematic overlap."""
+- Ensure 5 distinct topics with no thematic overlap.
+
+### EXPECTED OUTPUT QUALITY (FEW-SHOT EXAMPLE)
+**Question**: "I see from your background you led the migration to Kubernetes, which required buy-in from multiple legacy teams. Can you walk me through a specific instance where a key stakeholder actively resisted this change, and how you managed their pushback without using formal authority?"
+**Interviewer Intent**: "Evaluates the candidate's stakeholder management, empathy, and ability to influence without authority. We want to see if they understand the root cause of the resistance (e.g., fear of losing control, steep learning curve) rather than just pushing technical superiority. A red flag is escalating immediately to a manager or dismissing the stakeholder's concerns."
+**Ideal Answer**: "A great candidate will structure their answer using the STAR method. 
+**Situation/Task**: They should set the context, explaining the technical initiative and identifying the specific stakeholder who resisted (e.g., QA lead who feared the new deployment process would bypass their checks). 
+**Action**: They should focus on active listening and education. They might explain how they set up a 1-on-1 to understand the root fear, then collaborated on a proof-of-concept that integrated the QA checks directly into the new CI/CD pipeline, turning a blocker into a champion. 
+**Result**: The answer should conclude with a quantifiable positive outcome (e.g., adoption increased by 40%, deployment time halved) and a reflection on how this approach builds long-term trust across silos."
     ),
     (
         "human",
@@ -176,7 +212,16 @@ RULES:
 - Target the HIGH and MEDIUM severity gaps (REQUIRED skills that are MISSING or WEAK_MATCH).
 - Each day must have a clear dailyFocus and actionable, verifiable dailyTasks.
 - Do NOT include URLs inside the dailyTasks array — tasks must be plain English study actions.
-- Ground tasks in the provided search references and core gap topics."""
+- Ground tasks in the provided search references and core gap topics.
+
+### EXPECTED OUTPUT QUALITY (FEW-SHOT EXAMPLE)
+**Day Focus**: "Mastering Distributed Caching and Redis Architecture"
+**Daily Tasks**:
+- "Read the official Redis persistence documentation (RDB vs AOF) to understand durability tradeoffs."
+- "Implement a Node.js Express middleware that caches heavy database queries using the `ioredis` library."
+- "Write a chaos-testing script to simulate a Redis node failure and verify your application gracefully falls back to the primary database."
+- "Study the Cache Stampede (Thundering Herd) problem and implement a probabilistic early expiration strategy to mitigate it."
+"""
     ),
     (
         "human",
