@@ -17,12 +17,47 @@ const Home = () => {
   const { user, handleLogout, isLoggingOut } = useAuth();
   const navigate = useNavigate();
 
-  const [candidateProfile, setCandidateProfile] = useState("");
+  // State: File upload handling
+  const [fileName, setFileName] = useState("");
+  const resumeInputRef = useRef();
+  const [resumeFile, setResumeFile] = useState(null);
+  
+  // State: Form inputs
+  const [careerTranscript, setCareerTranscript] = useState("");
   const [jobDescriptionUrl, setJobDescriptionUrl] = useState("");
   const [daysLimit, setDaysLimit] = useState(7);
 
   // State: UI toggles
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Handle Resume Selection
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast.error("Only PDF files are allowed.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("PDF size must be less than 3MB");
+      return;
+    }
+
+    setFileName(file.name);
+    setResumeFile(file);
+  };
+
+  // Clear Selected File
+  const handleClearFile = () => {
+    setFileName("");
+    setResumeFile(null);
+    if (resumeInputRef.current) {
+      resumeInputRef.current.value = "";
+    }
+  };
 
   // Trigger Report Generation
   const handleGenerateReport = async () => {
@@ -30,8 +65,8 @@ const Home = () => {
       toast.error("Please enter a job posting URL.");
       return;
     }
-    if (!candidateProfile.trim() || candidateProfile.length < 50) {
-      toast.error("Please provide a descriptive candidate profile (at least 50 chars).");
+    if (!resumeFile) {
+      toast.error("Please upload your resume (PDF).");
       return;
     }
 
@@ -39,7 +74,8 @@ const Home = () => {
 
     try {
       const data = await generateReport({
-        candidateProfile: candidateProfile.trim(),
+        resumeFile,
+        careerTranscript: careerTranscript.trim(),
         jobDescriptionUrl: jobDescriptionUrl.trim(),
         daysLimit,
       });
@@ -114,7 +150,7 @@ const Home = () => {
             Create Your Custom <span className="text-primary">Interview Plan</span>
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Analyze job descriptions, paste your career transcript, and generate dynamic custom preparation roadmaps.
+            Analyze job descriptions, upload your resume, and generate dynamic custom preparation roadmaps.
           </p>
         </div>
 
@@ -122,8 +158,14 @@ const Home = () => {
           <CreatePlan
             jobDescriptionUrl={jobDescriptionUrl}
             setJobDescriptionUrl={setJobDescriptionUrl}
-            candidateProfile={candidateProfile}
-            setCandidateProfile={setCandidateProfile}
+            fileName={fileName}
+            setFileName={setFileName}
+            resumeInputRef={resumeInputRef}
+            handleFileChange={handleFileChange}
+            handleClearFile={handleClearFile}
+            hasFile={!!resumeFile}
+            careerTranscript={careerTranscript}
+            setCareerTranscript={setCareerTranscript}
             handleGenerateReport={handleGenerateReport}
             loading={isLoading || isGenerating}
             daysLimit={daysLimit}

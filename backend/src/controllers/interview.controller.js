@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import axios from 'axios';
+import pdfParse from 'pdf-parse';
 import InterviewReportModel from '../models/interview_report.model.js';
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError, ConflictError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';
@@ -11,15 +12,37 @@ import { Job } from 'bullmq';
 /**
  * Generates an interview report by enqueuing a background job.
  * 
- * - Checks for existing duplicate report and throws ConflictError with reportId.
- * - Enqueues a job to the BullMQ queue for AI processing.
+ * Flow:
+ * 1. Accepts a multipart/form-data payload containing an optional Resume PDF file.
+ * 2. Parses the PDF into memory using `pdf-parse` and concatenates it with the text `careerTranscript`.
+ * 3. Hashes the text to check for duplicates to prevent wasting AI resources.
+ * 4. Pushes the job to BullMQ, where a background worker will call the Python AI Service.
  * 
- * @param req - Express request object
- * @param res - Express response object
+ * @param {import('express').Request} req - Express request object containing `req.file` and `req.body`.
+ * @param {import('express').Response} res - Express response object.
+ * @throws {BadRequestError} If the PDF cannot be read or is missing.
+ * @throws {ConflictError} If an identical report already exists.
  */
 export const generateReport = async (req, res) => {
-  const { candidateProfile, jobDescriptionUrl, daysLimit } = req.body;
+  const { careerTranscript, jobDescriptionUrl, daysLimit } = req.body;
   const days = parseInt(daysLimit, 10);
+
+  if (!req.file) {
+    throw new BadRequestError('Please upload your resume as a PDF file.');
+  }
+
+  // Extract text from PDF
+  let pdfText = '';
+  try {
+    const pdfData = await pdfParse(req.file.buffer);
+    pdfText = pdfData.text || '';
+  } catch (error) {
+    logger.error({ error: error.message }, 'Failed to parse PDF');
+    throw new BadRequestError('Failed to read the PDF file. Please ensure it is a valid, text-based PDF.');
+  }
+
+  // Merge them together
+  const candidateProfile = `=== RESUME ===\n${pdfText.trim()}\n\n=== ADDITIONAL CONTEXT ===\n${careerTranscript ? careerTranscript.trim() : 'None provided.'}`;
 
   // Generate hash from the text description and check for duplicates
   const profileHash = crypto.createHash('sha256').update(candidateProfile).digest('hex');

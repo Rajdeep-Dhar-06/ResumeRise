@@ -1,25 +1,52 @@
-from langchain_community.vectorstores import FAISS
+"""
+Evaluation module utilizing Batch Prompting.
+
+Instead of hitting the LLM once for every individual requirement (which causes severe Rate Limit exhaustion), 
+this module batches all technical or non-technical requirements into a single prompt.
+The LLM evaluates them all simultaneously with full visibility into the candidate's background.
+"""
 from config import llm
 from schemas.report import JobRequirement
-from schemas.evaluation import RequirementEvaluation
-from prompts.prompts import EVALUATION_PROMPT
+from schemas.evaluation import RequirementEvaluation, BatchEvaluationResult
+from prompts.prompts import BATCH_EVALUATION_PROMPT
 
-async def evaluate_requirement(requirement: JobRequirement, vector_store: FAISS) -> RequirementEvaluation:
+async def evaluate_requirements_batch(
+    requirements: list[JobRequirement], 
+    candidate_text: str, 
+    requirement_type: str
+) -> list[RequirementEvaluation]:
     """
-    Evaluates a single job requirement against a vector store of candidate profile chunks.
+    Evaluates a batch of job requirements holistically against the full candidate transcript.
+
+    Args:
+        requirements (list[JobRequirement]): The list of requirements (Technical or Non-Technical) to evaluate.
+        candidate_text (str): The full anonymized text of the candidate's resume/profile.
+        requirement_type (str): Either "Technical" or "Non-Technical" for prompt context.
+
+    Returns:
+        list[RequirementEvaluation]: A list of evaluated results (Match Tier, Reasoning, Evidence) for each requirement.
     """
-    search_query = f"{requirement.canonical_name} {requirement.source_context}"
-    retrieved_docs = vector_store.similarity_search(search_query, k=4)
-    resume_chunks = "\n---\n".join([doc.page_content for doc in retrieved_docs])
+    if not requirements:
+        return []
+
+    # Format the requirements into a clear string list for the LLM
+    req_lines = []
+    for req in requirements:
+        req_lines.append(f"- Name: {req.requirement_name} | Priority: {req.priority.value} | Context: {req.source_context}")
     
-    chain = EVALUATION_PROMPT | llm.with_structured_output(RequirementEvaluation)
+    requirements_list_str = "\n".join(req_lines)
     
-    result: RequirementEvaluation = await chain.ainvoke({  # type: ignore
-        "req_name": requirement.requirement_name,
-        "req_context": requirement.source_context,
-        "req_priority": requirement.priority,
-        "resume_chunks": resume_chunks or "No relevant information found."
+    chain = BATCH_EVALUATION_PROMPT | llm.with_structured_output(BatchEvaluationResult)
+    
+    result: BatchEvaluationResult = await chain.ainvoke({  # type: ignore
+        "requirement_type": requirement_type,
+        "requirements_list": requirements_list_str,
+        "candidate_text": candidate_text
     })
     
-    result.requirement_name = requirement.requirement_name
-    return result
+    # Ensure requirement names match exactly if the LLM hallucinated
+    for i, req in enumerate(result.evaluations):
+        if i < len(requirements):
+            req.requirement_name = requirements[i].requirement_name
+            
+    return result.evaluations

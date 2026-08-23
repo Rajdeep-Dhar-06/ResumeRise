@@ -1,3 +1,10 @@
+"""
+Augmentation Module
+
+This module is responsible for generating personalized interview questions and a structured study plan.
+It uses Langchain's Expression Language (LCEL) and Pydantic structured outputs to ensure the LLM 
+generates precisely formatted questions and daily study tasks without hallucinating schemas.
+"""
 from config import llm, creative_llm
 from schemas.evaluation import RequirementEvaluation
 from schemas.report import MatchTier
@@ -21,6 +28,16 @@ async def generate_tech_questions(
 ) -> list[InterviewQuestion]:
     """
     Generates exactly 5 scenario-based technical engineering interview questions.
+    
+    This function filters the candidate's evaluations to explicitly feed their missing, weak, 
+    and matched skills into the prompt. The LLM then generates targeted technical questions.
+
+    Args:
+        evaluations (list[RequirementEvaluation]): The candidate's technical skill evaluations.
+        role (str): The target job role.
+
+    Returns:
+        list[InterviewQuestion]: A list of exactly 5 generated technical questions.
     """
     missing = [e.requirement_name for e in evaluations if e.match_tier == MatchTier.NO_MATCH]
     weak = [e.requirement_name for e in evaluations if e.match_tier == MatchTier.WEAK_MATCH]

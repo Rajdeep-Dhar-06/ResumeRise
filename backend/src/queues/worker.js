@@ -5,6 +5,20 @@ import axios from 'axios';
 import InterviewReportModel from '../models/interview_report.model.js';
 import logger from '../utils/logger.js';
 
+/**
+ * BullMQ Background Worker for AI processing.
+ * 
+ * This worker processes jobs pushed by the `/api/interview/reports` endpoint.
+ * We use a background queue instead of waiting synchronously because the Python 
+ * AI service can take ~10-20 seconds to generate the full roadmap. If we waited 
+ * synchronously, the HTTP request might timeout and crash.
+ * 
+ * Flow:
+ * 1. Takes the job data (which already has the parsed PDF text).
+ * 2. POSTs it to the Python AI service.
+ * 3. Validates the JSON response schema perfectly matches the MongoDB schema.
+ * 4. Saves to MongoDB.
+ */
 export const interviewWorker = new Worker(QUEUE_NAME, async (job) => {
   const { userId, profileHash, jobDescriptionUrl, days, candidateProfile } = job.data;
 
@@ -14,9 +28,9 @@ export const interviewWorker = new Worker(QUEUE_NAME, async (job) => {
   try {
     const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000/api/analyze';
     aiResponse = await axios.post(aiServiceUrl, {
-      candidate_profile: candidateProfile,
-      jd_url: jobDescriptionUrl.trim(),
-      days_limit: days
+      candidateProfile: candidateProfile,
+      jdUrl: jobDescriptionUrl.trim(),
+      daysLimit: days
     }, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 120000 // 2 minutes

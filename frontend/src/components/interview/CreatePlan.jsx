@@ -17,18 +17,30 @@ import {
 export function CreatePlan({
   jobDescriptionUrl,
   setJobDescriptionUrl,
-  candidateProfile,
-  setCandidateProfile,
+  fileName,
+  setFileName,
+  resumeInputRef,
+  handleFileChange,
+  handleClearFile,
+  hasFile,
+  careerTranscript,
+  setCareerTranscript,
   handleGenerateReport,
   loading,
   daysLimit,
   setDaysLimit,
 }) {
-  const hasProfile = candidateProfile && candidateProfile.trim().length > 50;
+  const [dragging, setDragging] = useState(false)
+
+  const handleFile = (file) => {
+    if (file) {
+      handleFileChange({ target: { files: [file] } })
+    }
+  }
 
   // Determine if strategy button is disabled
   const hasUrl = jobDescriptionUrl && jobDescriptionUrl.trim().length > 0;
-  const isSubmitDisabled = !hasUrl || !hasProfile || loading;
+  const isSubmitDisabled = !hasUrl || !hasFile || loading;
 
   // ================= MAIN CARD CONTAINER =================
   return (
@@ -90,27 +102,99 @@ export function CreatePlan({
                   <FileText className="size-5 text-primary" />
                   <h3 className="text-base font-semibold">Your Profile</h3>
                 </div>
-                <Badge variant={hasProfile ? "default" : "destructive"}>
-                  {hasProfile ? "Ready" : "Required"}
+                <Badge variant={hasFile ? "default" : "destructive"}>
+                  {hasFile ? "Ready" : "Required"}
                 </Badge>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="candidate-profile">Career Transcript / Summary</Label>
-                <textarea
-                  id="candidate-profile"
-                  value={candidateProfile}
-                  onChange={(e) => setCandidateProfile(e.target.value)}
-                  disabled={loading}
-                  placeholder="Paste your resume text, LinkedIn about section, or a detailed career summary here..."
-                  className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="flex items-center gap-2">
+                    <Upload className="size-4" /> Upload Resume PDF
+                  </Label>
+
+                  {/* Hidden native file input */}
+                  <input
+                    ref={resumeInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="sr-only"
+                    onChange={(e) => handleFile(e.dataTransfer?.files?.[0] || e.target.files?.[0])}
+                    disabled={loading}
+                  />
+
+                  {fileName ? (
+                    // Selected state: show the file name with a remove button
+                    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 h-24">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FileText className="size-5 shrink-0 text-primary" />
+                        <span className="truncate text-sm font-medium">{fileName}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleClearFile}
+                        aria-label="Remove file"
+                        disabled={loading}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    // Empty state: clickable + drag-and-drop area
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => !loading && resumeInputRef.current?.click()}
+                      onKeyDown={(e) => {
+                        if (!loading && (e.key === 'Enter' || e.key === ' ')) {
+                          resumeInputRef.current?.click()
+                        }
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        if (!loading) setDragging(true)
+                      }}
+                      onDragLeave={() => setDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setDragging(false)
+                        if (!loading) handleFile(e.dataTransfer.files?.[0])
+                      }}
+                      className={`cursor-pointer rounded-lg border border-dashed text-center transition-all h-24 flex items-center justify-center ${dragging
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/60 hover:bg-accent/20'
+                        }`}
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <FileText className="size-5 text-muted-foreground mb-1" />
+                        <h4 className="text-xs font-medium">Click to browse or drag &amp; drop PDF</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">PDF format only (Max 3MB)</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="career-transcript" className="flex items-center gap-2">
+                    Additional Context <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
+                  </Label>
+                  <textarea
+                    id="career-transcript"
+                    value={careerTranscript}
+                    onChange={(e) => setCareerTranscript(e.target.value)}
+                    disabled={loading}
+                    placeholder="Paste extended project details, GitHub links, or extra context here..."
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
               </div>
             </div>
             <Alert>
               <Info className="size-4" />
-              <AlertTitle>Descriptive text required</AlertTitle>
-              <AlertDescription>Your custom roadmap will be generated based on the experience detailed above.</AlertDescription>
+              <AlertTitle>Resume required</AlertTitle>
+              <AlertDescription>We'll analyze your resume against the job description to build your strategy.</AlertDescription>
             </Alert>
           </div>
         </div>

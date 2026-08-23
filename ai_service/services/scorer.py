@@ -1,3 +1,8 @@
+"""
+Scoring logic for candidate evaluations.
+
+This module determines the final 0-100 match score by weighing technical and non-technical skills.
+"""
 import math
 from schemas.evaluation import RequirementEvaluation
 from schemas.report import MatchTier
@@ -11,7 +16,7 @@ TIER_POINTS: dict[MatchTier, int] = {
 }
 
 def _round_half_up(value: float) -> int:
-    """Standard arithmetic rounding where .5 always rounds up."""
+    """Standard arithmetic rounding where .5 always rounds up to the nearest integer."""
     return math.floor(value + 0.5)
 
 def calculate_final_score(
@@ -19,9 +24,17 @@ def calculate_final_score(
     non_technical_evaluations: list[RequirementEvaluation]
 ) -> int:
     """
-    Calculates the 70/30 weighted match score across technical and non-technical evaluations.
-    - Technical requirements account for 70% of total score.
-    - Non-technical requirements account for 30% of total score.
+    Calculates a weighted average score from the candidate's evaluations.
+    
+    The algorithm applies a 70/30 split because technical skills are typically 
+    the primary hiring signal for software roles, while non-technical skills act as multipliers.
+
+    Args:
+        technical_evaluations (list[RequirementEvaluation]): Technical results.
+        non_technical_evaluations (list[RequirementEvaluation]): Non-technical results.
+
+    Returns:
+        int: The final calculated score (0-100).
     """
     has_tech = len(technical_evaluations) > 0
     has_non_tech = len(non_technical_evaluations) > 0
