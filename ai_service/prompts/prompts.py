@@ -128,6 +128,7 @@ RULES:
 **Ideal Answer**: "A strong candidate will immediately identify that distributed ACID transactions (like Two-Phase Commit) create unacceptable latency and coupling. Instead, they should propose the **Saga Pattern** (either Orchestrated or Choreographed). 
 For the checkout flow, they would describe an Orchestrator service that initiates a local transaction (e.g., reserve inventory). If successful, it fires an event to the Payment service. If payment succeeds, it triggers Shipping. 
 Crucially, they must address failure states: if Payment fails, the Orchestrator must trigger a **Compensating Transaction** to release the reserved inventory. They should mention that all endpoints must be **idempotent** (using idempotency keys) so that network retries don't result in double-charging the user. Finally, they might discuss using an Outbox Pattern to reliably publish these domain events from the local database to the message broker (like Kafka) without dual-write inconsistencies."
+"""
     ),
     (
         "human",
