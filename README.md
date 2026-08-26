@@ -3,28 +3,29 @@
 > **Production-grade, AI-driven interview strategy engine that analyzes resume PDFs against live job descriptions to generate personalized, priority-weighted preparation roadmaps.**
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=flat-square&logo=nodedotjs)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-v3.12+-3776AB?style=flat-square&logo=python)](https://python.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-v5-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-v8-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 [![Redis](https://img.shields.io/badge/Redis-v5-DC382D?style=flat-square&logo=redis)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-v9-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.1_Flash_Lite-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 
 ---
 
 ## Overview
 
-Candidates applying for software engineering roles face a persistent challenge: manually cross-referencing multi-page resumes against complex job descriptions is time-consuming, highly subjective, and inefficient. Standard tools fail to quantify technical skill gaps or produce actionable, prioritized study strategies.
+Candidates applying for software engineering roles face a persistent challenge: manually cross-referencing resumes against complex job descriptions is time-consuming and inefficient. Standard tools fail to quantify technical skill gaps or produce actionable, prioritized study strategies.
 
-**ResumeRise** solves this by providing an automated interview preparation engine. Given a candidate's resume PDF and a target job posting URL, ResumeRise extracts, anonymizes, parses, and evaluates the candidate's profile against job requirements in under 30 seconds.
+**ResumeRise** provides an automated interview preparation engine. Given a candidate's resume PDF and a target job posting URL, ResumeRise extracts, anonymizes, parses, and evaluates the candidate's profile against job requirements in seconds.
 
-### Key Capabilities
-- **Automated Web Ingestion**: Dynamically fetches and cleans JavaScript-rendered job postings using the Jina Reader API.
-- **Privacy-Preserving PII Redaction**: Strips sensitive personal identifiable information (emails, phone numbers, personal names) via a multi-pass hybrid pipeline (Regex + NLP Entity Recognition) before transmitting text to LLM providers.
-- **Streamlined Pipeline Architecture**: Orchestrates multi-step LLM synthesis efficiently to handle complex evaluation tasks in a single request lifecycle.
-- **Thundering Herd & Cache Optimization**: Employs SHA-256 client-side document hashing alongside distributed Redis Mutex locks (`SETNX`) to prevent redundant scraping, duplicate web searches, and duplicate LLM invocations.
-- **Deterministic Match Scoring**: Evaluates candidate fit using a priority-weighted, complexity-scaled mathematical scoring model that enforces penalty caps for missing core competencies.
+### Core Engineering Capabilities
+
+- **AI-Powered Career Intelligence Platform**: Built a full-stack intelligence platform enabling candidates to generate hyper-personalized interview roadmaps by parsing PDF resumes, leveraging a decoupled microservice architecture composed of a Node.js orchestrator and a Python FastAPI inference engine backed by MongoDB.
+- **Concurrent Batch Inference Pipeline**: Engineered an asynchronous evaluation DAG using `asyncio.gather` and Batch Prompting to evaluate candidate technical requirements in parallel, reducing LLM API roundtrips and dropping total inference latency from 45 seconds to 10 seconds while preventing rate-limit exhaustion.
+- **Asynchronous Task Orchestration**: Architected a highly resilient background processing queue using BullMQ and Redis to decouple long-running generative tasks from the main event loop, eliminating HTTP timeouts and guaranteeing job execution without dropping requests under heavy concurrent workloads.
+- **Type-Safe Schema Validation & Security**: Enforced end-to-end data integrity by utilizing Zod for API payloads and LangChain (LCEL) with Pydantic to force the LLM into generating strictly-typed JSON, preventing malformed MongoDB writes alongside robust JWT authentication and API rate limiting.
+- **Interactive Client & Asynchronous UI**: Developed a modular client using React, Vite, and Tailwind CSS, featuring a robust drag-and-drop PDF uploader and an optimized short-polling mechanism to dynamically render the generated interview roadmap without blocking the main browser thread.
 
 ---
 
@@ -47,180 +48,48 @@ Candidates applying for software engineering roles face a persistent challenge: 
     <td><img src="images/Dashboard.png" alt="Dashboard" width="100%"></td>
     <td><img src="images/Report.png" alt="Report Overview" width="100%"></td>
   </tr>
-  <tr>
-    <td align="center"><b>Technical Questions</b></td>
-    <td align="center"><b>Non-Technical Questions</b></td>
-  </tr>
-  <tr>
-    <td><img src="images/Technical Questions.png" alt="Technical Questions" width="100%"></td>
-    <td><img src="images/Non Technical Questions.png" alt="Non-Technical Questions" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Study Roadmap</b></td>
-    <td align="center"><b>Learning Resources</b></td>
-  </tr>
-  <tr>
-    <td><img src="images/Roadmap.png" alt="Study Roadmap" width="100%"></td>
-    <td><img src="images/Resources.png" alt="Learning Resources" width="100%"></td>
-  </tr>
 </table>
 
 ---
 
-## Architecture & System Design
+## System Architecture
 
-ResumeRise utilizes a synchronous pipeline architecture designed for fast end-to-end processing while maintaining strict duplicate request coalescing.
+The application is structured into three distinct tiers:
 
-```mermaid
-flowchart TD
-    subgraph Client ["Client (React 19 + Vite)"]
-        UI["User Interface"]
-        Hash["SHA-256 Resume Hash"]
-    end
+1. **Client Tier (React)**: Handles file uploads and asynchronously short-polls the backend for background job completion.
+2. **API Gateway (Node.js/Express)**: Handles authentication, middleware validation, PDF parsing, and enqueues heavy workloads into a Redis-backed BullMQ queue.
+3. **Inference Engine (Python/FastAPI)**: A stateless, high-performance inference engine that executes the parallel Directed Acyclic Graph (DAG) for scraping, evaluating, and generating LLM content.
 
-    subgraph API Gateway ["Express.js v5 Server"]
-        Auth["JWT & Cookie Auth Middleware"]
-        Limiter["Rate Limiter"]
-        Controller["Interview Controller"]
-        Dedup["MongoDB Duplicate Check"]
-    end
-
-    subgraph Pipeline Layer ["Pipeline Orchestrator"]
-        Pipeline["4-Step Execution Pipeline"]
-        Step1["Step 1: Document Ingestion (pdf-parse + Jina)"]
-        Step2["Step 2: Requirement Audit (Gemini)"]
-        Step3["Step 3: Parallel Component Assembly"]
-        Step4["Step 4: Persistence (MongoDB)"]
-    end
-    
-    subgraph Shared Cache ["Redis"]
-        RedisCache[("Redis Hot Cache & Mutex Locks")]
-    end
-
-    subgraph External APIs ["External Providers"]
-        Jina["Jina Reader API (r.jina.ai)"]
-        Gemini["Google Gemini (Structured Output)"]
-        Tavily["Tavily Search API"]
-    end
-
-    UI -->|"1. Upload Resume PDF & Job URL"| Hash
-    Hash -->|"2. POST /api/interview/reports/generate-report"| Auth
-    Auth --> Limiter
-    Limiter --> Controller
-    Controller -->|"3. Query exact match"| Dedup
-    Dedup -->|"Cache Miss: Run Pipeline"| Pipeline
-    
-    Pipeline --> Step1
-    Step1 -->|"Scrape Webpage"| Jina
-    Step1 --> Step2
-    Step2 -->|"LLM Audit"| Gemini
-    Step2 -->|"Cache/Fetch LLM Key"| RedisCache
-    Step2 --> Step3
-    Step3 -->|"Fetch Resources"| Tavily
-    Step3 --> Step4
-    Step4 -->|"Write Report & Invalidate Stats"| RedisCache
-    
-    Step4 -->|"4. Return 201 Created + Report"| Controller
-    Controller -->|"5. Return JSON Response"| UI
+```text
+Client (React) -> Node.js Gateway (PDF Parse, Auth) -> BullMQ (Redis) -> Python FastAPI (Asyncio DAG, LLM) -> MongoDB
 ```
-
-### Request & Processing Flow
-
-1. **Ingestion & Validation**: The user submits a resume PDF and a target job posting URL. The client computes a SHA-256 hash of the PDF. The Express API checks MongoDB for an existing identical report for the user. On a cache hit, it returns the existing report instantly.
-2. **Synchronous Pipeline Processing**: On a cache miss, the Express controller triggers a 4-step pipeline directly:
-   - **Step 1 (Ingest)**: Extracts text from the PDF using `pdf-parse`, anonymizes PII using `compromise` + Regex, and fetches clean markdown from the job URL via Jina Reader.
-   - **Step 2 (Audit)**: Maps anonymized technical and non-technical candidate experience against job requirements using Google Gemini with Zod structured output. Results are cached in Redis under SHA-256 payload hashes (`cache:llm:*`).
-   - **Step 3 (Assemble)**: Executes parallel component generators to calculate match scores, build a multi-day study plan, craft technical/behavioral interview questions, and query Tavily for curated documentation links.
-   - **Step 4 (Persist)**: Writes the structured `InterviewReport` document to MongoDB Atlas and invalidates the user's dashboard statistics cache key in Redis (`stats:<userId>`).
-3. **Completion**: The API responds with `201 Created` returning the fully populated structured report for immediate rendering on the frontend.
-
----
-
-## Tech Stack
-
-| Domain | Technology | Purpose |
-|---|---|---|
-| **Runtime** | Node.js (v18+ ES Modules) | High-performance event-driven execution environment |
-| **Backend Framework** | Express.js v5 (`express@^5.2.1`) | Core HTTP API gateway and router |
-| **Database** | MongoDB Atlas (`mongoose@^9.3.0`) | Primary document store for users, resumes, job descriptions, and reports |
-| **Cache & Distributed Locks** | Redis (`ioredis@^5.11.1`) | Hot cache layer and distributed mutex locks |
-| **AI Orchestration** | LangChain (`@langchain/core`, `@langchain/google`) | Structured output extraction via Google Gemini models |
-| **Web Scraping** | Jina Reader API (`r.jina.ai`) | Server-side HTML-to-Markdown conversion for dynamic job pages |
-| **Web Search** | Tavily API (`@langchain/tavily`) | Real-time discovery of free developer documentation and learning resources |
-| **PDF & PII Processing** | `pdf-parse` & `compromise` | Zero-disk buffer PDF text extraction and NLP-based PII redaction |
-| **Authentication & Security** | JWT (`jsonwebtoken`), `bcryptjs`, `helmet` | HttpOnly refresh cookie flow, token verification, and security headers |
-| **Rate Limiting** | `express-rate-limit` | In-memory API rate limiting per IP/User |
-| **Logging** | Pino (`pino@^10.3.1`, `pino-http`) | High-performance structured JSON logging with automatic secret redaction |
-| **Frontend Framework** | React 19 + Vite 8 | Single Page Application framework and fast build toolchain |
-| **Styling & UI** | Tailwind CSS v4, Base UI, Lucide Icons | Component-driven responsive styling system and UI icons |
-
----
-
-## Engineering Highlights
-
-### 1. Request Coalescing & Distributed Mutex Locks
-When multiple users request analysis for the same popular job URL or identical skill gap, unthrottled scraping or web search introduces redundant API charges and latency. ResumeRise uses a Redis-backed distributed lock (`SET lock:<key> 1 EX lockTtl NX`):
-- **Web Scraping Coalescing**: If a job URL is currently being scraped by Request A, Request B fails to acquire the lock and enters a polling loop with jitter against the Redis cache (`jd:<url>`), reusing Request A's result upon completion.
-- **Search Request Coalescing**: Parallel searches for identical skill gaps (e.g., "Docker Containerization") acquire a lock (`lock:search:<term>`), preventing duplicate Tavily search requests.
-
-### 2. Priority-Weighted & Complexity-Scaled Match Algorithm
-Rather than relying on basic fuzzy keyword counts or non-deterministic LLM score guesses, candidate match scoring uses a deterministic mathematical algorithm (`src/utils/score_calculator.js`):
-
-$$\text{Weighted Score} = \frac{\sum (\text{Term Score}_i \times \text{Priority Weight}_i)}{\text{Total Weight}}$$
-
-- **Priority Weights**: `REQUIRED` (1.0), `PREFERRED` (0.65), `NICE_TO_HAVE` (0.35).
-- **Complexity Multipliers**: `PRODUCTION` (1.0), `ADVANCED` (0.98), `INTERMEDIATE` (0.90), `BASIC` (0.80), `TRIVIAL` (0.65).
-- **Sparse Description Smoothing**: Introduces minimum weight padding (`MIN_JD_WEIGHT = 8.0`) to avoid score distortion on short job descriptions.
-- **Critical Skill Penalty Caps**: If a candidate lacks essential `REQUIRED` competencies, the final score is hard-capped (e.g., capped at 80% if $\ge 1$ required skill is missing; capped at 70% if $\ge 3$ are missing).
-
-### 3. Zero-Disk Privacy-First PII Redaction
-Candidate resumes contain sensitive personal details (names, personal phone numbers, email addresses). The anonymizer pipeline (`src/utils/anonymizer.js`):
-1. Accepts raw PDF buffers in memory via `multer.memoryStorage()`, keeping zero files on disk.
-2. Applies high-speed regular expressions to strip email patterns and telephone numbers (`[REDACTED_EMAIL]`, `[REDACTED_PHONE]`).
-3. Passes extracted text through `compromise` NLP Named Entity Recognition (NER) to detect and redact personal names (`[REDACTED_NAME]`).
-4. Ensures clean, anonymized text is passed to external LLM providers and persistent caches.
-
-### 4. Multi-Tiered Intelligent Caching
-- **Level 1 (LLM Call Cache)**: Input payload hashing via SHA-256 (`withLlmCache`) caches LLM evaluation outputs in Redis for 24 hours (`cache:llm:<tool>:<hash>`).
-- **Level 2 (Scraper & Search Cache)**: Scraped job descriptions and Tavily search resource lists are cached in Redis (24h/48h TTL) and backed by MongoDB persistent collections.
-- **Level 3 (User Dashboard Aggregation Cache)**: User statistics (`totalPlans`, `averageMatch`, `bestMatch`) are cached in Redis (`stats:<userId>`) and selectively invalidated only upon report creation or deletion.
 
 ---
 
 ## Project Structure
 
-```
+```text
 ResumeRise/
-├── backend/
-│   ├── render.yaml                    # Render infrastructure deployment blueprint
-│   ├── package.json                   # Backend dependencies and execution scripts
-│   └── src/
-│       ├── server.js                  # Primary API Express server entry point & graceful shutdown
-│       ├── app.js                     # Express app configuration & middleware pipeline
-│       ├── config/                    # Database, Redis, and LangChain LLM configurations
-│       ├── controllers/               # Auth and Interview Report API route controllers
-│       ├── middlewares/               # Rate limiters, JWT verification, validation, error handler
-│       ├── models/                    # Mongoose schemas (User, Report, JobDescription, Resume)
-│       ├── pipeline.js/               # Modular 4-step report generation orchestrator
-│       ├── prompts/                   # Structured prompt templates for Gemini models
-│       ├── routes/                    # Express routing endpoints
-│       ├── schemas/                   # Zod schemas for structured LLM parsing
-│       ├── services/                  # Step implementations (Ingest, Audit, Assemble, Persist)
-│       ├── tools/                     # Modular tool execution scripts (Scraper, Scorer, Planner)
-│       └── utils/                     # Anonymizer, score calculator, logger, LLM cache wrapper
+├── backend/                  # Node.js API Gateway & Background Queues
+│   ├── src/
+│   │   ├── config/           # Database and Redis connections
+│   │   ├── controllers/      # Auth and Interview API route controllers
+│   │   ├── middlewares/      # JWT verification, PDF upload (Multer), Zod validation
+│   │   ├── models/           # Mongoose schemas (User, Report)
+│   │   ├── queues/           # BullMQ worker process targeting the AI Service
+│   │   └── routes/           # Express routing endpoints
 │
-└── frontend/
-    ├── package.json                   # Frontend dependencies and Vite scripts
-    ├── vite.config.js                 # Vite build configuration & plugin setup
-    └── src/
-        ├── App.jsx                    # Root Application component & provider wrappers
-        ├── app.routes.jsx             # React Router v7 route definitions
-        ├── components/                # Modular UI components (Dashboard, Report View, Auth)
-        ├── context/                   # React Context state management (Auth, Interview)
-        ├── hooks/                     # Custom React hooks (useAuth, useInterview)
-        ├── lib/                       # Axios client setup, token refresh interceptors, utils
-        ├── pages/                     # Application views (Login, Register, Home, Report Details)
-        └── services/                  # API client service wrappers (auth.api.js, interview.api.js)
+├── ai_service/               # Python FastAPI Inference Engine
+│   ├── api/                  # FastAPI routing endpoints
+│   ├── prompts/              # LangChain ChatPromptTemplates
+│   ├── schemas/              # Pydantic structured output models
+│   └── services/             # Core DAG logic (scraper, evaluator, augmentation)
+│
+└── frontend/                 # React SPA
+    ├── src/
+        ├── components/       # UI components (Dashboard, CreatePlan)
+        ├── context/          # React Context state management
+        └── pages/            # Application views
 ```
 
 ---
@@ -254,21 +123,33 @@ ResumeRise/
 
 ### Prerequisites
 - **Node.js**: v18.0.0 or higher
+- **Python**: v3.12 or higher (with `uv` or `pip`)
 - **MongoDB**: Atlas Cluster or local MongoDB instance (v6.0+)
 - **Redis**: Local instance or managed service (e.g., Redis Cloud, Upstash)
-- **API Keys**:
-  - [Google Gemini API Key](https://aistudio.google.com/)
-  - [Tavily Search API Key](https://tavily.com/)
-  - *(Optional)* [Jina Reader API Key](https://jina.ai/)
+- **API Keys**: Google Gemini API Key, Tavily Search API Key
 
-### 1. Clone Repository
+### 1. Python Inference Engine Setup (ai_service)
 
 ```bash
-git clone https://github.com/Rajdeep-Dhar-06/ResumeRise.git
-cd ResumeRise
+cd ai_service
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### 2. Backend Setup
+Create a `.env` file in `ai_service/.env`:
+```env
+GEMINI_API_KEY=your_gemini_key
+TAVILY_API_KEY=your_tavily_key
+JINA_API_KEY=your_jina_key  # Optional
+```
+
+Start the FastAPI server:
+```bash
+fastapi dev main.py --port 8000
+```
+
+### 2. Node.js Backend Setup (backend)
 
 ```bash
 cd backend
@@ -276,54 +157,38 @@ npm install
 ```
 
 Create a `.env` file in `backend/.env`:
-
 ```env
-# Server Configuration
 PORT=5000
 NODE_ENV=development
-LOG_LEVEL=info
 CORS_ORIGIN=http://localhost:5173
-
-# Database & Redis Connections
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/resumerise?retryWrites=true&w=majority
+MONGO_URI=mongodb://localhost:27017/resumerise
 REDIS_URL=redis://localhost:6379
-
-# Authentication Secrets
-ACCESS_TOKEN_SECRET=your_super_secret_access_key_32_bytes_min
-REFRESH_TOKEN_SECRET=your_super_secret_refresh_key_32_bytes_min
-
-# LLM & Search API Keys
-GEMINI_API_KEY=AIzaSy...
-TAVILY_API_KEY=tvly-...
-JINA_API_KEY=jina_...
+ACCESS_TOKEN_SECRET=your_super_secret_access_key
+REFRESH_TOKEN_SECRET=your_super_secret_refresh_key
+AI_SERVICE_URL=http://localhost:8000/api/analyze
 ```
 
-Start backend development server:
-
+Start the Node.js server:
 ```bash
 npm run dev
 ```
-*API Server starts on `http://localhost:5000`.*
 
-### 3. Frontend Setup
+### 3. Frontend Setup (frontend)
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 ```
 
 Create a `.env` file in `frontend/.env`:
-
 ```env
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-Start frontend development server:
-
+Start the React development server:
 ```bash
 npm run dev
 ```
-*Application opens on `http://localhost:5173`.*
 
 ---
 
@@ -333,21 +198,22 @@ npm run dev
 |---|---|---|---|
 | `PORT` | No | `5000` / `8000` | Port number for Express Web API server |
 | `NODE_ENV` | Yes | `development` | Environment mode (`development` / `production`) |
-| `LOG_LEVEL` | No | `info` | Logging verbosity for Pino logger (`debug`, `info`, `warn`, `error`) |
 | `CORS_ORIGIN` | Yes | `http://localhost:5173` | Allowed origin for Cross-Origin Resource Sharing |
 | `MONGO_URI` | Yes | — | MongoDB connection string URI |
 | `REDIS_URL` | Yes | — | Redis connection URL (`redis://:password@host:port`) |
 | `ACCESS_TOKEN_SECRET` | Yes | — | Secret key for signing short-lived Access JWTs |
 | `REFRESH_TOKEN_SECRET` | Yes | — | Secret key for signing long-lived Refresh JWTs |
-| `GEMINI_API_KEY` | Yes | — | Google AI Studio key for Gemini model invocations |
-| `TAVILY_API_KEY` | Yes | — | Tavily API key for search resource fetching |
-| `JINA_API_KEY` | No | — | Optional Bearer token for higher Jina Reader rate limits |
+| `AI_SERVICE_URL` | Yes | `http://localhost:8000`| URL to the Python Inference Engine |
+| `GEMINI_API_KEY` | Yes | — | Google AI Studio key for Gemini model invocations (Python) |
+| `TAVILY_API_KEY` | Yes | — | Tavily API key for search resource fetching (Python) |
+| `JINA_API_KEY` | No | — | Optional Bearer token for higher Jina Reader rate limits (Python) |
 
 ---
 
 ## Reliability & Security
 
-- **Structured JSON Logging & Redaction**: Pino automatically redacts authorization headers, cookies, and password parameters before emitting log events.
-- **Graceful Process Shutdown**: Captures `SIGTERM` and `SIGINT` signals across the API process to drain active HTTP connections and close Redis and Mongoose connections cleanly.
-- **Input Sanitization & Type Safety**: Strict schema validation using Zod for HTTP inputs and LangChain structured outputs.
-- **CSRF & Token Security**: Refresh tokens stored exclusively in `httpOnly`, `SameSite=Lax` (or `Strict`), `Secure` cookies.
+- **Strict Schema Validation**: Zod guarantees structured inbound HTTP payloads, while LangChain and Pydantic enforce robust, hallucination-free JSON structures from the LLM.
+- **Asynchronous Decoupling**: Offloading generative tasks to BullMQ guarantees the Node.js event loop remains unblocked, preventing request timeouts during LLM spikes.
+- **Data Anonymization**: A dedicated Python processing step scrubs PII using regular expressions and Named Entity Recognition prior to passing text vectors into the context window.
+- **Dual-Token Authentication**: Secure JWT implementation utilizing short-lived Access Tokens and HttpOnly, Secure, SameSite Refresh Cookies.
+

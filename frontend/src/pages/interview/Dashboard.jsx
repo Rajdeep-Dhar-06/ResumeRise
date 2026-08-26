@@ -138,7 +138,7 @@ const Dashboard = () => {
             </header>
 
             {/* ================= MAIN CONTENT: DASHBOARD ================= */}
-            <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8 w-full">
+            <main className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-8">
                 {/* ================= PAGE HEADING ================= */}
                 <section>
                     <h1 className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
@@ -234,19 +234,19 @@ const Dashboard = () => {
                                     <Pagination>
                                         <PaginationContent>
                                             <PaginationItem>
-                                                <PaginationPrevious 
-                                                    onClick={() => setPage(p => Math.max(1, p - 1))} 
+                                                <PaginationPrevious
+                                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                                     disabled={page === 1}
                                                     className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                                 />
                                             </PaginationItem>
-                                            
+
                                             {Array.from({ length: paginationInfo.totalPages }).map((_, i) => {
                                                 const pageNum = i + 1;
                                                 return (
                                                     <PaginationItem key={pageNum}>
-                                                        <PaginationLink 
-                                                            isActive={page === pageNum} 
+                                                        <PaginationLink
+                                                            isActive={page === pageNum}
                                                             onClick={() => setPage(pageNum)}
                                                             className="cursor-pointer"
                                                         >
@@ -255,10 +255,10 @@ const Dashboard = () => {
                                                     </PaginationItem>
                                                 );
                                             })}
-                                            
+
                                             <PaginationItem>
-                                                <PaginationNext 
-                                                    onClick={() => setPage(p => Math.min(paginationInfo.totalPages, p + 1))} 
+                                                <PaginationNext
+                                                    onClick={() => setPage(p => Math.min(paginationInfo.totalPages, p + 1))}
                                                     disabled={page === paginationInfo.totalPages}
                                                     className={page === paginationInfo.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                                 />

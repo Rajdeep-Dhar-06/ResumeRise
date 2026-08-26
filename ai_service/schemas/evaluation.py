@@ -15,3 +15,9 @@ class RequirementEvaluation(BaseSchema):
     evidence: str = Field(
         description="A robust extraction of direct quotes or bullet points from the candidate's profile that act as undeniable proof. If missing, explicitly state 'No evidence found in profile'."
     )
+
+class BatchEvaluationResult(BaseSchema):
+    evaluations: list[RequirementEvaluation] = Field(
+        description="List of evaluations corresponding to the batch of requirements."
+    )
+

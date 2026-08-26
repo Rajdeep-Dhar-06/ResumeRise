@@ -22,7 +22,8 @@ export const useInterview = () => {
 
   /** @description Generate a new interview report by enqueuing a job and polling for completion. */
   const generateReport = async ({
-    candidateProfile,
+    resumeFile,
+    careerTranscript,
     jobDescriptionUrl,
     daysLimit,
   }) => {
@@ -30,7 +31,8 @@ export const useInterview = () => {
     setFetchError(null);
     try {
       const response = await generateInterviewReport({
-        candidateProfile,
+        resumeFile,
+        careerTranscript,
         jobDescriptionUrl,
         daysLimit,
       });

@@ -5,8 +5,6 @@ export const AUTH = {
   SALT_ROUNDS: 10,
 };
 
-
-
 export const PAGINATION = {
   DEFAULT_LIMIT: 9,
   MAX_LIMIT: 50,

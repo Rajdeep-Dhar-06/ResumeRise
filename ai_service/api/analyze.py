@@ -9,7 +9,7 @@ router = APIRouter(tags=["Analysis"])
 async def analyze_candidate_endpoint(request: AnalyzeRequest) -> FinalReport:
     """
     Main evaluation endpoint:
-    Accepts candidate profile text, scrapes target JD URL, evaluates requirements in parallel via FAISS RAG,
+    Accepts candidate profile text, scrapes target JD URL, evaluates requirements holistically via batch prompting,
     calculates match score, identifies gaps, queries Tavily for tutorials, and generates interview questions & study roadmap.
     """
     try:

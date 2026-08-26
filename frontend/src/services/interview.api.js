@@ -4,23 +4,30 @@ import api from "../lib/api.js";
  * @description Generate an interview report from a resume and job description.
  */
 export const generateInterviewReport = async ({
-  candidateProfile,
+  resumeFile,
+  careerTranscript,
   jobDescriptionUrl,
   daysLimit,
 }) => {
-  const response = await api.post("/api/interview/reports", {
-    candidateProfile,
-    jobDescriptionUrl,
-    daysLimit,
+  const formData = new FormData();
+  if (resumeFile) formData.append("resume", resumeFile);
+  if (careerTranscript) formData.append("careerTranscript", careerTranscript);
+  if (jobDescriptionUrl) formData.append("jobDescriptionUrl", jobDescriptionUrl);
+  if (daysLimit) formData.append("daysLimit", daysLimit);
+
+  const response = await api.post("/api/interview/reports/generate-report", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
-  return response.data; // { jobId, status } or { reportId, status: 'completed' }
+  return response.data;
 };
 
 /**
  * @description Get the status of an interview generation job.
  */
 export const getInterviewJobStatus = async (jobId) => {
-  const response = await api.get(`/api/interview/reports/job/${jobId}`);
+  const response = await api.get(`/api/interview/reports/status/${jobId}`);
   return response.data; // { jobId, status, reportId, error }
 };
 

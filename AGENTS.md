@@ -60,10 +60,10 @@ Agents must NOT reverse these without explicit user instruction.
 | Decision | Chosen | Rejected | Why |
 |---|---|---|---|
 | Input Format | Plain text career transcript / profile text | PDF file upload | PDFs add complexity with zero benefit. Text enables voice transcripts, copy-paste, textarea. |
-| Vector Store | FAISS (in-memory, per-request) | MongoDB Atlas Vector Search | Current scope is single-user per request. Persistent DB is a future milestone. |
-| Embedding Model | gemini-embedding-2 | 	ext-embedding-004 (404 deprecated) | gemini-embedding-2 is supported by Google GenAI v1beta SDK. |
-| Chunking | RecursiveCharacterTextSplitter(chunk_size=800, overlap=100) | 500-char tiny chunks | 800-char preserves job entries without cutting dates from bullet points. |
-| LLM Evaluation | One call per requirement (parallel) | One massive batch call | Isolated calls are more accurate and auditable. asyncio.gather keeps latency low. |
+| Vector Store | NONE (Removed) | FAISS (in-memory) | Candidate text is easily within the 1M token context window. RAG adds unnecessary API cost and latency. |
+| Embedding Model | NONE (Removed) | gemini-embedding-2 | Embeddings are no longer generated for candidate texts. |
+| Chunking | NONE (Removed) | RecursiveCharacterTextSplitter | Full context is provided directly to the LLM. |
+| LLM Evaluation | Batch Prompting (2 calls total) | One call per requirement | Evaluating every requirement independently caused severe Rate Limit exhaustion on the Free Tier (15 RPM). Batching solves this and improves semantic reasoning via full context visibility. |
 | Scoring Formula | (tech_avg * 0.70) + (non_tech_avg * 0.30) | Equal weighting | Technical requirements are the primary hiring signal for software roles. |
 | Match Tiers | 5-tier: EXPERT/STRONG/BASIC/WEAK/NO_MATCH | 3-tier (MATCHED/WEAK/MISSING) | 5-tier allows granular scoring (100/80/50/20/0) and richer LLM reasoning. |
 | Interview Questions | 5 Tech + 5 Non-Tech in SEPARATE LLM calls | Combined 10-question single call | Separate prompts prevent cross-contamination of question types. |

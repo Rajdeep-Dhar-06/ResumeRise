@@ -122,17 +122,17 @@ const Interview = () => {
               variant="outline"
               size="default"
               onClick={() => navigate("/dashboard")}
-              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold flex-shrink-0"
+              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold shrink-0"
             >
               <ArrowLeft size={15} />
               <span>Dashboard</span>
             </Button>
-            <Separator orientation="vertical" className="h-5 flex-shrink-0" />
+            <Separator orientation="vertical" className="h-5 shrink-0" />
             <h1 className="text-base font-semibold text-foreground truncate">
               {report?.reportTitle || "Interview Roadmap"}
             </h1>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {showDeleteConfirm ? (
               <div className="flex items-center gap-1.5 bg-red-950/30 border border-red-500/30 rounded-lg p-1 animate-in fade-in zoom-in-95 duration-150">
                 <span className="text-xs font-medium text-red-400 px-1.5">Delete?</span>
@@ -160,7 +160,7 @@ const Interview = () => {
                 variant="destructive"
                 size="default"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="gap-2 cursor-pointer font-semibold flex-shrink-0"
+                className="gap-2 cursor-pointer font-semibold shrink-0"
               >
                 <Trash2 size={15} />
                 <span className="hidden sm:inline">Delete Plan</span>
@@ -171,7 +171,7 @@ const Interview = () => {
               size="default"
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold flex-shrink-0"
+              className="gap-2 cursor-pointer text-muted-foreground hover:text-foreground font-semibold shrink-0"
             >
               <LogOut size={15} />
               <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>

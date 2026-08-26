@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import axios from 'axios';
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 import InterviewReportModel from '../models/interview_report.model.js';
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError, ConflictError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';

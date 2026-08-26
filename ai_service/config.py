@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.globals import set_llm_cache
 from langchain_community.cache import RedisCache
 from redis import Redis
@@ -34,7 +34,3 @@ creative_llm = ChatGoogleGenerativeAI(
     max_retries=3
 )
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-2",
-    google_api_key=GEMINI_API_KEY
-)

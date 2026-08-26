@@ -144,7 +144,7 @@ const Home = () => {
       </header>
 
       {/* ================= MAIN CONTENT: CREATE PLAN ================= */}
-      <main className="flex-grow mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-6 md:gap-8">
+      <main className="grow mx-auto w-full max-w-5xl px-4 py-8 md:px-8 md:py-10 flex flex-col gap-6 md:gap-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance md:text-4xl">
             Create Your Custom <span className="text-primary">Interview Plan</span>
@@ -154,7 +154,7 @@ const Home = () => {
           </p>
         </div>
 
-        <div className="flex-grow flex flex-col justify-center">
+        <div className="grow flex flex-col justify-center">
           <CreatePlan
             jobDescriptionUrl={jobDescriptionUrl}
             setJobDescriptionUrl={setJobDescriptionUrl}

@@ -11,15 +11,16 @@ import {
 import { validate } from '../middlewares/schema_validation.middleware.js';
 import { z } from 'zod';
 import { reportLimiter } from '../middlewares/rate_limiter.middleware.js';
+import upload from '../middlewares/resume_upload.middleware.js';
 
 const interviewRouter = express.Router();
 
 // Validation schemas
 const generateReportSchema = {
   body: z.object({
-    candidateProfile: z.string().min(50, 'Please provide a more descriptive profile'),
+    careerTranscript: z.string().optional(),
     jobDescriptionUrl: z.string().url(),
-    daysLimit: z.union([z.literal(3), z.literal(5), z.literal(7)]).default(7),
+    daysLimit: z.coerce.number().pipe(z.union([z.literal(3), z.literal(5), z.literal(7)])).default(7),
   }),
 };
 
@@ -38,6 +39,7 @@ interviewRouter.post(
   '/reports',
   verifyAccess,
   reportLimiter,
+  upload.single('resumePdf'),
   validate(generateReportSchema),
   generateReport
 );
