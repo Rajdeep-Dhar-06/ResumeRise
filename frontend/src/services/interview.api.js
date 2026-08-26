@@ -10,12 +10,12 @@ export const generateInterviewReport = async ({
   daysLimit,
 }) => {
   const formData = new FormData();
-  if (resumeFile) formData.append("resume", resumeFile);
+  if (resumeFile) formData.append("resumePdf", resumeFile);
   if (careerTranscript) formData.append("careerTranscript", careerTranscript);
   if (jobDescriptionUrl) formData.append("jobDescriptionUrl", jobDescriptionUrl);
   if (daysLimit) formData.append("daysLimit", daysLimit);
 
-  const response = await api.post("/api/interview/reports/generate-report", formData, {
+  const response = await api.post("/api/interview/reports", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -27,7 +27,7 @@ export const generateInterviewReport = async ({
  * @description Get the status of an interview generation job.
  */
 export const getInterviewJobStatus = async (jobId) => {
-  const response = await api.get(`/api/interview/reports/status/${jobId}`);
+  const response = await api.get(`/api/interview/reports/job/${jobId}`);
   return response.data; // { jobId, status, reportId, error }
 };
 
