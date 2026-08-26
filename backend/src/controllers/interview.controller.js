@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import axios from 'axios';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 import InterviewReportModel from '../models/interview_report.model.js';
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError, ConflictError } from '../utils/error_handler.js';
 import logger from '../utils/logger.js';
@@ -33,14 +31,20 @@ export const generateReport = async (req, res) => {
     throw new BadRequestError('Please upload your resume as a PDF file.');
   }
 
-  // Extract text from PDF
+  // Extract text from PDF using modern PDFParse ESM API
   let pdfText = '';
+  let parser = null;
   try {
-    const pdfData = await pdfParse(req.file.buffer);
-    pdfText = pdfData.text || '';
+    parser = new PDFParse({ data: req.file.buffer });
+    const textResult = await parser.getText();
+    pdfText = textResult?.text || '';
   } catch (error) {
     logger.error({ error: error.message }, 'Failed to parse PDF');
     throw new BadRequestError('Failed to read the PDF file. Please ensure it is a valid, text-based PDF.');
+  } finally {
+    if (parser) {
+      await parser.destroy().catch(() => {});
+    }
   }
 
   // Merge them together
