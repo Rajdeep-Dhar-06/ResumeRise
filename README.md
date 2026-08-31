@@ -9,7 +9,7 @@
 [![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
 [![Redis](https://img.shields.io/badge/Redis-v5-DC382D?style=flat-square&logo=redis)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-v9-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.1_Flash_Lite-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.5_Flash_Lite-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
 
 ---
 
@@ -140,13 +140,15 @@ pip install -r requirements.txt
 Create a `.env` file in `ai_service/.env`:
 ```env
 GEMINI_API_KEY=your_gemini_key
+GEMINI_MODEL=gemini-3.5-flash-lite
 TAVILY_API_KEY=your_tavily_key
+REDIS_URL=redis://localhost:6379
 JINA_API_KEY=your_jina_key  # Optional
 ```
 
 Start the FastAPI server:
 ```bash
-fastapi dev main.py --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### 2. Node.js Backend Setup (backend)
@@ -203,8 +205,9 @@ npm run dev
 | `REDIS_URL` | Yes | — | Redis connection URL (`redis://:password@host:port`) |
 | `ACCESS_TOKEN_SECRET` | Yes | — | Secret key for signing short-lived Access JWTs |
 | `REFRESH_TOKEN_SECRET` | Yes | — | Secret key for signing long-lived Refresh JWTs |
-| `AI_SERVICE_URL` | Yes | `http://localhost:8000`| URL to the Python Inference Engine |
+| `AI_SERVICE_URL` | Yes | `http://localhost:8000/api/analyze` | Full URL to the Python Inference Engine endpoint |
 | `GEMINI_API_KEY` | Yes | — | Google AI Studio key for Gemini model invocations (Python) |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash-lite` | Google Gemini model identifier (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`) |
 | `TAVILY_API_KEY` | Yes | — | Tavily API key for search resource fetching (Python) |
 | `JINA_API_KEY` | No | — | Optional Bearer token for higher Jina Reader rate limits (Python) |
 
