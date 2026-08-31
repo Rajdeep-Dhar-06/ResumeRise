@@ -40,7 +40,7 @@ const NAV_ITEMS = [
 ];
 
 // Main Interview Component
-const Interview = () => {
+const InterviewReport = () => {
   // Custom Hooks & Context
   const { report, isLoading, deleteReport, isDeleting, fetchError } = useInterview();
   const { handleLogout, isLoggingOut } = useAuth();
@@ -294,4 +294,5 @@ const Interview = () => {
   );
 };
 
-export default Interview;
+export default InterviewReport;
+

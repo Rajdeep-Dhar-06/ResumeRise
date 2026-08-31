@@ -9,14 +9,14 @@ export const QuestionCard = ({ item, index }) => {
         className="flex items-start gap-4 px-6 py-4 cursor-pointer select-none"
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-primary/10 text-primary text-xs font-semibold mt-0.5">
+        <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-primary/10 text-primary text-xs font-semibold mt-0.5">
           {index + 1}
         </span>
-        <p className="flex-grow text-base font-medium text-foreground leading-snug">
+        <p className="grow text-base font-medium text-foreground leading-snug">
           {item.question}
         </p>
         <span
-          className={`flex-shrink-0 text-slate-500 mt-1 transition-transform ${open ? "rotate-180 text-primary" : ""}`}
+          className={`shrink-0 text-slate-500 mt-1 transition-transform ${open ? "rotate-180 text-primary" : ""}`}
         >
           <ChevronDown size={20} />
         </span>

@@ -25,7 +25,7 @@ export const ResourceCard = ({ item }) => (
                   <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                     {resource.resourceTitle}
                   </h4>
-                  <ExternalLink size={14} className="text-muted-foreground flex-shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
+                  <ExternalLink size={14} className="text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                   {resource.resourceSnippet || "No description provided."}

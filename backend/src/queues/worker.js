@@ -25,19 +25,40 @@ export const interviewWorker = new Worker(QUEUE_NAME, async (job) => {
   logger.info({ jobId: job.id, userId }, 'Processing interview report generation');
 
   let aiResponse;
-  try {
-    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000/api/analyze';
-    aiResponse = await axios.post(aiServiceUrl, {
-      candidateProfile: candidateProfile,
-      jdUrl: jobDescriptionUrl.trim(),
-      daysLimit: days
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 120000 // 2 minutes
-    });
-  } catch (error) {
-    const detail = error.response?.data?.detail || error.response?.data || error.message;
-    logger.error({ detail }, 'Error calling AI service');
+  const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000/api/analyze';
+  const maxRetries = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info({ attempt, aiServiceUrl }, 'Attempting AI service request');
+      aiResponse = await axios.post(aiServiceUrl, {
+        candidateProfile: candidateProfile,
+        jdUrl: jobDescriptionUrl.trim(),
+        daysLimit: days
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000 // 2 minutes
+      });
+      break; // Success
+    } catch (error) {
+      lastError = error;
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail || error.response?.data || error.message;
+      logger.warn({ attempt, status, detail: typeof detail === 'string' ? detail.slice(0, 200) : detail }, 'AI service request failed');
+      
+      // If service returned 502/503/504 or network error (e.g. cold starting), wait and retry
+      if (attempt < maxRetries) {
+        const backoffMs = attempt * 8000;
+        logger.info(`AI service is likely waking up from cold start. Retrying in ${backoffMs / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+  }
+
+  if (!aiResponse) {
+    const detail = lastError?.response?.data?.detail || lastError?.response?.data || lastError?.message;
+    logger.error({ detail }, 'All attempts to call AI service failed');
     throw new Error('AI analysis failed. Please try again later.');
   }
 

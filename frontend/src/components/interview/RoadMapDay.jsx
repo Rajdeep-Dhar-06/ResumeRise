@@ -11,7 +11,7 @@ export const RoadMapDay = ({ day }) => (
     <ul className="flex flex-col gap-2 list-none p-0 m-0 pl-1">
       {day.dailyTasks.map((task, i) => (
         <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+          <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-2" />
           <span className="flex-1">{task}</span>
         </li>
       ))}

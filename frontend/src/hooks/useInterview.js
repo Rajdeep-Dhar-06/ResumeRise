@@ -1,4 +1,5 @@
 import { useContext, useEffect } from "react";
+import axios from "axios";
 import {
   generateInterviewReport,
   getInterviewReportById,
@@ -11,13 +12,14 @@ import { useAuth } from "./useAuth.js";
 import { useParams } from "react-router";
 import { useCallback, useState } from "react";
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const useInterview = () => {
   const context = useContext(InterviewContext);
   const { isLoading, setIsLoading, report, setReport, reports, setReports } = context;
   const { user } = useAuth();
   const { reportId } = useParams();
   const [isDeleting, setIsDeleting] = useState(false);
-
   const [fetchError, setFetchError] = useState(null);
 
   /** @description Generate a new interview report by enqueuing a job and polling for completion. */
@@ -41,42 +43,26 @@ export const useInterview = () => {
         throw new Error("Failed to queue interview report generation job.");
       }
 
-      return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 40; // 40 * 3s = 120s timeout
+      // Poll for completion (max 40 attempts = 2 mins)
+      for (let attempts = 0; attempts < 40; attempts++) {
+        await sleep(3000); // Pause for 3 seconds before each check
+
+        const jobStatus = await getInterviewJobStatus(response.jobId);
         
-        const interval = setInterval(async () => {
-          attempts++;
-          if (attempts > maxAttempts) {
-            clearInterval(interval);
-            setIsLoading(false);
-            reject(new Error("Generation timed out."));
-            return;
-          }
-          
-          try {
-            const jobStatus = await getInterviewJobStatus(response.jobId);
-            if (jobStatus.status === 'completed') {
-              clearInterval(interval);
-              setIsLoading(false);
-              resolve({ reportId: jobStatus.reportId });
-            } else if (jobStatus.status === 'failed') {
-              clearInterval(interval);
-              setIsLoading(false);
-              reject(new Error(jobStatus.error || "Generation failed"));
-            }
-            // If waiting or active, continue polling on the next interval tick
-          } catch (err) {
-            clearInterval(interval);
-            setIsLoading(false);
-            reject(err);
-          }
-        }, 3000);
-      });
+        if (jobStatus.status === 'completed') {
+          return { reportId: jobStatus.reportId };
+        } else if (jobStatus.status === 'failed') {
+          throw new Error(jobStatus.error || "Generation failed");
+        }
+        // If status is 'active' or 'waiting', the loop automatically continues
+      }
+
+      throw new Error("Generation timed out.");
     } catch (error) {
       console.error("Error generating report:", error);
-      setIsLoading(false);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,6 +76,14 @@ export const useInterview = () => {
         const response = await getInterviewReportById(id, options);
         setReport(response.interviewReport);
       } catch (error) {
+        if (
+          axios.isCancel(error) ||
+          error.name === "CanceledError" ||
+          error.name === "AbortError" ||
+          error.code === "ERR_CANCELED"
+        ) {
+          return;
+        }
         console.error("Error fetching report:", error);
         setFetchError(error.message || "Failed to load report");
       } finally {
@@ -107,6 +101,14 @@ export const useInterview = () => {
       setReports(response.interviewReports);
       return response.pagination;
     } catch (error) {
+      if (
+        axios.isCancel(error) ||
+        error.name === "CanceledError" ||
+        error.name === "AbortError" ||
+        error.code === "ERR_CANCELED"
+      ) {
+        return;
+      }
       console.error("Error fetching all reports:", error);
     } finally {
       setIsLoading(false);

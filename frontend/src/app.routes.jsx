@@ -1,10 +1,10 @@
 import { createBrowserRouter } from "react-router";
-import Protected from "./components/auth/Protected.jsx";
+import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-import Home from "./pages/interview/Home.jsx";
-import Interview from "./pages/interview/Interview.jsx";
-import Dashboard from "./pages/interview/Dashboard.jsx";
+import Home from "./pages/home/Home.jsx";
+import InterviewReport from "./pages/interview/InterviewReport.jsx";
+import Dashboard from "./pages/dashboard/Dashboard.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -18,25 +18,26 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <Protected>
+      <ProtectedRoute>
         <Home />
-      </Protected>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/dashboard",
     element: (
-      <Protected>
+      <ProtectedRoute>
         <Dashboard />
-      </Protected>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/interview/:reportId",
     element: (
-      <Protected>
-        <Interview />
-      </Protected>
+      <ProtectedRoute>
+        <InterviewReport />
+      </ProtectedRoute>
     ),
   }
 ]);
+
